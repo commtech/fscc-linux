@@ -187,7 +187,7 @@ int fscc_ioctl(struct inode *inode, struct file *file, unsigned int cmd,
 			break;
 			
 		default:
-			printk(KERN_DEBUG DEVICE_NAME " unknown ioctl\n");
+			printk(KERN_NOTICE DEVICE_NAME " unknown ioctl\n");
 			return -ENOTTY;			
 	}
 	

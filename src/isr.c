@@ -42,12 +42,14 @@ irqreturn_t fscc_isr(int irq, void *dev_id)
 	
 	if (isr_value & 0x00000002) {
 		printk(KERN_DEBUG DEVICE_NAME " RFT interrupt\n");
+		
 		fscc_port_empty_RxFIFO(current_port);
 		wake_up_interruptible(&current_port->input_queue);
 	}
 	
 	if (isr_value & 0x00000004) {
 		printk(KERN_DEBUG DEVICE_NAME " RFE interrupt\n");
+		
 		fscc_port_empty_RxFIFO(current_port);
 		wake_up_interruptible(&current_port->input_queue);
 	}
@@ -55,9 +57,8 @@ irqreturn_t fscc_isr(int irq, void *dev_id)
 	if (isr_value & 0x00000008)
 		printk(KERN_DEBUG DEVICE_NAME " RFO interrupt\n");
 	
-	if (isr_value & 0x00000010) {
+	if (isr_value & 0x00000010)
 		printk(KERN_DEBUG DEVICE_NAME " RDO interrupt\n");
-	}
 	
 	if (isr_value & 0x00000020)
 		printk(KERN_DEBUG DEVICE_NAME " RFL interrupt\n");
@@ -66,7 +67,7 @@ irqreturn_t fscc_isr(int irq, void *dev_id)
 		printk(KERN_DEBUG DEVICE_NAME " TIN interrupt\n");
 	
 	if (isr_value & 0x00040000) {
-		printk(KERN_DEBUG DEVICE_NAME " TDU interrupt\n");
+		printk(KERN_ALERT DEVICE_NAME " TDU interrupt\n");
 		
 		if (fscc_port_has_oframes(current_port))
 			fscc_port_pop_oframe(current_port);
@@ -74,7 +75,6 @@ irqreturn_t fscc_isr(int irq, void *dev_id)
 	
 	if (isr_value & 0x00010000) {
 		printk(KERN_DEBUG DEVICE_NAME " TFT interrupt\n");
-		//queue_work(current_port->output_workqueue, &current_port->TFT_worker);
 		
 		if (fscc_port_has_oframes(current_port)) {
 			struct fscc_frame *frame = 0;
@@ -110,10 +110,8 @@ irqreturn_t fscc_isr(int irq, void *dev_id)
 		}
 	}
 	
-	if (isr_value & 0x00020000) {
+	if (isr_value & 0x00020000)
 		printk(KERN_DEBUG DEVICE_NAME " ALLS interrupt\n");
-		//queue_work(current_port->output_workqueue, &current_port->ALLS_worker);
-	}
 	
 	return IRQ_HANDLED;
 }

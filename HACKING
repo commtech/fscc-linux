@@ -1,0 +1,25 @@
+This document defines many guidelines that should be adhered to when developing
+against fscc-linux. These guidelines will make the codebase more readable,
+extensible, and portable.
+
+Printing Guidelines
+=========================
+
+When using printk's inside the codebase use these log levels where appropriate.
+
+KERN_EMERG    - (not used)
+KERN_ALERT    - When something happens that the user should know about (e.g. 
+                data loss).
+KERN_CRIT     - (not used)
+KERN_ERR      - When a function inside the codebase returns an error.
+KERN_WARNING  - When a user does something that is valid but probably 
+                unintentional (e.g. set the trigger level to 1).
+KERN_NOTICE   - When code gets to a part it shouldn't (e.g. unknown ioctl).
+KERN_INFO     - When helpful information is to be given to a user (e.g 
+                firmware version).
+KERN_DEBUG    - General purpose debugging.
+
+The message should start in lowercase and end without a period. Also, always 
+prepend the message with the DEVICE_NAME #define.
+
+printk(KERN_DEBUG DEVICE_NAME " initializing port\n");
