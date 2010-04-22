@@ -1,0 +1,1 @@
+KERNEL=="fscc[0-255]*", NAME="fscc/%n"
