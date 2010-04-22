@@ -38,7 +38,11 @@ struct fscc_card {
 };
 
 struct fscc_card *fscc_card_new(struct pci_dev *pdev, 
-                                const struct pci_device_id *id);
+                                const struct pci_device_id *id,
+                                unsigned major_number,
+                                unsigned minor_number_start,
+                                struct class *class,
+                                struct file_operations *fops);
                                 
 void fscc_card_delete(struct fscc_card *card);
 void fscc_card_suspend(struct fscc_card *card);
@@ -46,16 +50,6 @@ void fscc_card_resume(struct fscc_card *card);
 
 struct fscc_card *fscc_card_find(struct pci_dev *pdev, 
                                  struct list_head *card_list);
-
-struct fscc_port *fscc_card_add_port(struct fscc_card *card, 
-                                     unsigned major_number,
-                                     unsigned minor_number,
-                                     struct file_operations *fops, 
-                                     struct class *class);
-                                     
-enum FSCC_CARD_TYPE fscc_card_get_type(struct fscc_card *card);
-
-unsigned fscc_card_has_dma(struct fscc_card *card);
 
 unsigned long fscc_card_get_BAR(struct fscc_card *card, unsigned number);
 

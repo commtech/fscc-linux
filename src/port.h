@@ -72,10 +72,6 @@ struct fscc_port {
 	unsigned rx_memory_cap;
 	
 	struct fscc_registers register_storage; /* Only valid on suspend/resume */
-	
-	//struct workqueue_struct *output_workqueue;
-	//struct work_struct TFT_worker;
-	//struct work_struct ALLS_worker;
 };
 
 struct fscc_port *fscc_port_new(struct fscc_card *card, unsigned channel, 

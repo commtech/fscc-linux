@@ -21,6 +21,7 @@
 #include "isr.h"
 #include "port.h"
 #include "utils.h"
+#include "config.h"
 
 irqreturn_t fscc_isr(int irq, void *dev_id)
 {
@@ -32,47 +33,47 @@ irqreturn_t fscc_isr(int irq, void *dev_id)
 	isr_value = fscc_port_get_register(current_port, 0, ISR_OFFSET);
 	
 	if (isr_value)
-		printk("fscc_interrupt: 0x%08x\n", isr_value);
+		printk(KERN_DEBUG DEVICE_NAME " interrupt: 0x%08x\n", isr_value);
 	else
 		return IRQ_NONE;
 	
 	if (isr_value & 0x00000001)
-		printk("fscc: RFS interrupt\n");
+		printk(KERN_DEBUG DEVICE_NAME " RFS interrupt\n");
 	
 	if (isr_value & 0x00000002) {
-		printk("fscc: RFT interrupt\n");
+		printk(KERN_DEBUG DEVICE_NAME " RFT interrupt\n");
 		fscc_port_empty_RxFIFO(current_port);
 		wake_up_interruptible(&current_port->input_queue);
 	}
 	
 	if (isr_value & 0x00000004) {
-		printk("fscc: RFE interrupt\n");
+		printk(KERN_DEBUG DEVICE_NAME " RFE interrupt\n");
 		fscc_port_empty_RxFIFO(current_port);
 		wake_up_interruptible(&current_port->input_queue);
 	}
 	
 	if (isr_value & 0x00000008)
-		printk("fscc: RFO interrupt\n");
+		printk(KERN_DEBUG DEVICE_NAME " RFO interrupt\n");
 	
 	if (isr_value & 0x00000010) {
-		printk("fscc: RDO interrupt\n");
+		printk(KERN_DEBUG DEVICE_NAME " RDO interrupt\n");
 	}
 	
 	if (isr_value & 0x00000020)
-		printk("fscc: RFL interrupt\n");
+		printk(KERN_DEBUG DEVICE_NAME " RFL interrupt\n");
 	
 	if (isr_value & 0x00000100)
-		printk("fscc: TIN interrupt\n");
+		printk(KERN_DEBUG DEVICE_NAME " TIN interrupt\n");
 	
 	if (isr_value & 0x00040000) {
-		printk("fscc: TDU interrupt\n");
+		printk(KERN_DEBUG DEVICE_NAME " TDU interrupt\n");
 		
 		if (fscc_port_has_oframes(current_port))
 			fscc_port_pop_oframe(current_port);
 	}
 	
 	if (isr_value & 0x00010000) {
-		printk("fscc: TFT interrupt\n");
+		printk(KERN_DEBUG DEVICE_NAME " TFT interrupt\n");
 		//queue_work(current_port->output_workqueue, &current_port->TFT_worker);
 		
 		if (fscc_port_has_oframes(current_port)) {
@@ -110,7 +111,7 @@ irqreturn_t fscc_isr(int irq, void *dev_id)
 	}
 	
 	if (isr_value & 0x00020000) {
-		printk("fscc: ALLS interrupt\n");
+		printk(KERN_DEBUG DEVICE_NAME " ALLS interrupt\n");
 		//queue_work(current_port->output_workqueue, &current_port->ALLS_worker);
 	}
 	

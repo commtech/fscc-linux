@@ -27,9 +27,15 @@
 #define DMACCR_OFFSET 0x04
 
 struct fscc_card *fscc_card_new(struct pci_dev *pdev,
-                                const struct pci_device_id *id)
+                                const struct pci_device_id *id,
+                                unsigned major_number,
+                                unsigned minor_number_start,
+                                struct class *class,
+                                struct file_operations *fops)
 {
 	struct fscc_card *new_card = 0;
+	struct fscc_port *port_iter = 0;
+	unsigned i = 0;
 	
 	new_card = (struct fscc_card*)kmalloc(sizeof(struct fscc_card), GFP_KERNEL);
 	
@@ -60,32 +66,18 @@ struct fscc_card *fscc_card_new(struct pci_dev *pdev,
 			break;
 			
 		default:
-			printk("Unknown FSCC device.\n");
+			printk(KERN_NOTICE DEVICE_NAME " unknown device %02x\n", id->device);
 	}
 	
-	pci_request_regions(new_card->pci_dev, DEVICE_NAME);
-	
-	//TODO: I think this needs to be free'd.
-	new_card->pciserial_board = (struct pciserial_board*)kmalloc(sizeof(struct fscc_card), GFP_KERNEL);
-	
-	new_card->pciserial_board->flags = FL_BASE1;
-	new_card->pciserial_board->num_ports = 2;
-	new_card->pciserial_board->base_baud = 921600;
-	new_card->pciserial_board->uart_offset = 8;
-	//new_card->pciserial_board->reg_shift = 
-	//new_card->pciserial_board->first_offset = 
-	
-	//new_card->serial_private = pciserial_init_ports(pdev, new_card->pciserial_board);
-	
-	if (IS_ERR(new_card->serial_private)) {
-		printk("FSCC: Error initializing pciserial ports.\n");
-		pci_release_regions(new_card->pci_dev);
-		kfree(new_card);
-		return 0;
-	}
-	
+	pci_request_regions(new_card->pci_dev, DEVICE_NAME);	
 	pci_set_drvdata(new_card->pci_dev, new_card);
-
+	
+	for (i = 0; i < 2; i++)
+		port_iter = fscc_port_new(new_card, i, major_number, minor_number_start + i, class, fops);
+	
+	printk(KERN_INFO DEVICE_NAME " revision %x.%02x\n", 
+	       fscc_port_get_PREV(port_iter), fscc_port_get_FREV(port_iter));
+	
 	return new_card;
 }
 
@@ -98,7 +90,6 @@ void fscc_card_delete(struct fscc_card *card)
 		return;
 	
 	pci_set_drvdata(card->pci_dev, 0);	
-	//pciserial_remove_ports(card->serial_private);	
 	pci_release_regions(card->pci_dev);
 
 	list_for_each_safe(current_node, temp_node, &card->ports) {
@@ -140,54 +131,6 @@ struct fscc_card *fscc_card_find(struct pci_dev *pdev,
 	list_for_each_entry(current_card, card_list, list) {
 		if (current_card->pci_dev == pdev)
 			return current_card;
-	}
-	
-	return 0;
-}
-
-struct fscc_port *fscc_card_add_port(struct fscc_card *card, 
-                                     unsigned major_number,
-                                     unsigned minor_number, 
-                                     struct file_operations *fops, 
-                                     struct class *class)
-{
-	struct fscc_port *port_iter = 0;
-	struct fscc_port *new_port = 0;
-	unsigned channel = 0;
-	
-	/* Give the port the next available channel number. */
-	list_for_each_entry(port_iter, &card->ports, list) {
-		channel++;
-	}
-	
-	new_port = fscc_port_new(card, channel, major_number, minor_number, class, 
-	                         fops);
-	
-	if (new_port == 0)
-		return 0;
-	
-	printk("fscc revision %x.%02x\n", fscc_port_get_PREV(new_port), 
-							          fscc_port_get_FREV(new_port));
-	
-	return new_port;
-}
-
-enum FSCC_CARD_TYPE fscc_card_get_type(struct fscc_card *card)
-{
-	return card->type;
-}
-
-unsigned fscc_card_has_dma(struct fscc_card *card)
-{
-	switch (card->type) {
-		case FSCC:
-		case FSCC_232:
-		case FSCC_4:
-			return 0;
-			
-		case SFSCC:
-		case SFSCC_4:
-			return 1;
 	}
 	
 	return 0;

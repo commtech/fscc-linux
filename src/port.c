@@ -33,18 +33,7 @@ unsigned fscc_port_get_oframe_qty(struct fscc_port *port);
 struct fscc_frame *fscc_port_peek_front_frame(struct fscc_port *port, 
                                               struct list_head *frames);
 struct fscc_frame *fscc_port_peek_back_frame(struct fscc_port *port, 
-                                              struct list_head *frames);
-
-
-//void fscc_port_TFT_handler(struct fscc_port *port)
-//{
-//	printk("fscc: TFT interrupt\n");
-//}
-
-//void fscc_port_ALLS_handler(struct fscc_port *port)
-//{
-//	printk("fscc: ALLS interrupt\n");
-//}                                        
+                                              struct list_head *frames);                                  
 
 struct fscc_port *fscc_port_new(struct fscc_card *card, unsigned channel, 
                                 unsigned major_number, unsigned minor_number, 
@@ -72,22 +61,18 @@ struct fscc_port *fscc_port_new(struct fscc_card *card, unsigned channel,
 	init_waitqueue_head(&new_port->input_queue);
 	init_waitqueue_head(&new_port->output_queue);
 	
-	//new_port->output_workqueue = create_workqueue("output_workqueue");
-	//INIT_WORK(&new_port->TFT_worker, &fscc_port_TFT_handler);
-	//INIT_WORK(&new_port->ALLS_worker, &fscc_port_ALLS_handler);
-	
 	cdev_init(&new_port->cdev, fops);
 	new_port->cdev.owner = THIS_MODULE;
 	
 	if (cdev_add(&new_port->cdev, new_port->dev_t, 1) < 0) {
-		printk("Bad cdev\n");
+		printk(KERN_ERR DEVICE_NAME " cdev_add failed\n");
 		return 0;
 	}
 	
 	mdevice = device_create(class, 0, new_port->dev_t, 0, "fscc%i", minor_number);
 
 	if (mdevice <= 0) {
-		printk("FSCC: device_create failed.\n");
+		printk(KERN_ERR DEVICE_NAME " device_create failed\n");
 		return 0;
 	}
 	
@@ -103,7 +88,7 @@ struct fscc_port *fscc_port_new(struct fscc_card *card, unsigned channel,
 	
 	irq_num = card->pci_dev->irq;
 	if (request_irq(irq_num, &fscc_isr, IRQF_SHARED, new_port->name, new_port))
-		printk(KERN_INFO "fscc: can't get assigned irq %i\n", irq_num);
+		printk(KERN_ERR DEVICE_NAME " request_irq failed on irq %i\n", irq_num);
 	
 	fscc_port_execute_RRES(new_port);
 	fscc_port_execute_TRES(new_port);

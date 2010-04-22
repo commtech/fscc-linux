@@ -187,7 +187,7 @@ int fscc_ioctl(struct inode *inode, struct file *file, unsigned int cmd,
 			break;
 			
 		default:
-			printk("FSCC: Unknown ioctl.\n");
+			printk(KERN_DEBUG DEVICE_NAME " unknown ioctl\n");
 			return -ENOTTY;			
 	}
 	
@@ -203,25 +203,13 @@ static struct file_operations fscc_fops = {
 	.ioctl = fscc_ioctl,
 };
 
-void fscc_add_card(struct fscc_card *card, struct list_head *card_list)
-{	
-	list_add_tail(&card->list, card_list);
-}
-
-void fscc_remove_card(struct fscc_card *card)
-{
-	list_del(&card->list);
-}
-
 #define PORTS_PER_CARD 2
 
 static int __devinit fscc_probe(struct pci_dev *pdev, 
                                 const struct pci_device_id *id)
 {
 	struct fscc_card *new_card = 0;
-	struct fscc_port *new_port = 0;
-	int unused_minor_number = 0;
-	unsigned i = 0;
+	int next_minor_number = 0;
 	
 	if (pci_enable_device(pdev))
 		return -EIO;
@@ -233,23 +221,17 @@ static int __devinit fscc_probe(struct pci_dev *pdev,
 		case SFSCC_ID:
 		case SFSCC_4_ID:
 		case SFSCC_4_LVDS_ID:
-			new_card = fscc_card_new(pdev, id);
-			fscc_add_card(new_card, &fscc_cards);
+			next_minor_number = fscc_get_next_minor_number(&fscc_cards);
 			
-			for (i = 0; i < PORTS_PER_CARD; i++) {			
-				unused_minor_number = fscc_get_next_minor_number(&fscc_cards);
-				new_port = fscc_card_add_port(new_card, fscc_major_number, 
-					                          unused_minor_number, &fscc_fops, 
-					                          fscc_class);
-
-				if (new_port == 0)
-					return -1;
-			}
-					
+			new_card = fscc_card_new(pdev, id, fscc_major_number, 
+			                         (unsigned)next_minor_number, fscc_class,
+			                         &fscc_fops);
+			                         
+			list_add_tail(&new_card->list, &fscc_cards);
 			break;
 			
 		default:
-			printk("Unknown FSCC device.\n");
+			printk(KERN_DEBUG DEVICE_NAME "unknown device\n");
 	}
 
 	return 0;
@@ -262,11 +244,11 @@ static void __devexit fscc_remove(struct pci_dev *pdev)
 	card = fscc_card_find(pdev, &fscc_cards);
 	
 	if (card == 0) {
-		printk("FSCC: Card not found\n");
+		printk(KERN_DEBUG DEVICE_NAME " card not found\n");
 		return;
 	}
 	
-	fscc_remove_card(card);
+	list_del(&card->list);
 	fscc_card_delete(card);	
 	pci_disable_device(pdev);
 }
@@ -311,10 +293,16 @@ static int __init fscc_init(void)
 	unsigned err;
 	
 	fscc_class = class_create(THIS_MODULE, DEVICE_NAME);
+	
+	if (IS_ERR(fscc_class)) {
+		printk(KERN_ERR DEVICE_NAME " class_create failed\n");
+		return PTR_ERR(fscc_class);
+	}
+	
 	fscc_major_number = register_chrdev(0, "fscc", &fscc_fops);
 	
 	if (fscc_major_number < 0) {
-		printk(KERN_ERR "Major number failed.\n");
+		printk(KERN_ERR DEVICE_NAME " register_chrdev failed\n");
 		class_destroy(fscc_class);
 		return -1;
 	}
@@ -322,7 +310,7 @@ static int __init fscc_init(void)
 	err = pci_register_driver(&fscc_pci_driver);
 	
 	if (err < 0) {
-		printk(KERN_ERR "Error registering driver.");
+		printk(KERN_ERR DEVICE_NAME " pci_register_driver failed");
 		unregister_chrdev(fscc_major_number, "fscc");
 		class_destroy(fscc_class);
 		return err;
