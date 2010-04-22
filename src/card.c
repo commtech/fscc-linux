@@ -201,34 +201,3 @@ unsigned long fscc_card_get_BAR(struct fscc_card *card, unsigned number)
 	return pci_resource_start(card->pci_dev, number);
 }
 
-void fscc_card_set_FCR(struct fscc_card *card, u32 value)
-{
-	unsigned long address = 0;
-	
-	address = fscc_card_get_BAR(card, 2);
-	outl(value, address + FCR_OFFSET);
-}
-
-__u32 fscc_card_get_FCR(struct fscc_card *card)
-{
-	unsigned long address = 0;
-	
-	address = fscc_card_get_BAR(card, 2);
-	return inl(address + FCR_OFFSET);
-}
-
-void fscc_card_set_DMACCR(struct fscc_card *card, __u32 value)
-{
-	unsigned long address = 0;
-	
-	address = fscc_card_get_BAR(card, 2);
-	outl(value, address + DMACCR_OFFSET);
-}
-
-__u32 fscc_card_get_DMACCR(struct fscc_card *card)
-{
-	unsigned long address = 0;
-	
-	address = fscc_card_get_BAR(card, 2);
-	return inl(address + DMACCR_OFFSET);
-}

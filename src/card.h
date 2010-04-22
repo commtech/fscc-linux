@@ -59,10 +59,4 @@ unsigned fscc_card_has_dma(struct fscc_card *card);
 
 unsigned long fscc_card_get_BAR(struct fscc_card *card, unsigned number);
 
-void fscc_card_set_FCR(struct fscc_card *card, __u32 value);
-__u32 fscc_card_get_FCR(struct fscc_card *card);
-
-void fscc_card_set_DMACCR(struct fscc_card *card, __u32 value);
-__u32 fscc_card_get_DMACCR(struct fscc_card *card);
-
 #endif
