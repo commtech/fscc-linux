@@ -26,6 +26,7 @@
 #include <linux/list.h>
 #include <linux/wait.h>
 #include <linux/workqueue.h>
+#include <linux/proc_fs.h>
 #include "frame.h"
 #include "fscc.h"
 
@@ -72,11 +73,16 @@ struct fscc_port {
 	unsigned rx_memory_cap;
 	
 	struct fscc_registers register_storage; /* Only valid on suspend/resume */
+	
+	struct proc_dir_entry *fscc_proc_dir; /* Convenience variable */
+	struct proc_dir_entry *port_proc_dir;
+	struct proc_dir_entry *registers_proc_dir;
 };
 
 struct fscc_port *fscc_port_new(struct fscc_card *card, unsigned channel, 
                                 unsigned major_number, unsigned minor_number, 
-                                struct class *class, struct file_operations *fops);
+                                struct class *class, struct file_operations *fops,
+                                struct proc_dir_entry *fscc_proc_dir);
                                 
 void fscc_port_delete(struct fscc_port *port);
 unsigned fscc_port_exists(struct fscc_port *port, struct list_head *card_list);

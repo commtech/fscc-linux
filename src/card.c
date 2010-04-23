@@ -31,7 +31,8 @@ struct fscc_card *fscc_card_new(struct pci_dev *pdev,
                                 unsigned major_number,
                                 unsigned minor_number_start,
                                 struct class *class,
-                                struct file_operations *fops)
+                                struct file_operations *fops,
+	                            struct proc_dir_entry *fscc_proc_dir)
 {
 	struct fscc_card *new_card = 0;
 	struct fscc_port *port_iter = 0;
@@ -73,7 +74,9 @@ struct fscc_card *fscc_card_new(struct pci_dev *pdev,
 	pci_set_drvdata(new_card->pci_dev, new_card);
 	
 	for (i = 0; i < 2; i++)
-		port_iter = fscc_port_new(new_card, i, major_number, minor_number_start + i, class, fops);
+		port_iter = fscc_port_new(new_card, i, major_number, 
+		                          minor_number_start + i, class, fops, 
+		                          fscc_proc_dir);
 	
 	printk(KERN_INFO DEVICE_NAME " revision %x.%02x\n", 
 	       fscc_port_get_PREV(port_iter), fscc_port_get_FREV(port_iter));

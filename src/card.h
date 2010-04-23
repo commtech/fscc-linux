@@ -42,7 +42,8 @@ struct fscc_card *fscc_card_new(struct pci_dev *pdev,
                                 unsigned major_number,
                                 unsigned minor_number_start,
                                 struct class *class,
-                                struct file_operations *fops);
+                                struct file_operations *fops,
+	                            struct proc_dir_entry *fscc_proc_dir);
                                 
 void fscc_card_delete(struct fscc_card *card);
 void fscc_card_suspend(struct fscc_card *card);

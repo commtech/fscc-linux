@@ -33,7 +33,7 @@ struct fscc_registers {
 	int32_t reserved2[2];
 
 	int32_t CMDR;
-	int32_t STAR;
+	int32_t STAR; /* Read-only */
 	int32_t CCR0;
 	int32_t CCR1;
 	int32_t CCR2;

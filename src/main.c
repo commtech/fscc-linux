@@ -26,6 +26,7 @@
 #include <linux/serial_core.h>
 #include <linux/interrupt.h>
 #include <linux/poll.h>
+#include <linux/proc_fs.h>
 #include "card.h"
 #include "port.h"
 #include "isr.h"
@@ -37,6 +38,7 @@ unsigned fscc_get_next_minor_number(struct list_head *card_list);
 
 static int fscc_major_number;
 static struct class *fscc_class = 0;
+static struct proc_dir_entry *fscc_proc_dir = 0;
 
 LIST_HEAD(fscc_cards);
 
@@ -203,8 +205,6 @@ static struct file_operations fscc_fops = {
 	.ioctl = fscc_ioctl,
 };
 
-#define PORTS_PER_CARD 2
-
 static int __devinit fscc_probe(struct pci_dev *pdev, 
                                 const struct pci_device_id *id)
 {
@@ -225,7 +225,7 @@ static int __devinit fscc_probe(struct pci_dev *pdev,
 			
 			new_card = fscc_card_new(pdev, id, fscc_major_number, 
 			                         (unsigned)next_minor_number, fscc_class,
-			                         &fscc_fops);
+			                         &fscc_fops, fscc_proc_dir);
 			                         
 			list_add_tail(&new_card->list, &fscc_cards);
 			break;
@@ -256,6 +256,8 @@ static void __devexit fscc_remove(struct pci_dev *pdev)
 static int fscc_suspend(struct pci_dev *pdev, pm_message_t state)
 {
 	struct fscc_card *card = 0;
+	
+	printk(KERN_DEBUG DEVICE_NAME " sleeping\n");
 		
 	card = fscc_card_find(pdev, &fscc_cards);
 	fscc_card_suspend(card);
@@ -269,6 +271,8 @@ static int fscc_suspend(struct pci_dev *pdev, pm_message_t state)
 static int fscc_resume(struct pci_dev *pdev)
 {
 	struct fscc_card *card = 0;	
+	
+	printk(KERN_DEBUG DEVICE_NAME " resuming\n");
 
 	pci_set_power_state(pdev, PCI_D0);
 	pci_restore_state(pdev);
@@ -299,6 +303,8 @@ static int __init fscc_init(void)
 		return PTR_ERR(fscc_class);
 	}
 	
+	fscc_proc_dir = proc_mkdir(DEVICE_NAME, 0);
+	
 	fscc_major_number = register_chrdev(0, "fscc", &fscc_fops);
 	
 	if (fscc_major_number < 0) {
@@ -320,7 +326,8 @@ static int __init fscc_init(void)
 }
 
 static void __exit fscc_exit(void)
-{	
+{		
+	remove_proc_entry(DEVICE_NAME, 0);
 	pci_unregister_driver(&fscc_pci_driver);
 	unregister_chrdev(fscc_major_number, "fscc");
 	class_destroy(fscc_class);
@@ -329,8 +336,9 @@ static void __exit fscc_exit(void)
 MODULE_DEVICE_TABLE(pci, fscc_id_table);
 
 MODULE_LICENSE("GPL");
-MODULE_DESCRIPTION("Driver for the FSCC series of cards from Commtech, Inc."); 
 MODULE_VERSION("2.0");
+MODULE_AUTHOR("willf@commtech-fastcom.com");
+MODULE_DESCRIPTION("Driver for the FSCC series of cards from Commtech, Inc."); 
 
 module_init(fscc_init);
 module_exit(fscc_exit);  

@@ -19,6 +19,7 @@
 */
 
 #include <linux/pci.h>
+#include <linux/proc_fs.h>
 #include "port.h"
 #include "card.h"
 #include "utils.h"
@@ -33,15 +34,223 @@ unsigned fscc_port_get_oframe_qty(struct fscc_port *port);
 struct fscc_frame *fscc_port_peek_front_frame(struct fscc_port *port, 
                                               struct list_head *frames);
 struct fscc_frame *fscc_port_peek_back_frame(struct fscc_port *port, 
-                                              struct list_head *frames);                                  
+                                              struct list_head *frames);     
+
+int register_read_proc(char *page, void *data, unsigned register_offset)
+{
+    struct fscc_port *port = (struct fscc_port *)data;
+    
+	return sprintf(page, "0x%08x\n", fscc_port_get_register(port, 0, register_offset));
+}
+
+int fifot_read_proc(char *page, char **start, off_t offset, int count, int *eof, void *data) 
+{
+    return register_read_proc(page, data, FIFOT_OFFSET);
+}       
+
+int cmdr_read_proc(char *page, char **start, off_t offset, int count, int *eof, void *data) 
+{
+    return register_read_proc(page, data, CMDR_OFFSET);
+}   
+
+int star_read_proc(char *page, char **start, off_t offset, int count, int *eof, void *data) 
+{
+    return register_read_proc(page, data, STAR_OFFSET);
+}   
+
+int ccr0_read_proc(char *page, char **start, off_t offset, int count, int *eof, void *data) 
+{
+    return register_read_proc(page, data, CCR0_OFFSET);
+}   
+
+int ccr1_read_proc(char *page, char **start, off_t offset, int count, int *eof, void *data) 
+{
+    return register_read_proc(page, data, CCR1_OFFSET);
+}   
+
+int ccr2_read_proc(char *page, char **start, off_t offset, int count, int *eof, void *data) 
+{
+    return register_read_proc(page, data, CCR2_OFFSET);
+}   
+
+int bgr_read_proc(char *page, char **start, off_t offset, int count, int *eof, void *data) 
+{
+    return register_read_proc(page, data, BGR_OFFSET);
+}   
+
+int ssr_read_proc(char *page, char **start, off_t offset, int count, int *eof, void *data) 
+{
+    return register_read_proc(page, data, SSR_OFFSET);
+}   
+
+int smr_read_proc(char *page, char **start, off_t offset, int count, int *eof, void *data) 
+{
+    return register_read_proc(page, data, SMR_OFFSET);
+}   
+
+int tsr_read_proc(char *page, char **start, off_t offset, int count, int *eof, void *data) 
+{
+    return register_read_proc(page, data, TSR_OFFSET);
+}   
+
+int tmr_read_proc(char *page, char **start, off_t offset, int count, int *eof, void *data) 
+{
+    return register_read_proc(page, data, TMR_OFFSET);
+}   
+
+int rar_read_proc(char *page, char **start, off_t offset, int count, int *eof, void *data) 
+{
+    return register_read_proc(page, data, RAR_OFFSET);
+}   
+
+int ramr_read_proc(char *page, char **start, off_t offset, int count, int *eof, void *data) 
+{
+    return register_read_proc(page, data, RAMR_OFFSET);
+}   
+
+int ppr_read_proc(char *page, char **start, off_t offset, int count, int *eof, void *data) 
+{
+    return register_read_proc(page, data, PPR_OFFSET);
+}         
+
+int tcr_read_proc(char *page, char **start, off_t offset, int count, int *eof, void *data) 
+{
+    return register_read_proc(page, data, TCR_OFFSET);
+}        
+
+int vstr_read_proc(char *page, char **start, off_t offset, int count, int *eof, void *data) 
+{
+    return register_read_proc(page, data, VSTR_OFFSET);
+}        
+
+int imr_read_proc(char *page, char **start, off_t offset, int count, int *eof, void *data) 
+{
+    return register_read_proc(page, data, IMR_OFFSET);
+}   
+
+////////////////////////////////////////
+
+int register_write_proc(const char *buffer, unsigned long count, void *data, unsigned register_offset)
+{
+    struct fscc_port *port = 0;
+    char *end = 0;
+    unsigned value = 0;
+
+    port = (struct fscc_port *)data;
+
+	value = simple_strtoul(buffer, &end, 16);
+
+	return count;
+}     
+
+int fifot_write_proc(struct file *file, const char *buffer, unsigned long count, void *data) 
+{
+    return register_write_proc(buffer, count, data, FIFOT_OFFSET);
+}      
+
+int cmdr_write_proc(struct file *file, const char *buffer, unsigned long count, void *data) 
+{
+    return register_write_proc(buffer, count, data, CMDR_OFFSET);
+}      
+
+int ccr0_write_proc(struct file *file, const char *buffer, unsigned long count, void *data) 
+{
+    return register_write_proc(buffer, count, data, CCR0_OFFSET);
+}      
+
+int ccr1_write_proc(struct file *file, const char *buffer, unsigned long count, void *data) 
+{
+    return register_write_proc(buffer, count, data, CCR1_OFFSET);
+}      
+
+int ccr2_write_proc(struct file *file, const char *buffer, unsigned long count, void *data) 
+{
+    return register_write_proc(buffer, count, data, CCR2_OFFSET);
+}      
+
+int bgr_write_proc(struct file *file, const char *buffer, unsigned long count, void *data) 
+{
+    return register_write_proc(buffer, count, data, SSR_OFFSET);
+}      
+
+int ssr_write_proc(struct file *file, const char *buffer, unsigned long count, void *data) 
+{
+    return register_write_proc(buffer, count, data, SSR_OFFSET);
+}      
+
+int smr_write_proc(struct file *file, const char *buffer, unsigned long count, void *data) 
+{
+    return register_write_proc(buffer, count, data, SMR_OFFSET);
+}      
+
+int tsr_write_proc(struct file *file, const char *buffer, unsigned long count, void *data) 
+{
+    return register_write_proc(buffer, count, data, TSR_OFFSET);
+}      
+
+int tmr_write_proc(struct file *file, const char *buffer, unsigned long count, void *data) 
+{
+    return register_write_proc(buffer, count, data, TMR_OFFSET);
+}      
+
+int rar_write_proc(struct file *file, const char *buffer, unsigned long count, void *data) 
+{
+    return register_write_proc(buffer, count, data, RAR_OFFSET);
+}
+
+int ramr_write_proc(struct file *file, const char *buffer, unsigned long count, void *data) 
+{
+    return register_write_proc(buffer, count, data, RAMR_OFFSET);
+}      
+
+int ppr_write_proc(struct file *file, const char *buffer, unsigned long count, void *data) 
+{
+    return register_write_proc(buffer, count, data, PPR_OFFSET);
+}      
+
+int tcr_write_proc(struct file *file, const char *buffer, unsigned long count, void *data) 
+{
+    return register_write_proc(buffer, count, data, TCR_OFFSET);
+}      
+
+int vstr_write_proc(struct file *file, const char *buffer, unsigned long count, void *data) 
+{
+    return register_write_proc(buffer, count, data, VSTR_OFFSET);
+}      
+
+int imr_write_proc(struct file *file, const char *buffer, unsigned long count, void *data) 
+{
+    return register_write_proc(buffer, count, data, IMR_OFFSET);
+}      
 
 struct fscc_port *fscc_port_new(struct fscc_card *card, unsigned channel, 
                                 unsigned major_number, unsigned minor_number, 
-                                struct class *class, struct file_operations *fops)
+                                struct class *class, struct file_operations *fops,
+                                struct proc_dir_entry *fscc_proc_dir)
 {	
+	struct proc_dir_entry *fifot_proc_entry = 0;
+	struct proc_dir_entry *cmdr_proc_entry = 0;
+	struct proc_dir_entry *star_proc_entry = 0;
+	struct proc_dir_entry *ccr0_proc_entry = 0;
+	struct proc_dir_entry *ccr1_proc_entry = 0;
+	struct proc_dir_entry *ccr2_proc_entry = 0;
+	struct proc_dir_entry *bgr_proc_entry = 0;
+	struct proc_dir_entry *ssr_proc_entry = 0;
+	struct proc_dir_entry *smr_proc_entry = 0;
+	struct proc_dir_entry *tsr_proc_entry = 0;
+	struct proc_dir_entry *tmr_proc_entry = 0;
+	struct proc_dir_entry *rar_proc_entry = 0;
+	struct proc_dir_entry *ramr_proc_entry = 0;
+	struct proc_dir_entry *ppr_proc_entry = 0;
+	struct proc_dir_entry *tcr_proc_entry = 0;
+	struct proc_dir_entry *vstr_proc_entry = 0;
+	struct proc_dir_entry *imr_proc_entry = 0;
+	
 	struct fscc_port *new_port = 0;
 	struct device *mdevice = 0;
 	unsigned irq_num = 0;
+	mode_t read_only_permissions;
+	mode_t read_write_permissions;
 	
 	new_port = (struct fscc_port*)kmalloc(sizeof(struct fscc_port), GFP_KERNEL);
 	
@@ -89,6 +298,137 @@ struct fscc_port *fscc_port_new(struct fscc_card *card, unsigned channel,
 	irq_num = card->pci_dev->irq;
 	if (request_irq(irq_num, &fscc_isr, IRQF_SHARED, new_port->name, new_port))
 		printk(KERN_ERR DEVICE_NAME " request_irq failed on irq %i\n", irq_num);
+
+	new_port->fscc_proc_dir = fscc_proc_dir;
+	new_port->port_proc_dir = proc_mkdir(new_port->name, new_port->fscc_proc_dir);
+	new_port->registers_proc_dir = proc_mkdir("registers", new_port->port_proc_dir);
+	
+	read_only_permissions = S_IRUSR | S_IRGRP | S_IROTH;
+	read_write_permissions = S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH;
+	
+	fifot_proc_entry = create_proc_entry("fifot", read_write_permissions, new_port->registers_proc_dir);
+	cmdr_proc_entry = create_proc_entry("cmdr", read_write_permissions, new_port->registers_proc_dir);
+	star_proc_entry = create_proc_entry("star", read_only_permissions, new_port->registers_proc_dir);
+	ccr0_proc_entry = create_proc_entry("ccr0", read_write_permissions, new_port->registers_proc_dir);
+	ccr1_proc_entry = create_proc_entry("ccr1", read_write_permissions, new_port->registers_proc_dir);
+	ccr2_proc_entry = create_proc_entry("ccr2", read_write_permissions, new_port->registers_proc_dir);
+	bgr_proc_entry = create_proc_entry("bgr", read_write_permissions, new_port->registers_proc_dir);
+	ssr_proc_entry = create_proc_entry("ssr", read_write_permissions, new_port->registers_proc_dir);
+	smr_proc_entry = create_proc_entry("smr", read_write_permissions, new_port->registers_proc_dir);
+	tsr_proc_entry = create_proc_entry("tsr", read_write_permissions, new_port->registers_proc_dir);
+	tmr_proc_entry = create_proc_entry("tmr", read_write_permissions, new_port->registers_proc_dir);
+	rar_proc_entry = create_proc_entry("rar", read_write_permissions, new_port->registers_proc_dir);
+	ramr_proc_entry = create_proc_entry("ramr", read_write_permissions, new_port->registers_proc_dir);
+	ppr_proc_entry = create_proc_entry("ppr", read_write_permissions, new_port->registers_proc_dir);
+	tcr_proc_entry = create_proc_entry("tcr", read_write_permissions, new_port->registers_proc_dir);
+	vstr_proc_entry = create_proc_entry("vstr", read_only_permissions, new_port->registers_proc_dir);
+	imr_proc_entry = create_proc_entry("imr", read_write_permissions, new_port->registers_proc_dir);
+
+	if (fifot_proc_entry) {
+		fifot_proc_entry->data = new_port;
+		fifot_proc_entry->read_proc = fifot_read_proc;
+		fifot_proc_entry->write_proc = fifot_write_proc;
+	}
+	
+	if (cmdr_proc_entry) {
+		cmdr_proc_entry->data = new_port;
+		cmdr_proc_entry->read_proc = cmdr_read_proc;
+		cmdr_proc_entry->write_proc = cmdr_write_proc;
+	}
+	
+	if (star_proc_entry) {
+		star_proc_entry->data = new_port;
+		star_proc_entry->read_proc = star_read_proc;
+	}
+	
+	if (ccr0_proc_entry) {
+		ccr0_proc_entry->data = new_port;
+		ccr0_proc_entry->read_proc = ccr0_read_proc;
+		ccr0_proc_entry->write_proc = ccr0_write_proc;
+	}
+	
+	if (ccr1_proc_entry) {
+		ccr1_proc_entry->data = new_port;
+		ccr1_proc_entry->read_proc = ccr1_read_proc;
+		ccr1_proc_entry->write_proc = ccr1_write_proc;
+	}
+	
+	if (ccr2_proc_entry) {
+		ccr2_proc_entry->data = new_port;
+		ccr2_proc_entry->read_proc = ccr2_read_proc;
+		ccr2_proc_entry->write_proc = ccr2_write_proc;
+	}
+	
+	if (bgr_proc_entry) {
+		bgr_proc_entry->data = new_port;
+		bgr_proc_entry->read_proc = bgr_read_proc;
+		bgr_proc_entry->write_proc = bgr_write_proc;
+	}
+	
+	if (ssr_proc_entry) {
+		ssr_proc_entry->data = new_port;
+		ssr_proc_entry->read_proc = ssr_read_proc;
+		ssr_proc_entry->write_proc = ssr_write_proc;
+	}
+	
+	if (smr_proc_entry) {
+		smr_proc_entry->data = new_port;
+		smr_proc_entry->read_proc = smr_read_proc;
+		smr_proc_entry->write_proc = smr_write_proc;
+	}
+	
+	if (tsr_proc_entry) {
+		tsr_proc_entry->data = new_port;
+		tsr_proc_entry->read_proc = tsr_read_proc;
+		tsr_proc_entry->write_proc = tsr_write_proc;
+	}
+	
+	if (tmr_proc_entry) {
+		tmr_proc_entry->data = new_port;
+		tmr_proc_entry->read_proc = tmr_read_proc;
+		fifot_proc_entry->write_proc = fifot_write_proc;
+	}
+	
+	if (rar_proc_entry) {
+		rar_proc_entry->data = new_port;
+		rar_proc_entry->read_proc = rar_read_proc;
+		rar_proc_entry->write_proc = rar_write_proc;
+	}
+	
+	if (tsr_proc_entry) {
+		tsr_proc_entry->data = new_port;
+		tsr_proc_entry->read_proc = tsr_read_proc;
+		tsr_proc_entry->write_proc = tsr_write_proc;
+	}
+	
+	if (ramr_proc_entry) {
+		ramr_proc_entry->data = new_port;
+		ramr_proc_entry->read_proc = ramr_read_proc;
+		ramr_proc_entry->write_proc = ramr_write_proc;
+	}
+	
+	if (ppr_proc_entry) {
+		ppr_proc_entry->data = new_port;
+		ppr_proc_entry->read_proc = ppr_read_proc;
+		ppr_proc_entry->write_proc = ppr_write_proc;
+	}
+	
+	if (tcr_proc_entry) {
+		tcr_proc_entry->data = new_port;
+		tcr_proc_entry->read_proc = tcr_read_proc;
+		tcr_proc_entry->write_proc = tcr_write_proc;
+	}
+	
+	if (vstr_proc_entry) {
+		vstr_proc_entry->data = new_port;
+		vstr_proc_entry->read_proc = vstr_read_proc;
+	}
+	
+	if (imr_proc_entry) {
+		imr_proc_entry->data = new_port;
+		imr_proc_entry->read_proc = imr_read_proc;
+		imr_proc_entry->write_proc = imr_write_proc;
+	}
 	
 	fscc_port_execute_RRES(new_port);
 	fscc_port_execute_TRES(new_port);
@@ -102,6 +442,27 @@ void fscc_port_delete(struct fscc_port *port)
 	
 	if (port == 0)
 		return;
+
+	remove_proc_entry("fifot", port->registers_proc_dir);
+	remove_proc_entry("cmdr", port->registers_proc_dir);
+	remove_proc_entry("star", port->registers_proc_dir);
+	remove_proc_entry("ccr0", port->registers_proc_dir);
+	remove_proc_entry("ccr1", port->registers_proc_dir);
+	remove_proc_entry("ccr2", port->registers_proc_dir);
+	remove_proc_entry("bgr", port->registers_proc_dir);
+	remove_proc_entry("ssr", port->registers_proc_dir);
+	remove_proc_entry("smr", port->registers_proc_dir);
+	remove_proc_entry("tsr", port->registers_proc_dir);
+	remove_proc_entry("tmr", port->registers_proc_dir);
+	remove_proc_entry("rar", port->registers_proc_dir);
+	remove_proc_entry("ramr", port->registers_proc_dir);
+	remove_proc_entry("ppr", port->registers_proc_dir);
+	remove_proc_entry("tcr", port->registers_proc_dir);
+	remove_proc_entry("vstr", port->registers_proc_dir);
+	remove_proc_entry("imr", port->registers_proc_dir);
+	
+	remove_proc_entry("registers", port->port_proc_dir);
+	remove_proc_entry(port->name, port->fscc_proc_dir);
 	
 	fscc_port_empty_iframes(port);
 	fscc_port_empty_oframes(port);
@@ -110,7 +471,6 @@ void fscc_port_delete(struct fscc_port *port)
 	free_irq(irq_num, port);
 	kfree(port->name);
 	
-//	destroy_workqueue(port->output_workqueue);
 	device_destroy(port->class, port->dev_t);
 	cdev_del(&port->cdev);
 	list_del(&port->list);
@@ -261,6 +621,9 @@ int fscc_port_write(struct fscc_port *port, const char *data, unsigned length)
 	}
 	
 	fscc_port_set_register(port, 0, BC_FIFO_L_OFFSET, length);
+	
+	printk(KERN_DEBUG DEVICE_NAME " sending %u byte frame\n", length);
+	
 	fscc_port_execute_XF(port);
 	
 	return 1;

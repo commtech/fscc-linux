@@ -35,7 +35,7 @@ struct fscc_registers {
 	__s32 reserved2[2];
 
 	__s32 CMDR;
-	__s32 STAR;
+	__s32 STAR; /* Read-only */
 	__s32 CCR0;
 	__s32 CCR1;
 	__s32 CCR2;
