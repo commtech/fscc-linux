@@ -39,6 +39,8 @@ struct fscc_frame *fscc_port_peek_back_frame(struct fscc_port *port,
 int register_read_proc(char *page, void *data, unsigned register_offset)
 {
     struct fscc_port *port = (struct fscc_port *)data;
+
+	printk(KERN_DEBUG DEVICE_NAME " reading register 0x%02x", register_offset);
     
 	return sprintf(page, "0x%08x\n", fscc_port_get_register(port, 0, register_offset));
 }
@@ -137,8 +139,12 @@ int register_write_proc(const char *buffer, unsigned long count, void *data, uns
     unsigned value = 0;
 
     port = (struct fscc_port *)data;
-
+	
 	value = simple_strtoul(buffer, &end, 16);
+
+	printk(KERN_DEBUG DEVICE_NAME " setting register 0x%02x to 0x%08x", register_offset, value);
+
+	fscc_port_set_register(port, 0, register_offset, value);
 
 	return count;
 }     
@@ -170,7 +176,7 @@ int ccr2_write_proc(struct file *file, const char *buffer, unsigned long count, 
 
 int bgr_write_proc(struct file *file, const char *buffer, unsigned long count, void *data) 
 {
-    return register_write_proc(buffer, count, data, SSR_OFFSET);
+    return register_write_proc(buffer, count, data, BGR_OFFSET);
 }      
 
 int ssr_write_proc(struct file *file, const char *buffer, unsigned long count, void *data) 
@@ -386,7 +392,7 @@ struct fscc_port *fscc_port_new(struct fscc_card *card, unsigned channel,
 	if (tmr_proc_entry) {
 		tmr_proc_entry->data = new_port;
 		tmr_proc_entry->read_proc = tmr_read_proc;
-		fifot_proc_entry->write_proc = fifot_write_proc;
+		tmr_proc_entry->write_proc = tmr_write_proc;
 	}
 	
 	if (rar_proc_entry) {
