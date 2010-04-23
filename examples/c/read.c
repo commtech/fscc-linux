@@ -10,7 +10,7 @@ int main(void)
 	int port_fd = 0;
 	char data[20];
 
-	port_fd = open("/dev/fscc0", O_WRONLY);
+	port_fd = open("/dev/fscc0", O_RDONLY);
 
 	if (port_fd == -1) {
 		perror("open");
