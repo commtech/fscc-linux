@@ -27,6 +27,7 @@
 #include <linux/interrupt.h>
 #include <linux/poll.h>
 #include <linux/proc_fs.h>
+#include <linux/moduleparam.h>
 #include "card.h"
 #include "port.h"
 #include "isr.h"
@@ -39,6 +40,7 @@ unsigned fscc_get_next_minor_number(struct list_head *card_list);
 static int fscc_major_number;
 static struct class *fscc_class = 0;
 static struct proc_dir_entry *fscc_proc_dir = 0;
+unsigned memory_cap = DEFAULT_MEMEMORY_CAP;
 
 LIST_HEAD(fscc_cards);
 
@@ -321,24 +323,30 @@ static int __init fscc_init(void)
 		class_destroy(fscc_class);
 		return err;
 	}
+
+	if (memory_cap != DEFAULT_MEMEMORY_CAP)
+		printk(KERN_INFO DEVICE_NAME " changing the memory cap from %u => %u (bytes)\n", DEFAULT_MEMEMORY_CAP, memory_cap);
 	
 	return 0;
 }
 
 static void __exit fscc_exit(void)
-{		
-	remove_proc_entry(DEVICE_NAME, 0);
+{
 	pci_unregister_driver(&fscc_pci_driver);
 	unregister_chrdev(fscc_major_number, "fscc");
 	class_destroy(fscc_class);
+	remove_proc_entry(DEVICE_NAME, 0);
 }
 
 MODULE_DEVICE_TABLE(pci, fscc_id_table);
 
 MODULE_LICENSE("GPL");
 MODULE_VERSION("2.0");
-MODULE_AUTHOR("willf@commtech-fastcom.com");
+MODULE_AUTHOR("William Fagan <willf@commtech-fastcom.com>");
 MODULE_DESCRIPTION("Driver for the FSCC series of cards from Commtech, Inc."); 
+
+module_param(memory_cap, int, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
+MODULE_PARM_DESC(memory_cap, "The maximum user data (in bytes) the driver will keep in it's buffer.");
 
 module_init(fscc_init);
 module_exit(fscc_exit);  

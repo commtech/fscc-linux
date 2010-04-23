@@ -69,9 +69,6 @@ struct fscc_port {
 	struct list_head oframes;
 	struct list_head iframes;
 	
-	unsigned tx_memory_cap;
-	unsigned rx_memory_cap;
-	
 	struct fscc_registers register_storage; /* Only valid on suspend/resume */
 	
 	struct proc_dir_entry *fscc_proc_dir; /* Convenience variable */

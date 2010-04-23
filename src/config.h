@@ -35,5 +35,9 @@
 #define FSCC_4_ID 0x001b
 #define SFSCC_4_LVDS_ID 0x001c
 
+#define DEFAULT_MEMEMORY_CAP 10000
+
+extern unsigned memory_cap;
+
 #endif
 

@@ -269,9 +269,6 @@ struct fscc_port *fscc_port_new(struct fscc_card *card, unsigned channel,
 	new_port->class = class;
 	new_port->card = card;
 	
-	new_port->tx_memory_cap = 10000;
-	new_port->rx_memory_cap = 10000;
-	
 	init_MUTEX(&new_port->semaphore);
 	init_waitqueue_head(&new_port->input_queue);
 	init_waitqueue_head(&new_port->output_queue);
@@ -602,7 +599,7 @@ int fscc_port_write(struct fscc_port *port, const char *data, unsigned length)
 	struct fscc_frame *frame = 0;
 	char *temp_storage = 0;
 	
-	if (fscc_port_total_oframe_memory(port) + length > port->tx_memory_cap)
+	if (fscc_port_total_oframe_memory(port) + length > memory_cap)
 		return ENOMEM;
 	
 	unused_fifo_space = fscc_port_get_available_tx_bytes(port);
