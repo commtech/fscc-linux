@@ -36,6 +36,8 @@
 #define SFSCC_4_LVDS_ID 0x001c
 
 #define DEFAULT_MEMEMORY_CAP 10000
+#define SYSFS_READ_ONLY_MODE S_IRUGO
+#define SYSFS_READ_WRITE_MODE S_IWUGO | S_IRUGO
 
 extern unsigned memory_cap;
 

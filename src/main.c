@@ -26,7 +26,6 @@
 #include <linux/serial_core.h>
 #include <linux/interrupt.h>
 #include <linux/poll.h>
-#include <linux/proc_fs.h>
 #include <linux/moduleparam.h>
 #include "card.h"
 #include "port.h"
@@ -39,7 +38,6 @@ unsigned fscc_get_next_minor_number(struct list_head *card_list);
 
 static int fscc_major_number;
 static struct class *fscc_class = 0;
-static struct proc_dir_entry *fscc_proc_dir = 0;
 unsigned memory_cap = DEFAULT_MEMEMORY_CAP;
 
 LIST_HEAD(fscc_cards);
@@ -107,7 +105,6 @@ ssize_t fscc_read(struct file *file, char *buf, size_t count, loff_t *ppos)
 	}
 	
 	read_count = fscc_port_read(current_port, buf, count);
-	
 	up(&current_port->semaphore);
 	
 	return read_count;
@@ -191,7 +188,6 @@ int fscc_ioctl(struct inode *inode, struct file *file, unsigned int cmd,
 			break;
 			
 		default:
-			printk(KERN_NOTICE DEVICE_NAME " unknown ioctl\n");
 			return -ENOTTY;			
 	}
 	
@@ -227,7 +223,7 @@ static int __devinit fscc_probe(struct pci_dev *pdev,
 			
 			new_card = fscc_card_new(pdev, id, fscc_major_number, 
 			                         (unsigned)next_minor_number, fscc_class,
-			                         &fscc_fops, fscc_proc_dir);
+			                         &fscc_fops);
 			                         
 			list_add_tail(&new_card->list, &fscc_cards);
 			break;
@@ -305,8 +301,6 @@ static int __init fscc_init(void)
 		return PTR_ERR(fscc_class);
 	}
 	
-	fscc_proc_dir = proc_mkdir(DEVICE_NAME, 0);
-	
 	fscc_major_number = register_chrdev(0, "fscc", &fscc_fops);
 	
 	if (fscc_major_number < 0) {
@@ -335,7 +329,6 @@ static void __exit fscc_exit(void)
 	pci_unregister_driver(&fscc_pci_driver);
 	unregister_chrdev(fscc_major_number, "fscc");
 	class_destroy(fscc_class);
-	remove_proc_entry(DEVICE_NAME, 0);
 }
 
 MODULE_DEVICE_TABLE(pci, fscc_id_table);
