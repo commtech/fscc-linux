@@ -6,6 +6,10 @@ fscc-objs := src/main.o src/port.o src/card.o src/isr.o src/utils.o src/frame.o
 
 default:
 	$(MAKE) -C $(KDIR) SUBDIRS=$(PWD) modules
+	
+headers_install:
+	mkdir -p /usr/local/include/fscc
+	cp include/fscc.h /usr/local/include/fscc/
 
 clean:
 	@find . $(IGNORE) \

@@ -3,7 +3,7 @@
 #include <stdio.h> /* fprintf, perror */
 #include <stdlib.h> /* EXIT_SUCCESS, EXIT_FAILURE */
 #include <sys/ioctl.h> /* ioctl */
-#include "fscc.h" /* FSCC_REGISTERS_INIT, FSCC_UPDATE_VALUE, FSCC_GET_REGISTERS */
+#include <fscc/fscc.h> /* FSCC_REGISTERS_INIT, FSCC_UPDATE_VALUE, FSCC_GET_REGISTERS */
 
 int main(void)
 {
