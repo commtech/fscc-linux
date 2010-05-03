@@ -100,7 +100,7 @@ static ssize_t register_show(struct kobject *kobj, struct kobj_attribute *attr,
 	
 	if (register_offset >= 0) {
 		printk(KERN_DEBUG DEVICE_NAME " reading register 0x%02x\n", register_offset);
-		return sprintf(buf, "0x%08x\n", fscc_port_get_register(port, 0, (unsigned)register_offset));
+		return sprintf(buf, "%08x\n", fscc_port_get_register(port, 0, (unsigned)register_offset));
 	}
 
 	return 0;
