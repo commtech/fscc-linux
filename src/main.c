@@ -88,6 +88,10 @@ ssize_t fscc_read(struct file *file, char *buf, size_t count, loff_t *ppos)
 	
 	current_port = file->private_data;
 	
+	/* Checks and returns if this is an fread automatic retry */
+	if (*ppos == 1)
+		return 0;
+	
 	if (down_interruptible(&current_port->semaphore))
 		return -ERESTARTSYS;
 	
@@ -103,6 +107,9 @@ ssize_t fscc_read(struct file *file, char *buf, size_t count, loff_t *ppos)
 		if (down_interruptible(&current_port->semaphore))
 			return -ERESTARTSYS;
 	}
+
+	/* Marks the read as complete so the fread automatic retry finishes */
+	*ppos = 1;
 	
 	read_count = fscc_port_read(current_port, buf, count);
 	up(&current_port->semaphore);
@@ -186,8 +193,13 @@ int fscc_ioctl(struct inode *inode, struct file *file, unsigned int cmd,
 				}
 			}
 			break;
+
+		/* This makes us appear to be a tty device for fread */
+		case TCGETS:
+			break;
 			
 		default:
+			printk(KERN_NOTICE DEVICE_NAME " unknown ioctl %x\n", cmd);
 			return -ENOTTY;			
 	}
 	
