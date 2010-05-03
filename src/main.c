@@ -94,11 +94,11 @@ ssize_t fscc_read(struct file *file, char *buf, size_t count, loff_t *ppos)
 		return 0;
 	}
 	
-	if (down_interruptible(&current_port->semaphore))
+	if (down_interruptible(&current_port->read_semaphore))
 		return -ERESTARTSYS;
 	
 	while (!fscc_port_iframes_ready(current_port)) {
-		up(&current_port->semaphore);
+		up(&current_port->read_semaphore);
 		
 		if (file->f_flags & O_NONBLOCK)
 			return -EAGAIN;
@@ -106,7 +106,7 @@ ssize_t fscc_read(struct file *file, char *buf, size_t count, loff_t *ppos)
 		if (wait_event_interruptible(current_port->input_queue, fscc_port_iframes_ready(current_port)))
 			return -ERESTARTSYS;
 			
-		if (down_interruptible(&current_port->semaphore))
+		if (down_interruptible(&current_port->read_semaphore))
 			return -ERESTARTSYS;
 	}
 
@@ -114,7 +114,7 @@ ssize_t fscc_read(struct file *file, char *buf, size_t count, loff_t *ppos)
 	*ppos = 1;
 	
 	read_count = fscc_port_read(current_port, buf, count);
-	up(&current_port->semaphore);
+	up(&current_port->read_semaphore);
 	
 	return read_count;
 }
@@ -128,7 +128,7 @@ ssize_t fscc_write(struct file *file, const char *buf, size_t count,
 	
 	current_port = file->private_data;
 	
-	if (down_interruptible(&current_port->semaphore))
+	if (down_interruptible(&current_port->write_semaphore))
 		return -ERESTARTSYS;
 	
 	err = fscc_port_write(current_port, buf, count);
@@ -138,7 +138,7 @@ ssize_t fscc_write(struct file *file, const char *buf, size_t count,
 			return err;
 	}
 	
-	up(&current_port->semaphore);
+	up(&current_port->write_semaphore);
 	
 	return count;
 }
@@ -151,7 +151,7 @@ unsigned fscc_poll(struct file *file, struct poll_table_struct *wait)
 	
 	current_port = file->private_data;
 	
-	down(&current_port->semaphore);
+	down(&current_port->poll_semaphore);
 	
 	poll_wait(file, &current_port->input_queue, wait);
 	poll_wait(file, &current_port->output_queue, wait);
@@ -159,7 +159,7 @@ unsigned fscc_poll(struct file *file, struct poll_table_struct *wait)
 	if (fscc_port_iframes_ready(current_port))
 		mask |= POLLIN | POLLRDNORM;
 	
-	up(&current_port->semaphore);
+	up(&current_port->poll_semaphore);
 	
 	return mask;
 }

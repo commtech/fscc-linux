@@ -220,7 +220,10 @@ struct fscc_port *fscc_port_new(struct fscc_card *card, unsigned channel,
 	new_port->class = class;
 	new_port->card = card;
 	
-	init_MUTEX(&new_port->semaphore);
+	init_MUTEX(&new_port->read_semaphore);
+	init_MUTEX(&new_port->write_semaphore);
+	init_MUTEX(&new_port->poll_semaphore);
+	
 	init_waitqueue_head(&new_port->input_queue);
 	init_waitqueue_head(&new_port->output_queue);
 	
