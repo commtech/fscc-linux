@@ -89,8 +89,10 @@ ssize_t fscc_read(struct file *file, char *buf, size_t count, loff_t *ppos)
 	current_port = file->private_data;
 	
 	/* Checks and returns if this is an fread automatic retry */
-	if (*ppos == 1)
+	if (*ppos == 1) {
+		*ppos = 0;
 		return 0;
+	}
 	
 	if (down_interruptible(&current_port->semaphore))
 		return -ERESTARTSYS;
