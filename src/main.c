@@ -34,8 +34,6 @@
 #include "utils.h"
 #include "fscc.h"
 
-unsigned fscc_get_next_minor_number(struct list_head *card_list);
-
 static int fscc_major_number;
 static struct class *fscc_class = 0;
 unsigned memory_cap = DEFAULT_MEMEMORY_CAP;
@@ -51,24 +49,6 @@ struct pci_device_id fscc_id_table[] __devinitdata = {
 	{ COMMTECH_VENDOR_ID, SFSCC_4_LVDS_ID, PCI_ANY_ID, 0, 0, 0 },
 	{ 0, },
 };
-
-unsigned fscc_get_next_minor_number(struct list_head *card_list) 
-{
-	struct fscc_card *current_card = 0;
-	struct fscc_port *current_port = 0;
-	int highest_minor_number = -1;
-	int current_minor_number = -1;
-	
-	list_for_each_entry(current_card, card_list, list) {		
-		list_for_each_entry(current_port, &current_card->ports, list) {	
-			current_minor_number = (int)fscc_port_get_minor_number(current_port);
-			if (current_minor_number > highest_minor_number)
-				highest_minor_number = current_minor_number;
-		}
-	}
-	
-	return (unsigned)(highest_minor_number + 1);
-}
 
 int fscc_open(struct inode *inode, struct file *file)
 {
@@ -221,7 +201,6 @@ static int __devinit fscc_probe(struct pci_dev *pdev,
                                 const struct pci_device_id *id)
 {
 	struct fscc_card *new_card = 0;
-	int next_minor_number = 0;
 	
 	if (pci_enable_device(pdev))
 		return -EIO;
@@ -232,11 +211,8 @@ static int __devinit fscc_probe(struct pci_dev *pdev,
 		case FSCC_4_ID:
 		case SFSCC_ID:
 		case SFSCC_4_ID:
-		case SFSCC_4_LVDS_ID:
-			next_minor_number = fscc_get_next_minor_number(&fscc_cards);
-			
-			new_card = fscc_card_new(pdev, id, fscc_major_number, 
-			                         (unsigned)next_minor_number, fscc_class,
+		case SFSCC_4_LVDS_ID:			
+			new_card = fscc_card_new(pdev, id, fscc_major_number, fscc_class,
 			                         &fscc_fops);
 			                         
 			list_add_tail(&new_card->list, &fscc_cards);
@@ -343,6 +319,7 @@ static void __exit fscc_exit(void)
 	pci_unregister_driver(&fscc_pci_driver);
 	unregister_chrdev(fscc_major_number, "fscc");
 	class_destroy(fscc_class);
+	
 }
 
 MODULE_DEVICE_TABLE(pci, fscc_id_table);

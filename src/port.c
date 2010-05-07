@@ -211,14 +211,25 @@ struct fscc_port *fscc_port_new(struct fscc_card *card, unsigned channel,
 	
 	new_port = (struct fscc_port*)kmalloc(sizeof(struct fscc_port), GFP_KERNEL);
 	
+	new_port->name = (char *)kmalloc(10, GFP_KERNEL);
+	sprintf(new_port->name, "%s%u", DEVICE_NAME, minor_number);
+		
+	new_port->channel = channel;
+	new_port->card = card;
+	
+	if (fscc_port_get_PREV(new_port) == 0xff) {
+		printk(KERN_NOTICE "%s couldn't initialize\n", new_port->name);
+		kfree(new_port->name);
+		kfree(new_port);
+		return 0;
+	}
+	
 	INIT_LIST_HEAD(&new_port->list);
 	INIT_LIST_HEAD(&new_port->oframes);
 	INIT_LIST_HEAD(&new_port->iframes);
 	
-	new_port->channel = channel;
 	new_port->dev_t = MKDEV(major_number, minor_number);
 	new_port->class = class;
-	new_port->card = card;
 	
 	init_MUTEX(&new_port->read_semaphore);
 	init_MUTEX(&new_port->write_semaphore);

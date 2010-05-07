@@ -40,6 +40,7 @@
 #define SYSFS_READ_WRITE_MODE S_IWUGO | S_IRUGO
 
 extern unsigned memory_cap;
+extern struct list_head fscc_cards;
 
 #endif
 

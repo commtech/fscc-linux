@@ -20,15 +20,34 @@
 
 #include "isr.h"
 #include "port.h"
+#include "card.h"
 #include "utils.h"
 #include "config.h"
 
-irqreturn_t fscc_isr(int irq, void *dev_id)
+unsigned port_exists(void *port)
+{	
+	struct fscc_card *current_card = 0;
+	struct fscc_port *current_port = 0;
+	
+	list_for_each_entry(current_card, &fscc_cards, list) {		
+		list_for_each_entry(current_port, &current_card->ports, list) {
+			if (port == current_port)
+				return 1;
+		}
+	}
+	
+	return 0;
+}
+
+irqreturn_t fscc_isr(int irq, void *potential_port)
 {
 	struct fscc_port *current_port = 0;
 	unsigned isr_value = 0;
 	
-	current_port = (struct fscc_port *)dev_id;
+	if (!port_exists(potential_port))
+		return IRQ_NONE;
+	
+	current_port = (struct fscc_port *)potential_port;
 	
 	isr_value = fscc_port_get_register(current_port, 0, ISR_OFFSET);
 	

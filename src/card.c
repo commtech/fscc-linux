@@ -26,15 +26,18 @@
 #define FCR_OFFSET 0x00
 #define DMACCR_OFFSET 0x04
 
+unsigned minor_number = 0;
+
 struct fscc_card *fscc_card_new(struct pci_dev *pdev,
                                 const struct pci_device_id *id,
                                 unsigned major_number,
-                                unsigned minor_number_start,
                                 struct class *class,
                                 struct file_operations *fops)
 {
 	struct fscc_card *new_card = 0;
 	struct fscc_port *port_iter = 0;
+	unsigned start_minor_number = 0;
+	unsigned end_minor_number = 0;
 	unsigned i = 0;
 	
 	new_card = (struct fscc_card*)kmalloc(sizeof(struct fscc_card), GFP_KERNEL);
@@ -72,13 +75,20 @@ struct fscc_card *fscc_card_new(struct pci_dev *pdev,
 	pci_request_regions(new_card->pci_dev, DEVICE_NAME);	
 	pci_set_drvdata(new_card->pci_dev, new_card);
 	
-	for (i = 0; i < 2; i++)
-		port_iter = fscc_port_new(new_card, i, major_number, 
-		                          minor_number_start + i, class, fops);
+	start_minor_number = minor_number;
 	
-
+	for (i = 0; i < 2; i++) {
+		port_iter = fscc_port_new(new_card, i, major_number, 
+		                          minor_number, class, fops);   
+		                          
+		minor_number += 1;                  
+	}
+	
+	end_minor_number = minor_number - 1;
+	
 	if (port_iter)
-		printk(KERN_INFO DEVICE_NAME " revision %x.%02x\n", 
+		printk(KERN_INFO DEVICE_NAME "[%i:%i] revision %x.%02x\n", 
+		       start_minor_number, end_minor_number, 
 			   fscc_port_get_PREV(port_iter), fscc_port_get_FREV(port_iter));
 	
 	return new_card;
@@ -94,7 +104,7 @@ void fscc_card_delete(struct fscc_card *card)
 	
 	pci_set_drvdata(card->pci_dev, 0);	
 	pci_release_regions(card->pci_dev);
-
+	
 	list_for_each_safe(current_node, temp_node, &card->ports) {
 		struct fscc_port *current_port = 0;
 		current_port = list_entry(current_node, struct fscc_port, list);

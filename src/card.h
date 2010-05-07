@@ -40,7 +40,6 @@ struct fscc_card {
 struct fscc_card *fscc_card_new(struct pci_dev *pdev, 
                                 const struct pci_device_id *id,
                                 unsigned major_number,
-                                unsigned minor_number_start,
                                 struct class *class,
                                 struct file_operations *fops);
                                 
