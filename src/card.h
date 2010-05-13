@@ -33,6 +33,8 @@ struct fscc_card {
 	struct list_head list;
 	struct list_head ports;
 	struct pci_dev *pci_dev;
+	
+	void __iomem *bar[3];
 };
 
 struct fscc_card *fscc_card_new(struct pci_dev *pdev, 
@@ -48,6 +50,6 @@ void fscc_card_resume(struct fscc_card *card);
 struct fscc_card *fscc_card_find(struct pci_dev *pdev, 
                                  struct list_head *card_list);
 
-unsigned long fscc_card_get_BAR(struct fscc_card *card, unsigned number);
+void __iomem *fscc_card_get_BAR(struct fscc_card *card, unsigned number);
 
 #endif

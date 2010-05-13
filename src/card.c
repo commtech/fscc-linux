@@ -31,25 +31,32 @@ struct fscc_card *fscc_card_new(struct pci_dev *pdev,
                                 struct class *class,
                                 struct file_operations *fops)
 {
-	struct fscc_card *new_card = 0;
+	struct fscc_card *card = 0;
 	struct fscc_port *port_iter = 0;
 	unsigned start_minor_number = 0;
 	unsigned i = 0;
 	
-	new_card = (struct fscc_card*)kmalloc(sizeof(struct fscc_card), GFP_KERNEL);
+	card = (struct fscc_card*)kmalloc(sizeof(struct fscc_card), GFP_KERNEL);
 	
-	INIT_LIST_HEAD(&new_card->list);
-	INIT_LIST_HEAD(&new_card->ports);
+	INIT_LIST_HEAD(&card->list);
+	INIT_LIST_HEAD(&card->ports);
 	
-	new_card->pci_dev = pdev;
+	card->pci_dev = pdev;
 	
-	pci_request_regions(new_card->pci_dev, DEVICE_NAME);	
-	pci_set_drvdata(new_card->pci_dev, new_card);
+	if (pci_request_regions(card->pci_dev, DEVICE_NAME) != 0) {
+		printk(KERN_ERR DEVICE_NAME " pci_request_regions failed\n");
+		return 0;
+	}
+	
+	pci_set_drvdata(card->pci_dev, card);
 	
 	start_minor_number = minor_number;
 	
+	for (i = 0; i < 3; i++)
+		card->bar[i] = pci_iomap(card->pci_dev, i, 0);
+	
 	for (i = 0; i < 2; i++) {
-		port_iter = fscc_port_new(new_card, i, major_number, minor_number, 
+		port_iter = fscc_port_new(card, i, major_number, minor_number, 
 		                          class, fops);   
 		
 		if (port_iter)                         
@@ -59,7 +66,7 @@ struct fscc_card *fscc_card_new(struct pci_dev *pdev,
 		minor_number += 1;        
 	}
 	
-	return new_card;
+	return card;
 }
 
 void fscc_card_delete(struct fscc_card *card)
@@ -69,7 +76,7 @@ void fscc_card_delete(struct fscc_card *card)
 	
 	if (card == 0)
 		return;
-	
+		
 	pci_set_drvdata(card->pci_dev, 0);	
 	pci_release_regions(card->pci_dev);
 	
@@ -113,11 +120,11 @@ struct fscc_card *fscc_card_find(struct pci_dev *pdev,
 	return 0;
 }
 
-unsigned long fscc_card_get_BAR(struct fscc_card *card, unsigned number)
+void __iomem *fscc_card_get_BAR(struct fscc_card *card, unsigned number)
 {
 	if (number > 2)
 		return 0;
 
-	return pci_resource_start(card->pci_dev, number);
+	return card->bar[number];
 }
 

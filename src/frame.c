@@ -33,6 +33,7 @@ struct fscc_frame *fscc_frame_new(unsigned target_length)
 	INIT_LIST_HEAD(&frame->list);
     
 	frame->data = (char *)kmalloc(target_length, GFP_KERNEL);
+	memset(frame->data, 0, sizeof(frame->data));
 	
 	frame->target_length = target_length;
 	frame->current_length = 0;
@@ -114,12 +115,22 @@ char *fscc_frame_get_remaining_data(struct fscc_frame *frame)
 void fscc_frame_trim(struct fscc_frame *frame)
 {
 	char *new_data = 0;
+	
+	if (frame->current_length == frame->target_length)
+		return;
 
 	new_data = (char *)kmalloc(frame->current_length, GFP_KERNEL);
+	memset(new_data, 0, sizeof(new_data));
 	
+	//TODO: Better error message. Also, what should I do if this happens?
+	if (new_data == 0) {
+		printk("Memory error\n");
+		return;
+	}
 	memmove(new_data, frame->data, frame->current_length);
 	
 	kfree(frame->data);
+	
 	frame->data = new_data;
 	frame->target_length = frame->current_length;
 }

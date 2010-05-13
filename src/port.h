@@ -114,9 +114,17 @@ bool fscc_port_has_oframes(struct fscc_port *port);
 
 __u32 fscc_port_get_register(struct fscc_port *port, unsigned bar, 
                              unsigned register_offset);
-
+                             
+void fscc_port_get_register_rep(struct fscc_port *port, unsigned bar, 
+                                 unsigned register_offset, char *buf,
+                                 unsigned long chunks);
+                                 
 void fscc_port_set_register(struct fscc_port *port, unsigned bar, 
                             unsigned register_offset, __u32 value);
+                            
+void fscc_port_set_register_rep(struct fscc_port *port, unsigned bar,
+                                unsigned register_offset, const char *data,
+                                unsigned long chunks); 
 
 __u32 fscc_port_get_TXCNT(struct fscc_port *port);
 __u32 fscc_port_get_RXCNT(struct fscc_port *port);

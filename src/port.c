@@ -305,7 +305,7 @@ void iframe_worker(unsigned long data)
 
 	port = (struct fscc_port *)data;
 	
-	//printk(KERN_DEBUG "%s %i %i %i\n", port->name, port->s, port->e, port->h);
+	//printk(KERN_DEBUG "%s %i %i %i\n", port->name, port->started_frames, port->ended_frames, port->handled_frames);
 	
 	if (port->handled_frames == port->started_frames)
 		return;
@@ -318,7 +318,6 @@ void iframe_worker(unsigned long data)
 			   port->pending_iframe->number);
 	}	
 		
-	//if (port->s - port->e == 0) {
 	if (port->handled_frames < port->ended_frames) {
 		finished_frame = 1;
 		byte_count = fscc_port_get_register(port, 0, BC_FIFO_L_OFFSET) - 2;
@@ -335,7 +334,7 @@ void iframe_worker(unsigned long data)
 		receive_length -= leftover_count;
 	
 	last_data_chunk = fscc_port_empty_RxFIFO(port, port->pending_iframe, receive_length);
-		
+	
 	if (receive_length == 1)
 		printk(KERN_DEBUG "%s F#%i %i byte <= FIFO\n", 
 		       port->name, port->pending_iframe->number, receive_length);
@@ -345,7 +344,7 @@ void iframe_worker(unsigned long data)
 
 	if (!finished_frame)
 		return;
-		
+	
 	switch (leftover_count) {
 		case 0:
 			frame_status = fscc_port_get_register(port, 0, FIFO_OFFSET) & 0x0000FFFF;
@@ -381,7 +380,7 @@ void iframe_worker(unsigned long data)
 		printk(KERN_ALERT "%s F#%i receive rejected\n", port->name, 
 			   port->pending_iframe->number);
 	}		
-	
+
 	port->handled_frames += 1;
 	
 	//printk(KERN_DEBUG "%s B\n", port->name);
@@ -445,92 +444,93 @@ struct fscc_port *fscc_port_new(struct fscc_card *card, unsigned channel,
                                 struct class *class, 
                                 struct file_operations *fops)
 {
-	struct fscc_port *new_port = 0;
+	struct fscc_port *port = 0;
 	unsigned irq_num = 0;
 	
-	new_port = (struct fscc_port*)kmalloc(sizeof(struct fscc_port), GFP_KERNEL);
+	port = (struct fscc_port*)kmalloc(sizeof(struct fscc_port), GFP_KERNEL);
 	
-	new_port->started_frames = 0;
-	new_port->ended_frames = 0;
-	new_port->handled_frames = 0;
+	port->started_frames = 0;
+	port->ended_frames = 0;
+	port->handled_frames = 0;
 	
-	new_port->name = (char *)kmalloc(10, GFP_KERNEL);
-	sprintf(new_port->name, "%s%u", DEVICE_NAME, minor_number);
+	port->name = (char *)kmalloc(10, GFP_KERNEL);
+	sprintf(port->name, "%s%u", DEVICE_NAME, minor_number);
 		
-	new_port->channel = channel;
-	new_port->card = card;
+	port->channel = channel;
+	port->card = card;
 	
-	if (fscc_port_get_PREV(new_port) == 0xff) {
-		printk(KERN_NOTICE "%s couldn't initialize\n", new_port->name);
-		kfree(new_port->name);
-		kfree(new_port);
+	//TODO: This needs to be better
+	if (fscc_port_get_PREV(port) == 0xff) {
+		printk(KERN_NOTICE "%s couldn't initialize\n", port->name);
+		kfree(port->name);
+		kfree(port);
 		return 0;
 	}
 	
-	INIT_LIST_HEAD(&new_port->list);
-	INIT_LIST_HEAD(&new_port->oframes);
-	INIT_LIST_HEAD(&new_port->iframes);
+	INIT_LIST_HEAD(&port->list);
+	INIT_LIST_HEAD(&port->oframes);
+	INIT_LIST_HEAD(&port->iframes);
 	
-	new_port->dev_t = MKDEV(major_number, minor_number);
-	new_port->class = class;
-	new_port->pending_iframe = 0;
-	new_port->pending_oframe = 0;
+	port->dev_t = MKDEV(major_number, minor_number);
+	port->class = class;
+	port->pending_iframe = 0;
+	port->pending_oframe = 0;
 	
-	init_MUTEX(&new_port->read_semaphore);
-	init_MUTEX(&new_port->write_semaphore);
-	init_MUTEX(&new_port->poll_semaphore);
+	init_MUTEX(&port->read_semaphore);
+	init_MUTEX(&port->write_semaphore);
+	init_MUTEX(&port->poll_semaphore);
 	
-	init_waitqueue_head(&new_port->input_queue);
-	init_waitqueue_head(&new_port->output_queue);
+	init_waitqueue_head(&port->input_queue);
+	init_waitqueue_head(&port->output_queue);
 	
-	cdev_init(&new_port->cdev, fops);
-	new_port->cdev.owner = THIS_MODULE;
+	cdev_init(&port->cdev, fops);
+	port->cdev.owner = THIS_MODULE;
 	
-	if (cdev_add(&new_port->cdev, new_port->dev_t, 1) < 0) {
-		printk(KERN_ERR "%s cdev_add failed\n", new_port->name);
+	if (cdev_add(&port->cdev, port->dev_t, 1) < 0) {
+		printk(KERN_ERR "%s cdev_add failed\n", port->name);
 		return 0;
 	}
 	
-	list_add_tail(&new_port->list, &card->ports);
+	list_add_tail(&port->list, &card->ports);
 	
-	new_port->device = device_create(class, 0, new_port->dev_t, new_port, new_port->name);
-	if (new_port->device <= 0) {
-		printk(KERN_ERR "%s device_create failed\n", new_port->name);
+	port->device = device_create(class, 0, port->dev_t, port, port->name);
+	if (port->device <= 0) {
+		printk(KERN_ERR "%s device_create failed\n", port->name);
 		return 0;
 	}
 	
-	tasklet_init(&new_port->rfs_tasklet, rfs_handler, (unsigned long)new_port);
-	tasklet_init(&new_port->rft_tasklet, rft_handler, (unsigned long)new_port);
-	tasklet_init(&new_port->rfe_tasklet, rfe_handler, (unsigned long)new_port);
-	tasklet_init(&new_port->tft_tasklet, tft_handler, (unsigned long)new_port);
-	tasklet_init(&new_port->tdu_tasklet, tdu_handler, (unsigned long)new_port);
+	tasklet_init(&port->rfs_tasklet, rfs_handler, (unsigned long)port);
+	tasklet_init(&port->rft_tasklet, rft_handler, (unsigned long)port);
+	tasklet_init(&port->rfe_tasklet, rfe_handler, (unsigned long)port);
+	tasklet_init(&port->tft_tasklet, tft_handler, (unsigned long)port);
+	tasklet_init(&port->tdu_tasklet, tdu_handler, (unsigned long)port);
 	
-	tasklet_init(&new_port->oframe_tasklet, oframe_worker, (unsigned long)new_port);
-	tasklet_init(&new_port->iframe_tasklet, iframe_worker, (unsigned long)new_port);
+	tasklet_init(&port->oframe_tasklet, oframe_worker, (unsigned long)port);
+	tasklet_init(&port->iframe_tasklet, iframe_worker, (unsigned long)port);
 	
-	fscc_port_set_register(new_port, 0, IMR_OFFSET, 0x0f000000);
-	fscc_port_set_register(new_port, 0, BGR_OFFSET, 0x00000002);
-	fscc_port_set_register(new_port, 0, CCR0_OFFSET, 0x0000001c);
-	fscc_port_set_register(new_port, 0, CCR1_OFFSET, 0x00000008);
+	fscc_port_set_register(port, 0, IMR_OFFSET, 0x0f000000);
+	fscc_port_set_register(port, 0, BGR_OFFSET, 0x00000002);
+	fscc_port_set_register(port, 0, CCR0_OFFSET, 0x0000001c);
+	fscc_port_set_register(port, 0, CCR1_OFFSET, 0x00000008);
 
 	//TODO: Change this to a better RxFIFO level
-	fscc_port_set_register(new_port, 0, FIFOT_OFFSET, 0x08000200);
+	fscc_port_set_register(port, 0, FIFOT_OFFSET, 0x08000200);
 	
-	fscc_port_execute_RRES(new_port);
-	fscc_port_execute_TRES(new_port);
+	fscc_port_execute_RRES(port);
+	fscc_port_execute_TRES(port);
 	
 	irq_num = card->pci_dev->irq;
-	if (request_irq(irq_num, &fscc_isr, IRQF_SHARED, new_port->name, new_port)) {
-		printk(KERN_ERR "%s request_irq failed on irq %i\n", new_port->name, irq_num);
+	if (request_irq(irq_num, &fscc_isr, IRQF_SHARED, port->name, port)) {
+		printk(KERN_ERR "%s request_irq failed on irq %i\n", port->name, irq_num);
 		return 0;
 	}
 	
-	if (sysfs_create_group(&new_port->device->kobj, &attr_group)) {
-		printk(KERN_ERR "%s sysfs_create_group\n", new_port->name);
+	if (sysfs_create_group(&port->device->kobj, &attr_group)) {
+		printk(KERN_ERR "%s sysfs_create_group\n", port->name);
 		return 0;
 	}
 	
-	return new_port;
+	return port;
 }
 
 void fscc_port_delete(struct fscc_port *port)
@@ -616,18 +616,16 @@ unsigned fscc_port_get_minor_number(struct fscc_port *port)
 void fscc_port_fill_TxFIFO(struct fscc_port *port, const char *data, 
                            unsigned byte_count)
 {
-	unsigned i = 0;
 	unsigned leftover_count = 0;
-	
-	/* Writes all of the 4 byte chunks */
-	for (i = 0; i + 4 <= byte_count; i += 4)
-		fscc_port_set_register(port, 0, FIFO_OFFSET, chars_to_u32(data + i));
 	
 	leftover_count = byte_count % 4;
 	
+	fscc_port_set_register_rep(port, 0, FIFO_OFFSET, data, 
+	                           (byte_count - leftover_count) / 4);
+	
 	/* Writes the leftover bytes (non 4 byte chunk) */
 	if (leftover_count)
-		fscc_port_set_register(port, 0, FIFO_OFFSET, chars_to_u32(data + i));
+		fscc_port_set_register(port, 0, FIFO_OFFSET, chars_to_u32(data + (byte_count - leftover_count)));
 }
 
 /* Pulls data from FIFO and puts into the frame */
@@ -640,6 +638,12 @@ __u32 fscc_port_empty_RxFIFO(struct fscc_port *port, struct fscc_frame *frame,
 	__u32 incoming_data = 0;
 	
 	leftover_count = byte_count % 4;
+	//printk("%i %i %i\n", leftover_count, byte_count, frame->current_length);
+	
+	//I think the problem with this is when I use the add_Data method like normally, it does something behind the scenes.
+	//fscc_port_get_register_rep(port, 0, FIFO_OFFSET, 
+	//                           frame->data + frame->current_length, 
+	//                           (byte_count - leftover_count) / 4);
 	
 	/* Read all of the 4 byte chunks. */
 	for (i = 0; i < byte_count - leftover_count; i += 4) {
@@ -704,8 +708,8 @@ unsigned fscc_port_total_frame_memory(struct fscc_port *port, struct list_head *
 __u32 fscc_port_get_register(struct fscc_port *port, unsigned bar, 
                              unsigned register_offset)
 {
-	unsigned long address = 0;
-	unsigned long offset = 0;
+	void __iomem *address = 0;
+	unsigned offset = 0;
 	
 	address = fscc_card_get_BAR(port->card, bar);
 	offset = register_offset;
@@ -713,14 +717,30 @@ __u32 fscc_port_get_register(struct fscc_port *port, unsigned bar,
 	if (port->channel == 1)
 		offset += 0x80;
 		
-	return inl(address + offset);
+	return ioread32(address + offset);
+}
+
+void fscc_port_get_register_rep(struct fscc_port *port, unsigned bar, 
+                                 unsigned register_offset, char *buf,
+                                 unsigned long chunks)
+{
+	void __iomem *address = 0;
+	unsigned offset = 0;
+	
+	address = fscc_card_get_BAR(port->card, bar);
+	offset = register_offset;
+	
+	if (port->channel == 1)
+		offset += 0x80;
+		
+	ioread32_rep(address + offset, buf, chunks);
 }
 
 void fscc_port_set_register(struct fscc_port *port, unsigned bar, 
                             unsigned register_offset, __u32 value)
 {
-	unsigned long address = 0;
-	unsigned long offset = 0;
+	void __iomem *address = 0;
+	unsigned offset = 0;
 	
 	address = fscc_card_get_BAR(port->card, bar);
 	offset = register_offset;
@@ -728,7 +748,23 @@ void fscc_port_set_register(struct fscc_port *port, unsigned bar,
 	if (port->channel == 1)
 		offset += 0x80;
 		
-	outl(value, address + offset);
+	iowrite32(value, address + offset);
+}
+
+void fscc_port_set_register_rep(struct fscc_port *port, unsigned bar,
+                                unsigned register_offset, const char *data,
+                                unsigned long chunks) 
+{
+	void __iomem *address = 0;
+	unsigned offset = 0;
+	
+	address = fscc_card_get_BAR(port->card, bar);
+	offset = register_offset;
+	
+	if (port->channel == 1)
+		offset += 0x80;
+		
+	iowrite32_rep(address + offset, data, chunks);
 }
 
 __u32 fscc_port_get_TXCNT(struct fscc_port *port)
