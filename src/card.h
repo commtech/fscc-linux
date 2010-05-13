@@ -26,15 +26,13 @@
 #include <linux/fs.h>
 #include <linux/8250_pci.h>
 
-enum FSCC_CARD_TYPE { FSCC = 0, FSCC_232, FSCC_4, SFSCC, SFSCC_4 };
+#define FCR_OFFSET 0x00
+#define DMACCR_OFFSET 0x04
 
 struct fscc_card {
 	struct list_head list;
 	struct list_head ports;
 	struct pci_dev *pci_dev;
-	struct pciserial_board *pciserial_board;
-	struct serial_private *serial_private;
-	enum FSCC_CARD_TYPE type;
 };
 
 struct fscc_card *fscc_card_new(struct pci_dev *pdev, 

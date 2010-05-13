@@ -23,9 +23,6 @@
 #include "config.h"
 #include "isr.h"
 
-#define FCR_OFFSET 0x00
-#define DMACCR_OFFSET 0x04
-
 unsigned minor_number = 0;
 
 struct fscc_card *fscc_card_new(struct pci_dev *pdev,
@@ -37,7 +34,6 @@ struct fscc_card *fscc_card_new(struct pci_dev *pdev,
 	struct fscc_card *new_card = 0;
 	struct fscc_port *port_iter = 0;
 	unsigned start_minor_number = 0;
-	unsigned end_minor_number = 0;
 	unsigned i = 0;
 	
 	new_card = (struct fscc_card*)kmalloc(sizeof(struct fscc_card), GFP_KERNEL);
@@ -47,49 +43,21 @@ struct fscc_card *fscc_card_new(struct pci_dev *pdev,
 	
 	new_card->pci_dev = pdev;
 	
-	switch (id->device) {
-		case FSCC_ID:
-			new_card->type = FSCC;
-			break;
-			
-		case FSCC_232_ID:
-			new_card->type = FSCC_232;
-			break;
-			
-		case FSCC_4_ID:
-			new_card->type = FSCC_4;
-			break;
-			
-		case SFSCC_ID:	
-			new_card->type = SFSCC;
-			break;
-			
-		case SFSCC_4_ID:	
-			new_card->type = SFSCC_4;
-			break;
-			
-		default:
-			printk(KERN_NOTICE DEVICE_NAME " unknown device %02x\n", id->device);
-	}
-	
 	pci_request_regions(new_card->pci_dev, DEVICE_NAME);	
 	pci_set_drvdata(new_card->pci_dev, new_card);
 	
 	start_minor_number = minor_number;
 	
 	for (i = 0; i < 2; i++) {
-		port_iter = fscc_port_new(new_card, i, major_number, 
-		                          minor_number, class, fops);   
+		port_iter = fscc_port_new(new_card, i, major_number, minor_number, 
+		                          class, fops);   
+		
+		if (port_iter)                         
+			printk(KERN_INFO "%s revision %x.%02x\n", port_iter->name,
+				   fscc_port_get_PREV(port_iter), fscc_port_get_FREV(port_iter));
 		                          
-		minor_number += 1;                  
+		minor_number += 1;        
 	}
-	
-	end_minor_number = minor_number - 1;
-	
-	if (port_iter)
-		printk(KERN_INFO DEVICE_NAME "[%i:%i] revision %x.%02x\n", 
-		       start_minor_number, end_minor_number, 
-			   fscc_port_get_PREV(port_iter), fscc_port_get_FREV(port_iter));
 	
 	return new_card;
 }
@@ -121,8 +89,6 @@ void fscc_card_suspend(struct fscc_card *card)
 	list_for_each_entry(current_port, &card->ports, list) {	
 		fscc_port_store_registers(current_port);
 	}
-	
-	pciserial_suspend_ports(card->serial_private);
 }
 
 void fscc_card_resume(struct fscc_card *card)
@@ -132,8 +98,6 @@ void fscc_card_resume(struct fscc_card *card)
 	list_for_each_entry(current_port, &card->ports, list) {	
 		fscc_port_restore_registers(current_port);
 	}
-	
-	pciserial_resume_ports(card->serial_private);
 }
 
 struct fscc_card *fscc_card_find(struct pci_dev *pdev, 

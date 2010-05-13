@@ -47,6 +47,7 @@ struct pci_device_id fscc_id_table[] __devinitdata = {
 	{ COMMTECH_VENDOR_ID, SFSCC_ID, PCI_ANY_ID, 0, 0, 0 },
 	{ COMMTECH_VENDOR_ID, SFSCC_4_ID, PCI_ANY_ID, 0, 0, 0 },
 	{ COMMTECH_VENDOR_ID, SFSCC_4_LVDS_ID, PCI_ANY_ID, 0, 0, 0 },
+	{ COMMTECH_VENDOR_ID, SFSCCe_4_ID, PCI_ANY_ID, 0, 0, 0 },
 	{ 0, },
 };
 
@@ -76,20 +77,20 @@ ssize_t fscc_read(struct file *file, char *buf, size_t count, loff_t *ppos)
 	
 	if (down_interruptible(&current_port->read_semaphore))
 		return -ERESTARTSYS;
-	
-	while (!fscc_port_iframes_ready(current_port)) {
+		
+	while (!fscc_port_has_iframes(current_port)) {
 		up(&current_port->read_semaphore);
 		
 		if (file->f_flags & O_NONBLOCK)
 			return -EAGAIN;
 			
-		if (wait_event_interruptible(current_port->input_queue, fscc_port_iframes_ready(current_port)))
+		if (wait_event_interruptible(current_port->input_queue, fscc_port_has_iframes(current_port)))
 			return -ERESTARTSYS;
 			
 		if (down_interruptible(&current_port->read_semaphore))
 			return -ERESTARTSYS;
 	}
-
+	
 	/* Marks the read as complete so the fread automatic retry finishes */
 	*ppos = 1;
 	
@@ -99,7 +100,6 @@ ssize_t fscc_read(struct file *file, char *buf, size_t count, loff_t *ppos)
 	return read_count;
 }
 
-/* TODO: Handle blocking situation when there is no memory available */
 ssize_t fscc_write(struct file *file, const char *buf, size_t count, 
                    loff_t *ppos)
 {
@@ -113,14 +113,9 @@ ssize_t fscc_write(struct file *file, const char *buf, size_t count,
 	
 	err = fscc_port_write(current_port, buf, count);
 	
-	switch (err) {
-		case ENOMEM:
-			return err;
-	}
-	
 	up(&current_port->write_semaphore);
-	
-	return count;
+
+	return (err) ? err : count;
 }
 
 //TODO: This needs to determine a set of rules of when we should block
@@ -136,7 +131,7 @@ unsigned fscc_poll(struct file *file, struct poll_table_struct *wait)
 	poll_wait(file, &current_port->input_queue, wait);
 	poll_wait(file, &current_port->output_queue, wait);
 	
-	if (fscc_port_iframes_ready(current_port))
+	if (fscc_port_has_iframes(current_port))
 		mask |= POLLIN | POLLRDNORM;
 	
 	up(&current_port->poll_semaphore);
@@ -211,9 +206,10 @@ static int __devinit fscc_probe(struct pci_dev *pdev,
 		case FSCC_4_ID:
 		case SFSCC_ID:
 		case SFSCC_4_ID:
-		case SFSCC_4_LVDS_ID:			
+		case SFSCC_4_LVDS_ID:
+		case SFSCCe_4_ID:		
 			new_card = fscc_card_new(pdev, id, fscc_major_number, fscc_class,
-			                         &fscc_fops);
+                                     &fscc_fops);
 			                         
 			list_add_tail(&new_card->list, &fscc_cards);
 			break;

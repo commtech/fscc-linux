@@ -18,7 +18,7 @@ int main(void)
 
 	bytes_written = write(port_fd, data, sizeof(data));
 
-	if (bytes_written == -1) {
+	if (bytes_written < 0) {
 		perror("write");
 
 		if (close(port_fd) == -1)

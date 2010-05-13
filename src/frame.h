@@ -28,6 +28,7 @@ struct fscc_frame {
 	char *data;
 	unsigned target_length;
 	unsigned current_length;
+	unsigned number;
 };
 
 struct fscc_frame *fscc_frame_new(unsigned target_length);
@@ -39,6 +40,8 @@ void fscc_frame_add_data(struct fscc_frame *frame, const char *data, unsigned le
 void fscc_frame_remove_data(struct fscc_frame *frame, unsigned length);
 bool fscc_frame_is_empty(struct fscc_frame *frame);
 bool fscc_frame_is_full(struct fscc_frame *frame);
-char *fscc_frame_get_data(struct fscc_frame *frame);
+
+char *fscc_frame_get_remaining_data(struct fscc_frame *frame);
+void fscc_frame_trim(struct fscc_frame *frame);
 
 #endif

@@ -52,6 +52,12 @@
 #define ISR_OFFSET 0x50
 #define IMR_OFFSET 0x54
 
+void tdu_handler(unsigned long data);
+void tft_handler(unsigned long data);
+void rfs_handler(unsigned long data);
+void rft_handler(unsigned long data);
+void rfe_handler(unsigned long data);
+
 struct fscc_port {
 	struct list_head list;
 	dev_t dev_t;
@@ -69,10 +75,27 @@ struct fscc_port {
 	wait_queue_head_t input_queue;
 	wait_queue_head_t output_queue;
 	
-	struct list_head oframes;
-	struct list_head iframes;
+	struct list_head oframes; /* Frames not yet in the FIFO yet */
+	struct list_head iframes; /* Frames already retrieved from the FIFO */
+
+	struct fscc_frame *pending_oframe; /* Frame being put in the FIFO */
+	struct fscc_frame *pending_iframe; /* Frame retrieving from the FIFO */
 	
 	struct fscc_registers register_storage; /* Only valid on suspend/resume */
+
+	struct tasklet_struct rfs_tasklet;
+	struct tasklet_struct rft_tasklet;
+	struct tasklet_struct rfe_tasklet;
+	
+	struct tasklet_struct tft_tasklet;
+	struct tasklet_struct tdu_tasklet;
+	
+	struct tasklet_struct oframe_tasklet;
+	struct tasklet_struct iframe_tasklet;
+	
+	unsigned started_frames;
+	unsigned ended_frames;
+	unsigned handled_frames;
 };
 
 struct fscc_port *fscc_port_new(struct fscc_card *card, unsigned channel, 
@@ -80,44 +103,14 @@ struct fscc_port *fscc_port_new(struct fscc_card *card, unsigned channel,
                                 struct class *class, struct file_operations *fops);
                                 
 void fscc_port_delete(struct fscc_port *port);
-unsigned fscc_port_exists(struct fscc_port *port, struct list_head *card_list);
 
-unsigned fscc_port_get_major_number(struct fscc_port *port);
 unsigned fscc_port_get_minor_number(struct fscc_port *port);
-
-struct fscc_card *fscc_port_get_card(struct fscc_port *port);
 
 int fscc_port_write(struct fscc_port *port, const char *data, unsigned length);                     
 ssize_t fscc_port_read(struct fscc_port *port, char *buf, size_t count);
-                     
-unsigned fscc_port_get_available_tx_bytes(struct fscc_port *port);
-
-void fscc_port_fill_TxFIFO(struct fscc_port *port, const char *data, 
-                           unsigned byte_count);
-void fscc_port_empty_RxFIFO(struct fscc_port *port);
                            
 bool fscc_port_has_iframes(struct fscc_port *port);
 bool fscc_port_has_oframes(struct fscc_port *port);
-
-struct fscc_frame *fscc_port_push_iframe(struct fscc_port *port, unsigned length);
-struct fscc_frame *fscc_port_push_oframe(struct fscc_port *port, unsigned length);
-
-struct fscc_frame *fscc_port_peek_back_iframe(struct fscc_port *port);
-struct fscc_frame *fscc_port_peek_back_oframe(struct fscc_port *port);
-
-struct fscc_frame *fscc_port_peek_front_iframe(struct fscc_port *port);
-struct fscc_frame *fscc_port_peek_front_oframe(struct fscc_port *port);
-
-void fscc_port_pop_iframe(struct fscc_port *port);
-void fscc_port_pop_oframe(struct fscc_port *port);
-
-unsigned fscc_port_get_iframe_qty(struct fscc_port *port);
-unsigned fscc_port_get_oframe_qty(struct fscc_port *port);
-
-bool fscc_port_iframes_ready(struct fscc_port *port);
-
-unsigned fscc_port_total_oframe_memory(struct fscc_port *port);
-unsigned fscc_port_total_iframe_memory(struct fscc_port *port);
 
 __u32 fscc_port_get_register(struct fscc_port *port, unsigned bar, 
                              unsigned register_offset);
@@ -126,6 +119,8 @@ void fscc_port_set_register(struct fscc_port *port, unsigned bar,
                             unsigned register_offset, __u32 value);
 
 __u32 fscc_port_get_TXCNT(struct fscc_port *port);
+__u32 fscc_port_get_RXCNT(struct fscc_port *port);
+__u32 fscc_port_get_RXTRG(struct fscc_port *port);
 
 __u8 fscc_port_get_FREV(struct fscc_port *port);
 __u8 fscc_port_get_PREV(struct fscc_port *port);

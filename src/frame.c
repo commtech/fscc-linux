@@ -22,17 +22,23 @@
 #include <linux/pci.h>
 #include <asm/uaccess.h>
 
+static unsigned frame_counter = 1;
+
 struct fscc_frame *fscc_frame_new(unsigned target_length)
 {
 	struct fscc_frame *frame = 0;
-    
+	
 	frame = (struct fscc_frame *)kmalloc(sizeof(struct fscc_frame), GFP_KERNEL);
     
 	INIT_LIST_HEAD(&frame->list);
     
 	frame->data = (char *)kmalloc(target_length, GFP_KERNEL);
+	
 	frame->target_length = target_length;
 	frame->current_length = 0;
+	frame->number = frame_counter;
+	
+	frame_counter += 1;
     
 	return frame;
 }
@@ -85,7 +91,7 @@ void fscc_frame_add_data(struct fscc_frame *frame, const char *data, unsigned le
 	if (!frame)
 		return;
 		
-    memcpy(frame->data + frame->current_length, data, length);
+    memmove(frame->data + frame->current_length, data, length);
 	frame->current_length += length;
 }
 
@@ -97,12 +103,24 @@ void fscc_frame_remove_data(struct fscc_frame *frame, unsigned length)
 	frame->current_length -= length;
 }
 
-//TODO: I think this only is correct in the transmit direction
-char *fscc_frame_get_data(struct fscc_frame *frame)
+char *fscc_frame_get_remaining_data(struct fscc_frame *frame)
 {
-	if (frame == 0)
+	if (!frame)
 		return 0;
-		
+
 	return frame->data + (frame->target_length - frame->current_length);
+}
+
+void fscc_frame_trim(struct fscc_frame *frame)
+{
+	char *new_data = 0;
+
+	new_data = (char *)kmalloc(frame->current_length, GFP_KERNEL);
+	
+	memmove(new_data, frame->data, frame->current_length);
+	
+	kfree(frame->data);
+	frame->data = new_data;
+	frame->target_length = frame->current_length;
 }
 

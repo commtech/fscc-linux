@@ -41,96 +41,61 @@ unsigned port_exists(void *port)
 
 irqreturn_t fscc_isr(int irq, void *potential_port)
 {
-	struct fscc_port *current_port = 0;
+	struct fscc_port *port = 0;
 	unsigned isr_value = 0;
 	
 	if (!port_exists(potential_port))
 		return IRQ_NONE;
 	
-	current_port = (struct fscc_port *)potential_port;
+	port = (struct fscc_port *)potential_port;
 	
-	isr_value = fscc_port_get_register(current_port, 0, ISR_OFFSET);
+	isr_value = fscc_port_get_register(port, 0, ISR_OFFSET);
 	
 	if (isr_value)
-		printk(KERN_DEBUG DEVICE_NAME " interrupt: 0x%08x\n", isr_value);
+		printk(KERN_DEBUG "%s interrupt: 0x%08x\n",port->name, isr_value);
 	else
 		return IRQ_NONE;
+		
+	/* Receive interrupts need to be in this order */
+	if (isr_value & 0x00000004)
+		tasklet_schedule(&port->rfe_tasklet);
+	
+	if (isr_value & 0x00000002)
+		tasklet_schedule(&port->rft_tasklet);
 	
 	if (isr_value & 0x00000001)
-		printk(KERN_DEBUG DEVICE_NAME " RFS interrupt\n");
-	
-	if (isr_value & 0x00000002) {
-		printk(KERN_DEBUG DEVICE_NAME " RFT interrupt\n");
-		
-		fscc_port_empty_RxFIFO(current_port);
-		wake_up_interruptible(&current_port->input_queue);
-	}
-	
-	if (isr_value & 0x00000004) {
-		printk(KERN_DEBUG DEVICE_NAME " RFE interrupt\n");
-		
-		fscc_port_empty_RxFIFO(current_port);
-		wake_up_interruptible(&current_port->input_queue);
-	}
+		tasklet_schedule(&port->rfs_tasklet);
 	
 	if (isr_value & 0x00000008)
-		printk(KERN_DEBUG DEVICE_NAME " RFO interrupt\n");
+		printk(KERN_ALERT "%s RFO (Receive Frame Overflow Interrupt)\n", port->name);
 	
 	if (isr_value & 0x00000010)
-		printk(KERN_DEBUG DEVICE_NAME " RDO interrupt\n");
+		printk(KERN_ALERT "%s RDO (Receive Data Overflow Interrupt)\n", port->name);
 	
 	if (isr_value & 0x00000020)
-		printk(KERN_DEBUG DEVICE_NAME " RFL interrupt\n");
+		printk(KERN_ALERT "%s RFL (Receive Frame Lost Interrupt)\n", port->name);
 	
 	if (isr_value & 0x00000100)
-		printk(KERN_DEBUG DEVICE_NAME " TIN interrupt\n");
+		printk(KERN_DEBUG "%s TIN (Timer Expiration Interrupt)\n", port->name);
 	
-	if (isr_value & 0x00040000) {
-		printk(KERN_ALERT DEVICE_NAME " TDU interrupt\n");
-		
-		if (fscc_port_has_oframes(current_port))
-			fscc_port_pop_oframe(current_port);
-	}
+	if (isr_value & 0x00040000)
+		tasklet_schedule(&port->tdu_tasklet);
 	
-	if (isr_value & 0x00010000) {
-		printk(KERN_DEBUG DEVICE_NAME " TFT interrupt\n");
-		
-		if (fscc_port_has_oframes(current_port)) {
-			struct fscc_frame *frame = 0;
-	
-			frame = fscc_port_peek_front_oframe(current_port);	
-		
-			while (frame) {
-				unsigned unused_fifo_space = 0;
-				unsigned leftover_data = 0;
-			
-				leftover_data = fscc_frame_get_current_length(frame);
-				unused_fifo_space = fscc_port_get_available_tx_bytes(current_port);
-				
-				while (leftover_data) {
-					if (leftover_data > unused_fifo_space) {
-						fscc_port_fill_TxFIFO(current_port, fscc_frame_get_data(frame), 
-									          unused_fifo_space);
-						fscc_frame_remove_data(frame, unused_fifo_space);
-					}
-					else {
-						fscc_port_fill_TxFIFO(current_port, fscc_frame_get_data(frame), 
-									          leftover_data);
-						fscc_frame_remove_data(frame, leftover_data);
-						fscc_port_pop_oframe(current_port);
-					}
-					
-					leftover_data = fscc_frame_get_current_length(frame);
-					unused_fifo_space = fscc_port_get_available_tx_bytes(current_port);
-				}
-			
-				frame = fscc_port_peek_front_oframe(current_port);	
-			}
-		}
-	}
+	if (isr_value & 0x00010000)
+		tasklet_schedule(&port->tft_tasklet);
 	
 	if (isr_value & 0x00020000)
-		printk(KERN_DEBUG DEVICE_NAME " ALLS interrupt\n");
+		printk(KERN_DEBUG "%s ALLS (All Sent Interrupt)\n", port->name);
+	
+	if (isr_value & 0x01000000)
+		printk(KERN_DEBUG "%s CTSS (CTS State Change Interrupt)\n", port->name);
+	
+	if (isr_value & 0x02000000)
+		printk(KERN_DEBUG "%s DSRC (DSR Change Interrupt)\n", port->name);
+	
+	if (isr_value & 0x04000000)
+		printk(KERN_DEBUG "%s CDC (CD Change Interrupt)\n", port->name);
 	
 	return IRQ_HANDLED;
 }
+
