@@ -2,7 +2,7 @@ obj-m 	:= fscc.o
 KDIR	:= /lib/modules/$(shell uname -r)/build
 PWD	:= $(shell pwd)
 IGNORE	:=
-fscc-objs := src/main.o src/port.o src/card.o src/isr.o src/utils.o src/frame.o
+fscc-objs := src/main.o src/port.o src/card.o src/isr.o src/utils.o src/frame.o src/sysfs.o
 
 default:
 	$(MAKE) -C $(KDIR) SUBDIRS=$(PWD) modules
