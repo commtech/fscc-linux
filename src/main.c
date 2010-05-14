@@ -314,8 +314,7 @@ static void __exit fscc_exit(void)
 {
 	pci_unregister_driver(&fscc_pci_driver);
 	unregister_chrdev(fscc_major_number, "fscc");
-	class_destroy(fscc_class);
-	
+	class_destroy(fscc_class);	
 }
 
 MODULE_DEVICE_TABLE(pci, fscc_id_table);

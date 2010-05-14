@@ -520,7 +520,7 @@ struct fscc_port *fscc_port_new(struct fscc_card *card, unsigned channel,
 	fscc_port_execute_TRES(port);
 	
 	irq_num = card->pci_dev->irq;
-	if (request_irq(irq_num, &fscc_isr, IRQF_SHARED, port->name, port)) {
+	if (request_irq(irq_num, &fscc_isr, IRQF_DISABLED | IRQF_SHARED, port->name, port)) {
 		printk(KERN_ERR "%s request_irq failed on irq %i\n", port->name, irq_num);
 		return 0;
 	}
@@ -634,22 +634,16 @@ __u32 fscc_port_empty_RxFIFO(struct fscc_port *port, struct fscc_frame *frame,
                             unsigned byte_count)
 {
 	unsigned leftover_count = 0;
-	unsigned i = 0;
 	__u32 incoming_data = 0;
 	
 	leftover_count = byte_count % 4;
-	//printk("%i %i %i\n", leftover_count, byte_count, frame->current_length);
 	
-	//I think the problem with this is when I use the add_Data method like normally, it does something behind the scenes.
-	//fscc_port_get_register_rep(port, 0, FIFO_OFFSET, 
-	//                           frame->data + frame->current_length, 
-	//                           (byte_count - leftover_count) / 4);
-	
-	/* Read all of the 4 byte chunks. */
-	for (i = 0; i < byte_count - leftover_count; i += 4) {
-		incoming_data = fscc_port_get_register(port, 0, FIFO_OFFSET);
-		fscc_frame_add_data(frame, (char *)(&incoming_data), 4);
-	}
+	fscc_port_get_register_rep(port, 0, FIFO_OFFSET, 
+	                           frame->data + frame->current_length, 
+	                           (byte_count - leftover_count) / 4);
+
+	//TODO: We shouldn't be manipulating the frame manually like this.
+	frame->current_length += (byte_count - leftover_count);
 	
 	if (leftover_count) {
 		incoming_data = fscc_port_get_register(port, 0, FIFO_OFFSET);
@@ -837,4 +831,5 @@ void fscc_port_restore_registers(struct fscc_port *port)
 	for (i = 0; i < sizeof(struct fscc_registers) / sizeof(int32_t); i++)
 		fscc_port_set_register(port, 0, i * 4, ((uint32_t *)&port->register_storage)[i]);
 }
+
 
