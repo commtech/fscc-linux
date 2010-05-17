@@ -104,8 +104,6 @@ struct fscc_port *fscc_port_new(struct fscc_card *card, unsigned channel,
                                 
 void fscc_port_delete(struct fscc_port *port);
 
-unsigned fscc_port_get_minor_number(struct fscc_port *port);
-
 int fscc_port_write(struct fscc_port *port, const char *data, unsigned length);                     
 ssize_t fscc_port_read(struct fscc_port *port, char *buf, size_t count);
                            

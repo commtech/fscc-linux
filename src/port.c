@@ -121,7 +121,7 @@ void iframe_worker(unsigned long data)
 		
 		printk(KERN_DEBUG "%s F#%i receive started\n", port->name, 
 			   port->pending_iframe->number);
-	}	
+	}
 		
 	if (port->handled_frames < port->ended_frames) {
 		finished_frame = 1;
@@ -130,26 +130,32 @@ void iframe_worker(unsigned long data)
 	}
 	else {
 		finished_frame = 0;
-		byte_count = receive_length = fscc_port_get_RXCNT(port);
+		
+		//We take off 2 bytes from the amount we can read just in case all the
+		//data got transfered in between the time we determined all of the data
+		//wasn't in the FIFO and now. In this case, we let the next pass take
+		//care of that data.
+		byte_count = receive_length = fscc_port_get_RXCNT(port) - 2;
 	}	
 		
 	leftover_count = receive_length % 4;
 	
 	if (!finished_frame)
 		receive_length -= leftover_count;
-	
+
+	//printk("receive_length = %i\n", receive_length);
 	last_data_chunk = fscc_port_empty_RxFIFO(port, port->pending_iframe, receive_length);
-	
+
 	if (receive_length == 1)
 		printk(KERN_DEBUG "%s F#%i %i byte <= FIFO\n", 
 		       port->name, port->pending_iframe->number, receive_length);
 	else
 		printk(KERN_DEBUG "%s F#%i %i bytes <= FIFO\n", 
 		       port->name, port->pending_iframe->number, receive_length);
-
+		       
 	if (!finished_frame)
 		return;
-	
+
 	switch (leftover_count) {
 		case 0:
 			frame_status = fscc_port_get_register(port, 0, FIFO_OFFSET) & 0x0000FFFF;
@@ -184,7 +190,7 @@ void iframe_worker(unsigned long data)
 		
 		printk(KERN_ALERT "%s F#%i receive rejected\n", port->name, 
 			   port->pending_iframe->number);
-	}		
+	}	
 
 	port->handled_frames += 1;
 	
@@ -275,7 +281,7 @@ struct fscc_port *fscc_port_new(struct fscc_card *card, unsigned channel,
 	INIT_LIST_HEAD(&port->list);
 	INIT_LIST_HEAD(&port->oframes);
 	INIT_LIST_HEAD(&port->iframes);
-	
+
 	port->dev_t = MKDEV(major_number, minor_number);
 	port->class = class;
 	port->pending_iframe = 0;
@@ -411,11 +417,6 @@ ssize_t fscc_port_read(struct fscc_port *port, char *buf, size_t count)
 	return sent_length;
 }
 
-unsigned fscc_port_get_minor_number(struct fscc_port *port)
-{
-	return MINOR(port->dev_t);
-}
-
 /* Must have room available */
 /* Puts data into the FIFO */
 void fscc_port_fill_TxFIFO(struct fscc_port *port, const char *data, 
@@ -436,12 +437,13 @@ void fscc_port_fill_TxFIFO(struct fscc_port *port, const char *data,
 /* Pulls data from FIFO and puts into the frame */
 /* Returns the last data chunk retrieved */
 __u32 fscc_port_empty_RxFIFO(struct fscc_port *port, struct fscc_frame *frame,
-                            unsigned byte_count)
+                             unsigned byte_count)
 {
 	unsigned leftover_count = 0;
 	__u32 incoming_data = 0;
 	
 	leftover_count = byte_count % 4;
+	//printk("leftover = %i, byte_count = %i\n", leftover_count, byte_count);
 	
 	fscc_port_get_register_rep(port, 0, FIFO_OFFSET, 
 	                           frame->data + frame->current_length, 
@@ -449,7 +451,7 @@ __u32 fscc_port_empty_RxFIFO(struct fscc_port *port, struct fscc_frame *frame,
 
 	//TODO: We shouldn't be manipulating the frame manually like this.
 	frame->current_length += (byte_count - leftover_count);
-	
+
 	if (leftover_count) {
 		incoming_data = fscc_port_get_register(port, 0, FIFO_OFFSET);
 		fscc_frame_add_data(frame, (char *)(&incoming_data), leftover_count);
@@ -515,7 +517,7 @@ __u32 fscc_port_get_register(struct fscc_port *port, unsigned bar,
 	
 	if (port->channel == 1)
 		offset += 0x80;
-		
+	
 	return ioread32(address + offset);
 }
 
@@ -549,6 +551,7 @@ void fscc_port_set_register(struct fscc_port *port, unsigned bar,
 		
 	iowrite32(value, address + offset);
 }
+
 
 void fscc_port_set_register_rep(struct fscc_port *port, unsigned bar,
                                 unsigned register_offset, const char *data,

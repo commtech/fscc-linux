@@ -52,12 +52,18 @@ struct fscc_card *fscc_card_new(struct pci_dev *pdev,
 	
 	start_minor_number = minor_number;
 	
-	for (i = 0; i < 3; i++)
+	for (i = 0; i < 3; i++) {
 		card->bar[i] = pci_iomap(card->pci_dev, i, 0);
+		
+		if (card->bar[i] == NULL) {
+			printk(KERN_ERR DEVICE_NAME " pci_iomap failed on bar #%i\n", i);
+			return 0;
+		}
+	}
 	
 	for (i = 0; i < 2; i++) {
 		port_iter = fscc_port_new(card, i, major_number, minor_number, 
-		                          class, fops);   
+		                          class, fops);
 		
 		if (port_iter)                         
 			printk(KERN_INFO "%s revision %x.%02x\n", port_iter->name,
