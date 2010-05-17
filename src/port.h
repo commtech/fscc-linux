@@ -141,4 +141,8 @@ void fscc_port_execute_XF(struct fscc_port *port);
 void fscc_port_store_registers(struct fscc_port *port);
 void fscc_port_restore_registers(struct fscc_port *port);
 
+unsigned fscc_port_get_output_memory_usage(struct fscc_port *port);
+unsigned fscc_port_get_input_memory_usage(struct fscc_port *port);
+unsigned fscc_port_get_memory_usage(struct fscc_port *port);
+
 #endif

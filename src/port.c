@@ -31,8 +31,6 @@ struct fscc_frame *fscc_port_peek_front_frame(struct fscc_port *port,
                                               struct list_head *frames);
                                               
 void fscc_port_empty_frames(struct fscc_port *port, struct list_head *frames);
-unsigned fscc_port_total_frame_memory(struct fscc_port *port, 
-                                      struct list_head *frames);
 
 void fscc_port_fill_TxFIFO(struct fscc_port *port, const char *data, 
                            unsigned byte_count);
@@ -346,6 +344,11 @@ struct fscc_port *fscc_port_new(struct fscc_card *card, unsigned channel,
 		return 0;
 	}
 	
+	if (sysfs_create_group(&port->device->kobj, &port_info_attr_group)) {
+		printk(KERN_ERR "%s sysfs_create_group\n", port->name);
+		return 0;
+	}
+	
 	return port;
 }
 
@@ -382,7 +385,7 @@ int fscc_port_write(struct fscc_port *port, const char *data, unsigned length)
 	struct fscc_frame *frame = 0;
 	char *temp_storage = 0;
 	
-	if (fscc_port_total_frame_memory(port, &port->oframes) + length > memory_cap)
+	if (fscc_port_get_memory_usage(port) + length > memory_cap)
 		return -ENOMEM;
 	
 	temp_storage = (char *)kmalloc(length, GFP_KERNEL);
@@ -497,18 +500,6 @@ bool fscc_port_has_iframes(struct fscc_port *port)
 bool fscc_port_has_oframes(struct fscc_port *port)
 {
 	return !list_empty(&port->oframes);
-}
-
-unsigned fscc_port_total_frame_memory(struct fscc_port *port, struct list_head *frames)
-{
-	struct fscc_frame *current_frame = 0;	
-	unsigned memory = 0;
-	
-	list_for_each_entry(current_frame, frames, list) {
-		memory += fscc_frame_get_target_length(current_frame);
-	}	
-	
-	return memory;
 }
 
 __u32 fscc_port_get_register(struct fscc_port *port, unsigned bar, 
@@ -667,5 +658,46 @@ void fscc_port_flush_rx(struct fscc_port *port)
 		fscc_frame_delete(port->pending_iframe);
 	
 	fscc_port_empty_frames(port, &port->iframes);
+}
+
+unsigned fscc_port_get_output_memory_usage(struct fscc_port *port)
+{
+	struct fscc_frame *current_frame = 0;	
+	unsigned memory = 0;
+	
+	list_for_each_entry(current_frame, &port->oframes, list) {
+		memory += fscc_frame_get_current_length(current_frame);
+	}	
+	
+	if (port->pending_oframe)
+		memory += fscc_frame_get_current_length(port->pending_oframe);
+	
+	return memory;
+}
+
+unsigned fscc_port_get_input_memory_usage(struct fscc_port *port)
+{
+	struct fscc_frame *current_frame = 0;	
+	unsigned memory = 0;
+	
+	list_for_each_entry(current_frame, &port->iframes, list) {
+		memory += fscc_frame_get_current_length(current_frame);
+	}
+	
+	if (port->pending_iframe)
+		memory += fscc_frame_get_current_length(port->pending_iframe);
+	
+	return memory;
+}
+
+unsigned fscc_port_get_memory_usage(struct fscc_port *port)
+{
+	unsigned output_memory = 0;
+	unsigned input_memory = 0;
+	
+	output_memory = fscc_port_get_output_memory_usage(port);
+	input_memory = fscc_port_get_input_memory_usage(port);
+
+	return output_memory + input_memory;
 }
 

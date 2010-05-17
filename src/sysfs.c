@@ -267,3 +267,48 @@ struct attribute_group port_commands_attr_group = {
 	.attrs = command_attrs,
 };
 
+
+
+
+
+
+
+
+
+static ssize_t output_memory(struct kobject *kobj, struct kobj_attribute *attr,
+                             char *buf)
+{
+	struct fscc_port *port = 0;
+	
+	port = (struct fscc_port *)dev_get_drvdata((struct device *)kobj);
+	
+	return sprintf(buf, "%i\n", fscc_port_get_output_memory_usage(port));
+}
+
+static ssize_t input_memory(struct kobject *kobj, struct kobj_attribute *attr,
+                                  char *buf)
+{
+	struct fscc_port *port = 0;
+	
+	port = (struct fscc_port *)dev_get_drvdata((struct device *)kobj);
+	
+	return sprintf(buf, "%i\n", fscc_port_get_input_memory_usage(port));
+}
+
+static struct kobj_attribute output_memory_attribute = 
+	__ATTR(output_memory, SYSFS_READ_ONLY_MODE, output_memory, 0);
+
+static struct kobj_attribute input_memory_attribute = 
+	__ATTR(input_memory, SYSFS_READ_ONLY_MODE, input_memory, 0);
+
+static struct attribute *info_attrs[] = {
+	&output_memory_attribute.attr,
+	&input_memory_attribute.attr,
+	NULL,
+};
+
+struct attribute_group port_info_attr_group = {
+	.name = "info",
+	.attrs = info_attrs,
+};
+
