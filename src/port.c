@@ -341,6 +341,11 @@ struct fscc_port *fscc_port_new(struct fscc_card *card, unsigned channel,
 		return 0;
 	}
 	
+	if (sysfs_create_group(&port->device->kobj, &port_commands_attr_group)) {
+		printk(KERN_ERR "%s sysfs_create_group\n", port->name);
+		return 0;
+	}
+	
 	return port;
 }
 
@@ -640,4 +645,27 @@ void fscc_port_restore_registers(struct fscc_port *port)
 		fscc_port_set_register(port, 0, i * 4, ((uint32_t *)&port->register_storage)[i]);
 }
 
+void fscc_port_flush_tx(struct fscc_port *port)
+{	
+	printk(KERN_DEBUG "%s flush_tx\n", port->name);
+	
+	fscc_port_execute_TRES(port);
+		
+	if (port->pending_oframe)
+		fscc_frame_delete(port->pending_oframe);
+	
+	fscc_port_empty_frames(port, &port->oframes);
+}
+
+void fscc_port_flush_rx(struct fscc_port *port)
+{
+	printk(KERN_DEBUG "%s flush_rx\n", port->name);
+	
+	fscc_port_execute_RRES(port);
+		
+	if (port->pending_iframe)
+		fscc_frame_delete(port->pending_iframe);
+	
+	fscc_port_empty_frames(port, &port->iframes);
+}
 

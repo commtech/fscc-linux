@@ -38,6 +38,7 @@
 
 #define DEFAULT_MEMEMORY_CAP 20000
 #define SYSFS_READ_ONLY_MODE S_IRUGO
+#define SYSFS_WRITE_ONLY_MODE S_IWUGO
 #define SYSFS_READ_WRITE_MODE S_IWUGO | S_IRUGO
 
 extern unsigned memory_cap;

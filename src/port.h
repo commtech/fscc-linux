@@ -122,7 +122,10 @@ void fscc_port_set_register(struct fscc_port *port, unsigned bar,
                             
 void fscc_port_set_register_rep(struct fscc_port *port, unsigned bar,
                                 unsigned register_offset, const char *data,
-                                unsigned long chunks); 
+                                unsigned long chunks);
+                                
+void fscc_port_flush_tx(struct fscc_port *port);
+void fscc_port_flush_rx(struct fscc_port *port);
 
 __u32 fscc_port_get_TXCNT(struct fscc_port *port);
 __u32 fscc_port_get_RXCNT(struct fscc_port *port);

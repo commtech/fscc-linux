@@ -185,7 +185,7 @@ static struct kobj_attribute tcr_attribute =
 	__ATTR(tcr, SYSFS_READ_WRITE_MODE, bar0_register_show, bar0_register_store);
 
 static struct kobj_attribute vstr_attribute = 
-	__ATTR(vstr, SYSFS_READ_ONLY_MODE, bar0_register_show, bar0_register_store);
+	__ATTR(vstr, SYSFS_READ_ONLY_MODE, bar0_register_show, 0);
 
 static struct kobj_attribute imr_attribute = 
 	__ATTR(imr, SYSFS_READ_WRITE_MODE, bar0_register_show, bar0_register_store);
@@ -193,7 +193,7 @@ static struct kobj_attribute imr_attribute =
 static struct kobj_attribute fcr_attribute = 
 	__ATTR(fcr, SYSFS_READ_WRITE_MODE, bar2_register_show, bar2_register_store);
 
-static struct attribute *attrs[] = {
+static struct attribute *register_attrs[] = {
 	&fifot_attribute.attr,
 	&cmdr_attribute.attr,
 	&ccr0_attribute.attr,
@@ -216,6 +216,54 @@ static struct attribute *attrs[] = {
 
 struct attribute_group port_registers_attr_group = {
 	.name = "registers",
-	.attrs = attrs,
+	.attrs = register_attrs,
+};
+
+
+
+
+
+
+
+
+static ssize_t flush_tx(struct kobject *kobj, struct kobj_attribute *attr,
+                              const char *buf, size_t count)
+{
+	struct fscc_port *port = 0;
+	
+	port = (struct fscc_port *)dev_get_drvdata((struct device *)kobj);
+	
+	fscc_port_flush_tx(port);
+
+	return count;
+}
+
+static ssize_t flush_rx(struct kobject *kobj, struct kobj_attribute *attr,
+                              const char *buf, size_t count)
+{
+	struct fscc_port *port = 0;
+	
+	port = (struct fscc_port *)dev_get_drvdata((struct device *)kobj);
+	
+	fscc_port_flush_rx(port);
+
+	return count;
+}
+
+static struct kobj_attribute flush_tx_attribute = 
+	__ATTR(flush_tx, SYSFS_WRITE_ONLY_MODE, 0, flush_tx);
+
+static struct kobj_attribute flush_rx_attribute = 
+	__ATTR(flush_rx, SYSFS_WRITE_ONLY_MODE, 0, flush_rx);
+
+static struct attribute *command_attrs[] = {
+	&flush_tx_attribute.attr,
+	&flush_rx_attribute.attr,
+	NULL,
+};
+
+struct attribute_group port_commands_attr_group = {
+	.name = "commands",
+	.attrs = command_attrs,
 };
 

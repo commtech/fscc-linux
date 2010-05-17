@@ -22,6 +22,7 @@
 #define FSCC_SYSFS
 
 extern struct attribute_group port_registers_attr_group;
+extern struct attribute_group port_commands_attr_group;
 
 #endif
 
