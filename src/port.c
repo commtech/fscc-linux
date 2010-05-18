@@ -348,6 +348,9 @@ struct fscc_port *fscc_port_new(struct fscc_card *card, unsigned channel,
 		printk(KERN_ERR "%s sysfs_create_group\n", port->name);
 		return 0;
 	}
+		
+	printk(KERN_INFO "%s revision %x.%02x\n", port->name, 
+	       fscc_port_get_PREV(port), fscc_port_get_FREV(port));
 	
 	return port;
 }
@@ -632,8 +635,21 @@ void fscc_port_restore_registers(struct fscc_port *port)
 {
 	unsigned i = 0;
 	
-	for (i = 0; i < sizeof(struct fscc_registers) / sizeof(int32_t); i++)
-		fscc_port_set_register(port, 0, i * 4, ((uint32_t *)&port->register_storage)[i]);
+	for (i = 0; i < sizeof(struct fscc_registers) / sizeof(int32_t); i++) {
+		__u32 current_value = 0;	
+		
+		current_value = fscc_port_get_register(port, 0, i * 4);
+		
+		if (current_value != ((uint32_t *)&port->register_storage)[i]) {
+			printk(KERN_DEBUG "%s register 0x%02x restoring 0x%08x => 0x%08x\n", 
+			       port->name, i * 4, current_value, 
+			       offset_to_value(&port->register_storage, i * 4));
+			       
+			fscc_port_set_register(port, 0, i * 4, 
+			                    offset_to_value(&port->register_storage, i * 4));
+		}
+	}
+	
 }
 
 void fscc_port_flush_tx(struct fscc_port *port)

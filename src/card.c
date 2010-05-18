@@ -44,9 +44,18 @@ struct fscc_card *fscc_card_new(struct pci_dev *pdev,
 	card->pci_dev = pdev;
 	
 	if (pci_request_regions(card->pci_dev, DEVICE_NAME) != 0) {
-		printk(KERN_ERR DEVICE_NAME " pci_request_regions failed\n");
+		printk(KERN_ERR DEVICE_NAME " %s: pci_request_regions failed\n", 
+		       pci_name(card->pci_dev));
+		       
 		return 0;
 	}
+	
+	/*
+	if (pci_enable_msi(card->pci_dev) != 0) {
+		printk(KERN_ERR DEVICE_NAME " %s: pci_enable_msi failed\n",
+		       pci_name(card->pci_dev));
+	}
+	*/
 	
 	pci_set_drvdata(card->pci_dev, card);
 	
@@ -56,7 +65,9 @@ struct fscc_card *fscc_card_new(struct pci_dev *pdev,
 		card->bar[i] = pci_iomap(card->pci_dev, i, 0);
 		
 		if (card->bar[i] == NULL) {
-			printk(KERN_ERR DEVICE_NAME " pci_iomap failed on bar #%i\n", i);
+			printk(KERN_ERR DEVICE_NAME " %s: pci_iomap failed on bar #%i\n",
+			       pci_name(card->pci_dev), i);
+			       
 			return 0;
 		}
 	}
@@ -64,10 +75,6 @@ struct fscc_card *fscc_card_new(struct pci_dev *pdev,
 	for (i = 0; i < 2; i++) {
 		port_iter = fscc_port_new(card, i, major_number, minor_number, 
 		                          class, fops);
-		
-		if (port_iter)                         
-			printk(KERN_INFO "%s revision %x.%02x\n", port_iter->name,
-				   fscc_port_get_PREV(port_iter), fscc_port_get_FREV(port_iter));
 		                          
 		minor_number += 1;        
 	}
@@ -84,6 +91,7 @@ void fscc_card_delete(struct fscc_card *card)
 		return;
 		
 	pci_set_drvdata(card->pci_dev, 0);	
+	//pci_disable_msi(card->pci_dev);
 	pci_release_regions(card->pci_dev);
 	
 	list_for_each_safe(current_node, temp_node, &card->ports) {

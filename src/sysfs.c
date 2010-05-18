@@ -22,60 +22,7 @@
 #include "port.h"
 #include "card.h"
 #include "config.h"
-
-int str_to_offset(const char *str)
-{
-	if (strcmp(str, "fifo") == 0)
-		return FIFO_OFFSET;
-	else if (strcmp(str, "bcfl") == 0)
-		return BC_FIFO_L_OFFSET;
-	else if (strcmp(str, "fifot") == 0)
-		return FIFOT_OFFSET;
-	else if (strcmp(str, "fifobc") == 0)
-		return FIFO_BC_OFFSET;
-	else if (strcmp(str, "fifofc") == 0)
-		return FIFO_FC_OFFSET;
-	else if (strcmp(str, "cmdr") == 0)
-		return CMDR_OFFSET;
-	else if (strcmp(str, "star") == 0)
-		return STAR_OFFSET;
-	else if (strcmp(str, "ccr0") == 0)
-		return CCR0_OFFSET;
-	else if (strcmp(str, "ccr1") == 0)
-		return CCR1_OFFSET;
-	else if (strcmp(str, "ccr2") == 0)
-		return CCR2_OFFSET;
-	else if (strcmp(str, "bgr") == 0)
-		return BGR_OFFSET;
-	else if (strcmp(str, "ssr") == 0)
-		return SSR_OFFSET;
-	else if (strcmp(str, "smr") == 0)
-		return SMR_OFFSET;
-	else if (strcmp(str, "tsr") == 0)
-		return TSR_OFFSET;
-	else if (strcmp(str, "tmr") == 0)
-		return TMR_OFFSET;
-	else if (strcmp(str, "rar") == 0)
-		return RAR_OFFSET;
-	else if (strcmp(str, "ramr") == 0)
-		return RAMR_OFFSET;
-	else if (strcmp(str, "ppr") == 0)
-		return PPR_OFFSET;
-	else if (strcmp(str, "tcr") == 0)
-		return TCR_OFFSET;
-	else if (strcmp(str, "vstr") == 0)
-		return VSTR_OFFSET;
-	else if (strcmp(str, "isr") == 0)
-		return ISR_OFFSET;
-	else if (strcmp(str, "imr") == 0)
-		return IMR_OFFSET;
-	else if (strcmp(str, "fcr") == 0)
-		return FCR_OFFSET;
-	else
-		printk(KERN_NOTICE DEVICE_NAME " invalid str passed into str_to_offset\n");
-
-	return -1;
-}
+#include "utils.h"
 
 static ssize_t register_store(struct kobject *kobj, struct kobj_attribute *attr,
                               const char *buf, size_t count, unsigned bar_number)

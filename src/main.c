@@ -210,8 +210,10 @@ static int __devinit fscc_probe(struct pci_dev *pdev,
 		case SFSCCe_4_ID:		
 			new_card = fscc_card_new(pdev, id, fscc_major_number, fscc_class,
                                      &fscc_fops);
-			                         
-			list_add_tail(&new_card->list, &fscc_cards);
+			
+			if (new_card)                         
+				list_add_tail(&new_card->list, &fscc_cards);
+				
 			break;
 			
 		default:
@@ -227,10 +229,8 @@ static void __devexit fscc_remove(struct pci_dev *pdev)
 	
 	card = fscc_card_find(pdev, &fscc_cards);
 	
-	if (card == 0) {
-		printk(KERN_DEBUG DEVICE_NAME " card not found\n");
+	if (card == 0)
 		return;
-	}
 	
 	list_del(&card->list);
 	fscc_card_delete(card);	
@@ -240,10 +240,11 @@ static void __devexit fscc_remove(struct pci_dev *pdev)
 static int fscc_suspend(struct pci_dev *pdev, pm_message_t state)
 {
 	struct fscc_card *card = 0;
-	
-	printk(KERN_DEBUG DEVICE_NAME " sleeping\n");
 		
 	card = fscc_card_find(pdev, &fscc_cards);
+	
+	printk(KERN_DEBUG " %s: suspending\n", pci_name(card->pci_dev));
+	
 	fscc_card_suspend(card);
 
 	pci_save_state(pdev);
@@ -256,12 +257,13 @@ static int fscc_resume(struct pci_dev *pdev)
 {
 	struct fscc_card *card = 0;	
 	
-	printk(KERN_DEBUG DEVICE_NAME " resuming\n");
+	card = fscc_card_find(pdev, &fscc_cards);
+	
+	printk(KERN_DEBUG " %s: resuming\n", pci_name(card->pci_dev));
 
 	pci_set_power_state(pdev, PCI_D0);
 	pci_restore_state(pdev);
-	
-	card = fscc_card_find(pdev, &fscc_cards);
+		
 	fscc_card_resume(card);
 
 	return 0;
