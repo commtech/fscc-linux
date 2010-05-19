@@ -108,17 +108,27 @@ void fscc_card_suspend(struct fscc_card *card)
 	struct fscc_port *current_port = 0;
 			
 	list_for_each_entry(current_port, &card->ports, list) {	
-		fscc_port_store_registers(current_port);
+		fscc_port_suspend(current_port);
 	}
+	
+	card->fcr_storage = fscc_card_get_register(card, 2, FCR_OFFSET);
 }
 
 void fscc_card_resume(struct fscc_card *card)
 {
 	struct fscc_port *current_port = 0;
+	__u32 current_value = 0;	
 			
 	list_for_each_entry(current_port, &card->ports, list) {	
-		fscc_port_restore_registers(current_port);
+		fscc_port_resume(current_port);
 	}
+	
+	current_value = fscc_card_get_register(card, 2, FCR_OFFSET);
+	
+	printk(KERN_DEBUG DEVICE_NAME " %s: FCR restoring 0x%08x => 0x%08x\n", 
+           pci_name(card->pci_dev), current_value, card->fcr_storage);
+	
+	fscc_card_set_register(card, 2, FCR_OFFSET, card->fcr_storage);
 }
 
 struct fscc_card *fscc_card_find(struct pci_dev *pdev, 
@@ -140,5 +150,47 @@ void __iomem *fscc_card_get_BAR(struct fscc_card *card, unsigned number)
 		return 0;
 
 	return card->bar[number];
+}
+
+__u32 fscc_card_get_register(struct fscc_card *card, unsigned bar, 
+                             unsigned offset)
+{
+	void __iomem *address = 0;
+	
+	address = fscc_card_get_BAR(card, bar);
+	
+	return ioread32(address + offset);
+}
+
+void fscc_card_get_register_rep(struct fscc_card *card, unsigned bar, 
+                                unsigned offset, char *buf,
+                                unsigned long chunks)
+{
+	void __iomem *address = 0;
+	
+	address = fscc_card_get_BAR(card, bar);
+		
+	ioread32_rep(address + offset, buf, chunks);
+}
+
+void fscc_card_set_register(struct fscc_card *card, unsigned bar, 
+                            unsigned offset, __u32 value)
+{
+	void __iomem *address = 0;
+	
+	address = fscc_card_get_BAR(card, bar);
+		
+	iowrite32(value, address + offset);
+}
+
+void fscc_card_set_register_rep(struct fscc_card *card, unsigned bar,
+                                unsigned offset, const char *data,
+                                unsigned long chunks) 
+{
+	void __iomem *address = 0;
+	
+	address = fscc_card_get_BAR(card, bar);
+		
+	iowrite32_rep(address + offset, data, chunks);
 }
 

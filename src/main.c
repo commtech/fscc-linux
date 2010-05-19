@@ -142,11 +142,11 @@ unsigned fscc_poll(struct file *file, struct poll_table_struct *wait)
 int fscc_ioctl(struct inode *inode, struct file *file, unsigned int cmd, 
                unsigned long arg)
 {
-	struct fscc_port *current_port = 0;
+	struct fscc_port *port = 0;
 	
-	current_port = file->private_data;
+	port = file->private_data;
 	
-	switch (cmd) {			
+	switch (cmd) {
 		case FSCC_GET_REGISTERS: {
 				unsigned i = 0;
 			
@@ -154,7 +154,7 @@ int fscc_ioctl(struct inode *inode, struct file *file, unsigned int cmd,
 					if (((int32_t *)arg)[i] != FSCC_UPDATE_VALUE)
 						continue;
 						
-					((uint32_t *)arg)[i] = fscc_port_get_register(current_port, 0, i * 4);
+					((uint32_t *)arg)[i] = fscc_port_get_register(port, 0, i * 4);
 				}
 			}			
 			break;
@@ -166,9 +166,17 @@ int fscc_ioctl(struct inode *inode, struct file *file, unsigned int cmd,
 					if (((int32_t *)arg)[i] < 0)
 						continue;
 						
-					fscc_port_set_register(current_port, 0, i * 4, ((uint32_t *)arg)[i]);
+					fscc_port_set_register(port, 0, i * 4, ((uint32_t *)arg)[i]);
 				}
 			}
+			break;
+			
+		case FSCC_FLUSH_TX:
+			fscc_port_flush_tx(port);
+			break;
+			
+		case FSCC_FLUSH_RX:
+			fscc_port_flush_rx(port);
 			break;
 
 		/* This makes us appear to be a tty device for fread */

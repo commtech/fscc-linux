@@ -26,6 +26,8 @@
 #define FSCC_IOCTL_MAGIC 0x18
 #define FSCC_GET_REGISTERS _IOR(FSCC_IOCTL_MAGIC, 0, __u32)
 #define FSCC_SET_REGISTERS _IOW(FSCC_IOCTL_MAGIC, 1, __u32)
+#define FSCC_FLUSH_TX _IO(FSCC_IOCTL_MAGIC, 2)
+#define FSCC_FLUSH_RX _IO(FSCC_IOCTL_MAGIC, 3)
 
 struct fscc_registers {
 	__s32 reserved1[2];

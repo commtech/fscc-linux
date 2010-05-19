@@ -508,64 +508,55 @@ bool fscc_port_has_oframes(struct fscc_port *port)
 __u32 fscc_port_get_register(struct fscc_port *port, unsigned bar, 
                              unsigned register_offset)
 {
-	void __iomem *address = 0;
 	unsigned offset = 0;
 	
-	address = fscc_card_get_BAR(port->card, bar);
-	offset = register_offset;
-	
-	if (port->channel == 1)
-		offset += 0x80;
-	
-	return ioread32(address + offset);
-}
-
-void fscc_port_get_register_rep(struct fscc_port *port, unsigned bar, 
-                                 unsigned register_offset, char *buf,
-                                 unsigned long chunks)
-{
-	void __iomem *address = 0;
-	unsigned offset = 0;
-	
-	address = fscc_card_get_BAR(port->card, bar);
 	offset = register_offset;
 	
 	if (port->channel == 1)
 		offset += 0x80;
 		
-	ioread32_rep(address + offset, buf, chunks);
+	return fscc_card_get_register(port->card, bar, offset);
+}
+
+void fscc_port_get_register_rep(struct fscc_port *port, unsigned bar, 
+                                unsigned register_offset, char *buf,
+                                unsigned long chunks)
+{
+	unsigned offset = 0;
+	
+	offset = register_offset;
+	
+	if (port->channel == 1)
+		offset += 0x80;
+		
+	fscc_card_get_register_rep(port->card, bar, offset, buf, chunks);
 }
 
 void fscc_port_set_register(struct fscc_port *port, unsigned bar, 
                             unsigned register_offset, __u32 value)
 {
-	void __iomem *address = 0;
 	unsigned offset = 0;
 	
-	address = fscc_card_get_BAR(port->card, bar);
 	offset = register_offset;
 	
 	if (port->channel == 1)
 		offset += 0x80;
 		
-	iowrite32(value, address + offset);
+	fscc_card_set_register(port->card, bar, offset, value);
 }
-
 
 void fscc_port_set_register_rep(struct fscc_port *port, unsigned bar,
                                 unsigned register_offset, const char *data,
                                 unsigned long chunks) 
 {
-	void __iomem *address = 0;
 	unsigned offset = 0;
 	
-	address = fscc_card_get_BAR(port->card, bar);
 	offset = register_offset;
 	
 	if (port->channel == 1)
 		offset += 0x80;
-		
-	iowrite32_rep(address + offset, data, chunks);
+	
+	fscc_card_set_register_rep(port->card, bar, offset, data, chunks);
 }
 
 __u32 fscc_port_get_TXCNT(struct fscc_port *port)
@@ -623,7 +614,7 @@ void fscc_port_execute_XF(struct fscc_port *port)
 	fscc_port_set_register(port, 0, CMDR_OFFSET, 0x01000000);
 }
 
-void fscc_port_store_registers(struct fscc_port *port)
+void fscc_port_suspend(struct fscc_port *port)
 {
 	unsigned i = 0;
 	
@@ -631,7 +622,7 @@ void fscc_port_store_registers(struct fscc_port *port)
 		((uint32_t *)&port->register_storage)[i] = fscc_port_get_register(port, 0, i * 4);
 }
 
-void fscc_port_restore_registers(struct fscc_port *port)
+void fscc_port_resume(struct fscc_port *port)
 {
 	unsigned i = 0;
 	

@@ -35,6 +35,8 @@ struct fscc_card {
 	struct pci_dev *pci_dev;
 	
 	void __iomem *bar[3];
+	
+	__u32 fcr_storage;
 };
 
 struct fscc_card *fscc_card_new(struct pci_dev *pdev, 
@@ -52,4 +54,17 @@ struct fscc_card *fscc_card_find(struct pci_dev *pdev,
 
 void __iomem *fscc_card_get_BAR(struct fscc_card *card, unsigned number);
 
+__u32 fscc_card_get_register(struct fscc_card *card, unsigned bar, 
+                             unsigned offset);
+
+void fscc_card_set_register(struct fscc_card *card, unsigned bar, 
+                            unsigned offset, __u32 value);
+                            
+void fscc_card_get_register_rep(struct fscc_card *card, unsigned bar, 
+                                unsigned offset, char *buf,
+                                unsigned long chunks);
+                                
+void fscc_card_set_register_rep(struct fscc_card *card, unsigned bar,
+                                unsigned offset, const char *data,
+                                unsigned long chunks);
 #endif
