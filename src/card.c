@@ -22,6 +22,7 @@
 #include "port.h"
 #include "config.h"
 #include "isr.h"
+#include "utils.h"
 
 unsigned minor_number = 0;
 
@@ -49,13 +50,6 @@ struct fscc_card *fscc_card_new(struct pci_dev *pdev,
 		       
 		return 0;
 	}
-	
-	/*
-	if (pci_enable_msi(card->pci_dev) != 0) {
-		printk(KERN_ERR DEVICE_NAME " %s: pci_enable_msi failed\n",
-		       pci_name(card->pci_dev));
-	}
-	*/
 	
 	pci_set_drvdata(card->pci_dev, card);
 	
@@ -86,12 +80,10 @@ void fscc_card_delete(struct fscc_card *card)
 {
 	struct list_head *current_node = 0;
 	struct list_head *temp_node = 0;
-	
-	if (card == 0)
-		return;
+		
+	return_if_untrue(card);
 		
 	pci_set_drvdata(card->pci_dev, 0);	
-	//pci_disable_msi(card->pci_dev);
 	pci_release_regions(card->pci_dev);
 	
 	list_for_each_safe(current_node, temp_node, &card->ports) {
@@ -106,6 +98,8 @@ void fscc_card_delete(struct fscc_card *card)
 void fscc_card_suspend(struct fscc_card *card)
 {
 	struct fscc_port *current_port = 0;
+		
+	return_if_untrue(card);
 			
 	list_for_each_entry(current_port, &card->ports, list) {	
 		fscc_port_suspend(current_port);
@@ -118,6 +112,8 @@ void fscc_card_resume(struct fscc_card *card)
 {
 	struct fscc_port *current_port = 0;
 	__u32 current_value = 0;	
+		
+	return_if_untrue(card);
 			
 	list_for_each_entry(current_port, &card->ports, list) {	
 		fscc_port_resume(current_port);
@@ -145,7 +141,9 @@ struct fscc_card *fscc_card_find(struct pci_dev *pdev,
 }
 
 void __iomem *fscc_card_get_BAR(struct fscc_card *card, unsigned number)
-{
+{		
+	return_val_if_untrue(card, 0);
+	
 	if (number > 2)
 		return 0;
 
@@ -156,10 +154,15 @@ __u32 fscc_card_get_register(struct fscc_card *card, unsigned bar,
                              unsigned offset)
 {
 	void __iomem *address = 0;
+	__u32 value = 0;
+	
+	return_val_if_untrue(card, 0);
 	
 	address = fscc_card_get_BAR(card, bar);
 	
-	return ioread32(address + offset);
+	value = ioread32(address + offset);
+	
+	return value;
 }
 
 void fscc_card_get_register_rep(struct fscc_card *card, unsigned bar, 
@@ -168,8 +171,10 @@ void fscc_card_get_register_rep(struct fscc_card *card, unsigned bar,
 {
 	void __iomem *address = 0;
 	
+	return_if_untrue(card);
+	
 	address = fscc_card_get_BAR(card, bar);
-		
+	
 	ioread32_rep(address + offset, buf, chunks);
 }
 
@@ -178,8 +183,10 @@ void fscc_card_set_register(struct fscc_card *card, unsigned bar,
 {
 	void __iomem *address = 0;
 	
+	return_if_untrue(card);
+	
 	address = fscc_card_get_BAR(card, bar);
-		
+
 	iowrite32(value, address + offset);
 }
 
@@ -189,8 +196,10 @@ void fscc_card_set_register_rep(struct fscc_card *card, unsigned bar,
 {
 	void __iomem *address = 0;
 	
+	return_if_untrue(card);
+	
 	address = fscc_card_get_BAR(card, bar);
-		
+	
 	iowrite32_rep(address + offset, data, chunks);
 }
 

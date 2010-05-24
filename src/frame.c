@@ -19,78 +19,88 @@
 */
 
 #include "frame.h"
+#include "utils.h"
+#include "config.h"
 #include <linux/pci.h>
 #include <asm/uaccess.h>
 
 static unsigned frame_counter = 1;
 
+void fscc_frame_update_buffer_size(struct fscc_frame *frame, unsigned length);
+
 struct fscc_frame *fscc_frame_new(unsigned target_length)
 {
 	struct fscc_frame *frame = 0;
 	
-	frame = (struct fscc_frame *)kmalloc(sizeof(struct fscc_frame), GFP_KERNEL);
+	frame = (struct fscc_frame *)kmalloc(sizeof(struct fscc_frame), GFP_ATOMIC);
+	
+	return_val_if_untrue(frame, 0);
     
 	INIT_LIST_HEAD(&frame->list);
-    
-	frame->data = (char *)kmalloc(target_length, GFP_KERNEL);
-	memset(frame->data, 0, sizeof(frame->data));
 	
-	frame->target_length = target_length;
+	frame->target_length = 0;
 	frame->current_length = 0;
-	frame->number = frame_counter;
+	frame->data = 0;
 	
+	frame->number = frame_counter;	
 	frame_counter += 1;
+	
+	fscc_frame_update_buffer_size(frame, target_length);
     
 	return frame;
 }
 
 void fscc_frame_delete(struct fscc_frame *frame)
-{
-	if (!frame)
-		return;
+{	
+	return_if_untrue(frame);
         
-	kfree(frame->data);
+    if (frame->data)
+		kfree(frame->data);
+		
 	kfree(frame);
 }
 
 unsigned fscc_frame_get_target_length(struct fscc_frame *frame)
 {
-	if (!frame)
-		return 0;
+	return_val_if_untrue(frame, 0);
         
 	return frame->target_length;
 }
 
 unsigned fscc_frame_get_current_length(struct fscc_frame *frame)
 {
-	if (!frame)
-		return 0;
+	return_val_if_untrue(frame, 0);
         
 	return frame->current_length;        
 }
 
 unsigned fscc_frame_get_missing_length(struct fscc_frame *frame)
 {
-	if (!frame)
-		return 0;
+	return_val_if_untrue(frame, 0);
         
 	return frame->target_length - frame->current_length;        
 }
 
 bool fscc_frame_is_empty(struct fscc_frame *frame)
 {
+	return_val_if_untrue(frame, 0);
+	
 	return !fscc_frame_get_current_length(frame);
 }
 
 bool fscc_frame_is_full(struct fscc_frame *frame)
 {
+	return_val_if_untrue(frame, 0);
+	
 	return fscc_frame_get_current_length(frame) == fscc_frame_get_target_length(frame);
 }
 
 void fscc_frame_add_data(struct fscc_frame *frame, const char *data, unsigned length)
 {
-	if (!frame)
-		return;
+	return_if_untrue(frame);	
+	
+	if (frame->current_length + length > frame->target_length)
+		fscc_frame_update_buffer_size(frame, frame->current_length + length);
 		
     memmove(frame->data + frame->current_length, data, length);
 	frame->current_length += length;
@@ -98,40 +108,63 @@ void fscc_frame_add_data(struct fscc_frame *frame, const char *data, unsigned le
 
 void fscc_frame_remove_data(struct fscc_frame *frame, unsigned length)
 {
-	if (!frame)
-		return;
+	return_if_untrue(frame);
         
 	frame->current_length -= length;
 }
 
 char *fscc_frame_get_remaining_data(struct fscc_frame *frame)
 {
-	if (!frame)
-		return 0;
+	return_val_if_untrue(frame, 0);
 
 	return frame->data + (frame->target_length - frame->current_length);
 }
 
 void fscc_frame_trim(struct fscc_frame *frame)
 {
+	return_if_untrue(frame);
+	
+	fscc_frame_update_buffer_size(frame, frame->current_length);
+}
+
+void fscc_frame_update_buffer_size(struct fscc_frame *frame, unsigned length)
+{
 	char *new_data = 0;
 	
-	if (frame->current_length == frame->target_length)
-		return;
-
-	new_data = (char *)kmalloc(frame->current_length, GFP_KERNEL);
-	memset(new_data, 0, sizeof(new_data));
+	return_if_untrue(frame);
 	
-	//TODO: Better error message. Also, what should I do if this happens?
-	if (new_data == 0) {
-		printk("Memory error\n");
+	warn_if_untrue(length >= frame->current_length);
+	
+	if (length == 0) {
+		if (frame->data) {
+			kfree(frame->data);
+			frame->data = 0;
+		}
+		
+		frame->current_length = 0;
+		frame->target_length = 0;
+		
 		return;
 	}
-	memmove(new_data, frame->data, frame->current_length);
 	
-	kfree(frame->data);
+	if (frame->target_length == length)
+		return;	
+
+	new_data = (char *)kmalloc(length, GFP_KERNEL);
+	
+	return_if_untrue(new_data);
+	
+	memset(new_data, 0, sizeof(new_data));
+	
+	if (frame->data) {
+		if (frame->current_length)
+			memmove(new_data, frame->data, frame->current_length);
+			
+		kfree(frame->data);
+	}
 	
 	frame->data = new_data;
-	frame->target_length = frame->current_length;
+	frame->current_length = min(frame->current_length, length);
+	frame->target_length = length;
 }
 

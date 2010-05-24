@@ -35,7 +35,7 @@ void fscc_port_empty_frames(struct fscc_port *port, struct list_head *frames);
 void fscc_port_fill_TxFIFO(struct fscc_port *port, const char *data, 
                            unsigned byte_count);
                            
-__u32 fscc_port_empty_RxFIFO(struct fscc_port *port, struct fscc_frame *frame, 
+__u32 fscc_port_empty_RxFIFO(struct fscc_port *port, char *buffer, 
                            unsigned byte_count);
 
 void tdu_handler(unsigned long data)
@@ -105,44 +105,61 @@ void iframe_worker(unsigned long data)
 	unsigned finished_frame = 0;
 	__u32 last_data_chunk = 0;
 	__u32 frame_status = 0;
+	char *buffer = 0;
 
 	port = (struct fscc_port *)data;
 	
-	//printk(KERN_DEBUG "%s %i %i %i\n", port->name, port->started_frames, port->ended_frames, port->handled_frames);
+	return_if_untrue(port);
 	
 	if (port->handled_frames == port->started_frames)
 		return;
 		
 	if (!port->pending_iframe) {
-		//TODO: Using a large initial frame size until I get the resize code in
-		port->pending_iframe = fscc_frame_new(12000);
+		port->pending_iframe = fscc_frame_new(0);
+		
+		return_if_untrue(port->pending_iframe);
 		
 		printk(KERN_DEBUG "%s F#%i receive started\n", port->name, 
 			   port->pending_iframe->number);
 	}
-		
-	if (port->handled_frames < port->ended_frames) {
-		finished_frame = 1;
+
+	finished_frame = (port->handled_frames < port->ended_frames);
+
+	if (finished_frame) {
 		byte_count = fscc_port_get_register(port, 0, BC_FIFO_L_OFFSET) - 2;
 		receive_length = byte_count - fscc_frame_get_current_length(port->pending_iframe);
 	}
 	else {
-		finished_frame = 0;
-		
 		//We take off 2 bytes from the amount we can read just in case all the
 		//data got transfered in between the time we determined all of the data
 		//wasn't in the FIFO and now. In this case, we let the next pass take
 		//care of that data.
 		byte_count = receive_length = fscc_port_get_RXCNT(port) - 2;
-	}	
-		
+	}
+	
 	leftover_count = receive_length % 4;
 	
 	if (!finished_frame)
-		receive_length -= leftover_count;
-
-	//printk("receive_length = %i\n", receive_length);
-	last_data_chunk = fscc_port_empty_RxFIFO(port, port->pending_iframe, receive_length);
+		receive_length -= leftover_count;	
+	
+	buffer = (char *)kmalloc(receive_length, GFP_ATOMIC);
+		
+	if (buffer == NULL) {
+		printk(KERN_ALERT "%s F#%i receive rejected (kmalloc)\n",
+			   port->name, port->pending_iframe->number);
+				   
+		fscc_frame_delete(port->pending_iframe);
+		port->pending_iframe = 0;
+		
+			//TODO: Flush rx?
+		//fscc_port_flush_rx(port);
+		return;
+	}
+	
+	last_data_chunk = fscc_port_empty_RxFIFO(port, buffer, receive_length);
+	fscc_frame_add_data(port->pending_iframe, buffer, receive_length);
+	
+	kfree(buffer);
 
 	if (receive_length == 1)
 		printk(KERN_DEBUG "%s F#%i %i byte <= FIFO\n", 
@@ -172,28 +189,31 @@ void iframe_worker(unsigned long data)
 			break;
 	}
 	
-	//printk(KERN_DEBUG "%s leftover = %i, status = 0x%08x\n", port->name, leftover_count, frame_status);
-	
-	if (frame_status & 0x00000004) {
-		fscc_frame_trim(port->pending_iframe);		
-		list_add_tail(&port->pending_iframe->list, &port->iframes);
-		
-		printk(KERN_DEBUG "%s F#%i receive successful\n", port->name, 
-			   port->pending_iframe->number);
-			   
-		wake_up_interruptible(&port->input_queue);
-	}
-	else {		
+	if (fscc_port_get_memory_usage(port) + receive_length > memory_cap) {
+		printk(KERN_ALERT "%s F#%i receive rejected (memory constraint)\n",
+		       port->name, port->pending_iframe->number);
+		       
 		fscc_frame_delete(port->pending_iframe);
+	}
+	else {
+		if (frame_status & 0x00000004) {
+			fscc_frame_trim(port->pending_iframe);		
+			list_add_tail(&port->pending_iframe->list, &port->iframes);
 		
-		printk(KERN_ALERT "%s F#%i receive rejected\n", port->name, 
-			   port->pending_iframe->number);
-	}	
+			printk(KERN_DEBUG "%s F#%i receive successful\n", port->name, 
+				   port->pending_iframe->number);
+				   
+			wake_up_interruptible(&port->input_queue);
+		}
+		else {
+			printk(KERN_ALERT "%s F#%i receive rejected (invalid frame)\n", port->name, 
+				   port->pending_iframe->number);
+				   
+			fscc_frame_delete(port->pending_iframe);
+		}
+	}
 
-	port->handled_frames += 1;
-	
-	//printk(KERN_DEBUG "%s B\n", port->name);
-	       
+	port->handled_frames += 1;	       
 	port->pending_iframe = 0;	
 }
 
@@ -208,6 +228,8 @@ void oframe_worker(unsigned long data)
 	unsigned transmit_length = 0;
 
 	port = (struct fscc_port *)data;
+	
+	return_if_untrue(port);
 		
 	if (!port->pending_oframe) {
 		if (fscc_port_has_oframes(port)) {
@@ -271,7 +293,10 @@ struct fscc_port *fscc_port_new(struct fscc_card *card, unsigned channel,
 	//TODO: This needs to be better
 	if (fscc_port_get_PREV(port) == 0xff) {
 		printk(KERN_NOTICE "%s couldn't initialize\n", port->name);
-		kfree(port->name);
+		
+		if (port->name)
+			kfree(port->name);
+			
 		kfree(port);
 		return 0;
 	}
@@ -320,10 +345,10 @@ struct fscc_port *fscc_port_new(struct fscc_card *card, unsigned channel,
 	fscc_port_set_register(port, 0, IMR_OFFSET, 0x0f000000);
 	fscc_port_set_register(port, 0, BGR_OFFSET, 0x00000002);
 	fscc_port_set_register(port, 0, CCR0_OFFSET, 0x0000001c);
-	fscc_port_set_register(port, 0, CCR1_OFFSET, 0x00000008);
-
+	fscc_port_set_register(port, 0, CCR1_OFFSET, 0x00000008);	
+	
 	//TODO: Change this to a better RxFIFO level
-	fscc_port_set_register(port, 0, FIFOT_OFFSET, 0x08000200);
+	fscc_port_set_register(port, 0, FIFOT_OFFSET, 0x08000200);	
 	
 	fscc_port_execute_RRES(port);
 	fscc_port_execute_TRES(port);
@@ -348,7 +373,7 @@ struct fscc_port *fscc_port_new(struct fscc_card *card, unsigned channel,
 		printk(KERN_ERR "%s sysfs_create_group\n", port->name);
 		return 0;
 	}
-		
+	
 	printk(KERN_INFO "%s revision %x.%02x\n", port->name, 
 	       fscc_port_get_PREV(port), fscc_port_get_FREV(port));
 	
@@ -357,10 +382,7 @@ struct fscc_port *fscc_port_new(struct fscc_card *card, unsigned channel,
 
 void fscc_port_delete(struct fscc_port *port)
 {
-	unsigned irq_num = 0;
-	
-	if (port == 0)
-		return;
+	return_if_untrue(port);
 		
 	if (port->pending_iframe)
 		fscc_frame_delete(port->pending_iframe);
@@ -371,27 +393,33 @@ void fscc_port_delete(struct fscc_port *port)
 	fscc_port_empty_frames(port, &port->iframes);
 	fscc_port_empty_frames(port, &port->oframes);
 	
-	irq_num = port->card->pci_dev->irq;	
-	free_irq(irq_num, port);
-	kfree(port->name);
+	free_irq(port->card->pci_dev->irq, port);	
 	
 	device_destroy(port->class, port->dev_t);
 	cdev_del(&port->cdev);
 	list_del(&port->list);
+	
+	if (port->name)
+		kfree(port->name);
+		
 	kfree(port);
 }
 
 // Returns -ENOMEM if write size will go over user cap.
+// Returns -ENOMEM if kmalloc fails. TODO: Should this be different than above
 /* Length is user data length. Without 32bit padding. */
 int fscc_port_write(struct fscc_port *port, const char *data, unsigned length)
 {
 	struct fscc_frame *frame = 0;
 	char *temp_storage = 0;
 	
+	return_val_if_untrue(port, 0);
+	
 	if (fscc_port_get_memory_usage(port) + length > memory_cap)
 		return -ENOMEM;
 	
-	temp_storage = (char *)kmalloc(length, GFP_KERNEL);
+	temp_storage = (char *)kmalloc(length, GFP_KERNEL);	
+	return_val_if_untrue(temp_storage != NULL, -ENOMEM);	
 	copy_from_user(temp_storage, data, length);
 	
 	frame = fscc_frame_new(length);	
@@ -412,6 +440,8 @@ ssize_t fscc_port_read(struct fscc_port *port, char *buf, size_t count)
 	struct fscc_frame *frame = 0;
 	unsigned sent_length = 0;
 	
+	return_val_if_untrue(port, 0);
+	
 	frame = fscc_port_peek_front_frame(port, &port->iframes);
 	
 	if (frame && fscc_frame_is_full(frame)) {
@@ -420,6 +450,7 @@ ssize_t fscc_port_read(struct fscc_port *port, char *buf, size_t count)
 			
 		copy_to_user(buf, fscc_frame_get_remaining_data(frame), 
 		             fscc_frame_get_target_length(frame));
+		             
 		sent_length = fscc_frame_get_target_length(frame);
 		list_del(&frame->list); 
 		fscc_frame_delete(frame);
@@ -435,6 +466,8 @@ void fscc_port_fill_TxFIFO(struct fscc_port *port, const char *data,
 {
 	unsigned leftover_count = 0;
 	
+	return_if_untrue(port);
+	
 	leftover_count = byte_count % 4;
 	
 	fscc_port_set_register_rep(port, 0, FIFO_OFFSET, data, 
@@ -445,27 +478,23 @@ void fscc_port_fill_TxFIFO(struct fscc_port *port, const char *data,
 		fscc_port_set_register(port, 0, FIFO_OFFSET, chars_to_u32(data + (byte_count - leftover_count)));
 }
 
-/* Pulls data from FIFO and puts into the frame */
 /* Returns the last data chunk retrieved */
-__u32 fscc_port_empty_RxFIFO(struct fscc_port *port, struct fscc_frame *frame,
+__u32 fscc_port_empty_RxFIFO(struct fscc_port *port, char *buffer,
                              unsigned byte_count)
 {
 	unsigned leftover_count = 0;
 	__u32 incoming_data = 0;
 	
-	leftover_count = byte_count % 4;
-	//printk("leftover = %i, byte_count = %i\n", leftover_count, byte_count);
+	return_val_if_untrue(port, 0);
 	
-	fscc_port_get_register_rep(port, 0, FIFO_OFFSET, 
-	                           frame->data + frame->current_length, 
+	leftover_count = byte_count % 4;
+	
+	fscc_port_get_register_rep(port, 0, FIFO_OFFSET, buffer, 
 	                           (byte_count - leftover_count) / 4);
-
-	//TODO: We shouldn't be manipulating the frame manually like this.
-	frame->current_length += (byte_count - leftover_count);
-
+	
 	if (leftover_count) {
 		incoming_data = fscc_port_get_register(port, 0, FIFO_OFFSET);
-		fscc_frame_add_data(frame, (char *)(&incoming_data), leftover_count);
+		memmove(buffer + (byte_count - leftover_count), (char *)(&incoming_data), leftover_count);
 	}
 	
 	return incoming_data;
@@ -475,6 +504,8 @@ void fscc_port_empty_frames(struct fscc_port *port, struct list_head *frames)
 {	
 	struct list_head *current_node = 0;
 	struct list_head *temp_node = 0;
+	
+	return_if_untrue(port);
 	
 	list_for_each_safe(current_node, temp_node, frames) {
 		struct fscc_frame *current_frame = 0;
@@ -486,7 +517,9 @@ void fscc_port_empty_frames(struct fscc_port *port, struct list_head *frames)
 struct fscc_frame *fscc_port_peek_front_frame(struct fscc_port *port, 
                                               struct list_head *frames)
 {
-	struct fscc_frame *current_frame = 0;
+	struct fscc_frame *current_frame = 0;	
+	
+	return_val_if_untrue(port, 0);
 	
 	list_for_each_entry(current_frame, frames, list) {
 		return current_frame;
@@ -497,11 +530,15 @@ struct fscc_frame *fscc_port_peek_front_frame(struct fscc_port *port,
 
 bool fscc_port_has_iframes(struct fscc_port *port)
 {
+	return_val_if_untrue(port, 0);
+	
 	return !list_empty(&port->iframes);
 }
 
 bool fscc_port_has_oframes(struct fscc_port *port)
 {
+	return_val_if_untrue(port, 0);
+	
 	return !list_empty(&port->oframes);
 }
 
@@ -509,13 +546,18 @@ __u32 fscc_port_get_register(struct fscc_port *port, unsigned bar,
                              unsigned register_offset)
 {
 	unsigned offset = 0;
+	__u32 value = 0;
+	
+	return_val_if_untrue(port, 0);
 	
 	offset = register_offset;
 	
 	if (port->channel == 1)
 		offset += 0x80;
 		
-	return fscc_card_get_register(port->card, bar, offset);
+	value = fscc_card_get_register(port->card, bar, offset);
+	
+	return value;
 }
 
 void fscc_port_get_register_rep(struct fscc_port *port, unsigned bar, 
@@ -523,6 +565,8 @@ void fscc_port_get_register_rep(struct fscc_port *port, unsigned bar,
                                 unsigned long chunks)
 {
 	unsigned offset = 0;
+	
+	return_if_untrue(port);
 	
 	offset = register_offset;
 	
@@ -537,6 +581,8 @@ void fscc_port_set_register(struct fscc_port *port, unsigned bar,
 {
 	unsigned offset = 0;
 	
+	return_if_untrue(port);
+	
 	offset = register_offset;
 	
 	if (port->channel == 1)
@@ -546,13 +592,16 @@ void fscc_port_set_register(struct fscc_port *port, unsigned bar,
 }
 
 void fscc_port_set_register_rep(struct fscc_port *port, unsigned bar,
+
                                 unsigned register_offset, const char *data,
                                 unsigned long chunks) 
 {
 	unsigned offset = 0;
 	
-	offset = register_offset;
+	return_if_untrue(port);
 	
+	offset = register_offset;	
+
 	if (port->channel == 1)
 		offset += 0x80;
 	
@@ -562,6 +611,9 @@ void fscc_port_set_register_rep(struct fscc_port *port, unsigned bar,
 __u32 fscc_port_get_TXCNT(struct fscc_port *port)
 {
 	__u32 fifo_bc_value = 0;	
+	
+	return_val_if_untrue(port, 0);
+	
 	fifo_bc_value = fscc_port_get_register(port, 0, FIFO_BC_OFFSET);
 	
 	return (fifo_bc_value & 0x1FFF0000) >> 16;
@@ -570,6 +622,9 @@ __u32 fscc_port_get_TXCNT(struct fscc_port *port)
 __u32 fscc_port_get_RXCNT(struct fscc_port *port)
 {
 	__u32 fifo_bc_value = 0;	
+	
+	return_val_if_untrue(port, 0);
+	
 	fifo_bc_value = fscc_port_get_register(port, 0, FIFO_BC_OFFSET);
 	
 	return fifo_bc_value & 0x00003FFF;
@@ -578,6 +633,9 @@ __u32 fscc_port_get_RXCNT(struct fscc_port *port)
 __u32 fscc_port_get_RXTRG(struct fscc_port *port)
 {
 	__u32 fifot_value = 0;	
+	
+	return_val_if_untrue(port, 0);
+	
 	fifot_value = fscc_port_get_register(port, 0, FIFOT_OFFSET);
 	
 	return fifot_value & 0x00001FFF;
@@ -585,7 +643,10 @@ __u32 fscc_port_get_RXTRG(struct fscc_port *port)
 
 __u8 fscc_port_get_FREV(struct fscc_port *port)
 {
-	__u32 vstr_value = 0;		
+	__u32 vstr_value = 0;	
+	
+	return_val_if_untrue(port, 0);
+		
 	vstr_value = fscc_port_get_register(port, 0, VSTR_OFFSET);
 	
 	return (__u8)((vstr_value & 0x000000FF));
@@ -593,30 +654,52 @@ __u8 fscc_port_get_FREV(struct fscc_port *port)
 
 __u8 fscc_port_get_PREV(struct fscc_port *port)
 {
-	__u32 vstr_value = 0;		
+	__u32 vstr_value = 0;	
+	
+	return_val_if_untrue(port, 0);
+		
 	vstr_value = fscc_port_get_register(port, 0, VSTR_OFFSET);
 	
 	return (__u8)((vstr_value & 0x0000FF00) >> 8);
 }
 
-void fscc_port_execute_TRES(struct fscc_port *port)
+unsigned fscc_port_get_CE(struct fscc_port *port)
 {
+	__u32 star_value = 0;		
+	
+	return_val_if_untrue(port, 0);
+	
+	star_value = fscc_port_get_register(port, 0, STAR_OFFSET);
+	
+	return (unsigned)((star_value & 0x00040000) >> 18);
+}
+
+void fscc_port_execute_TRES(struct fscc_port *port)
+{	
+	return_if_untrue(port);
+	
 	fscc_port_set_register(port, 0, CMDR_OFFSET, 0x08000000);
 }
 
 void fscc_port_execute_RRES(struct fscc_port *port)
 {
+	return_if_untrue(port);
+	
 	fscc_port_set_register(port, 0, CMDR_OFFSET, 0x00020000);
 }
 
 void fscc_port_execute_XF(struct fscc_port *port)
-{
+{	
+	return_if_untrue(port);
+	
 	fscc_port_set_register(port, 0, CMDR_OFFSET, 0x01000000);
 }
 
 void fscc_port_suspend(struct fscc_port *port)
 {
 	unsigned i = 0;
+	
+	return_if_untrue(port);	
 	
 	for (i = 0; i < sizeof(struct fscc_registers) / sizeof(int32_t); i++)
 		((uint32_t *)&port->register_storage)[i] = fscc_port_get_register(port, 0, i * 4);
@@ -625,6 +708,8 @@ void fscc_port_suspend(struct fscc_port *port)
 void fscc_port_resume(struct fscc_port *port)
 {
 	unsigned i = 0;
+	
+	return_if_untrue(port);	
 	
 	for (i = 0; i < sizeof(struct fscc_registers) / sizeof(int32_t); i++) {
 		__u32 current_value = 0;	
@@ -645,6 +730,8 @@ void fscc_port_resume(struct fscc_port *port)
 
 void fscc_port_flush_tx(struct fscc_port *port)
 {	
+	return_if_untrue(port);	
+	
 	printk(KERN_DEBUG "%s flush_tx\n", port->name);
 	
 	fscc_port_execute_TRES(port);
@@ -657,6 +744,8 @@ void fscc_port_flush_tx(struct fscc_port *port)
 
 void fscc_port_flush_rx(struct fscc_port *port)
 {
+	return_if_untrue(port);	
+	
 	printk(KERN_DEBUG "%s flush_rx\n", port->name);
 	
 	fscc_port_execute_RRES(port);
@@ -667,10 +756,41 @@ void fscc_port_flush_rx(struct fscc_port *port)
 	fscc_port_empty_frames(port, &port->iframes);
 }
 
+unsigned fscc_port_get_frames_qty(struct fscc_port *port, 
+                                  struct list_head *frames)
+{
+	struct fscc_frame *current_frame = 0;	
+	unsigned qty = 0;
+	
+	return_val_if_untrue(port, 0);		
+	
+	list_for_each_entry(current_frame, frames, list) {
+		qty++;
+	}
+	
+	return qty;
+}
+
+unsigned fscc_port_get_output_frames_qty(struct fscc_port *port)
+{
+	return_val_if_untrue(port, 0);	
+	
+    return fscc_port_get_frames_qty(port, &port->oframes);
+}
+
+unsigned fscc_port_get_input_frames_qty(struct fscc_port *port)
+{	
+	return_val_if_untrue(port, 0);	
+	
+    return fscc_port_get_frames_qty(port, &port->iframes);
+}
+
 unsigned fscc_port_get_output_memory_usage(struct fscc_port *port)
 {
 	struct fscc_frame *current_frame = 0;	
 	unsigned memory = 0;
+	
+	return_val_if_untrue(port, 0);	
 	
 	list_for_each_entry(current_frame, &port->oframes, list) {
 		memory += fscc_frame_get_current_length(current_frame);
@@ -687,6 +807,8 @@ unsigned fscc_port_get_input_memory_usage(struct fscc_port *port)
 	struct fscc_frame *current_frame = 0;	
 	unsigned memory = 0;
 	
+	return_val_if_untrue(port, 0);
+	
 	list_for_each_entry(current_frame, &port->iframes, list) {
 		memory += fscc_frame_get_current_length(current_frame);
 	}
@@ -701,6 +823,8 @@ unsigned fscc_port_get_memory_usage(struct fscc_port *port)
 {
 	unsigned output_memory = 0;
 	unsigned input_memory = 0;
+	
+	return_val_if_untrue(port, 0);
 	
 	output_memory = fscc_port_get_output_memory_usage(port);
 	input_memory = fscc_port_get_input_memory_usage(port);

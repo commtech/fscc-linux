@@ -24,6 +24,26 @@
 #include <linux/fs.h>
 #include "fscc.h"
 
+#define warn_if_untrue(expr) \
+	if (expr) {} else \
+	{ \
+		printk(KERN_WARNING DEVICE_NAME " %s %s\n", #expr, "is untrue."); \
+	}
+
+#define return_if_untrue(expr) \
+	if (expr) {} else \
+	{ \
+		printk(KERN_ERR DEVICE_NAME " %s %s\n", #expr, "is untrue."); \
+		return; \
+	}
+
+#define return_val_if_untrue(expr, val) \
+	if (expr) {} else \
+	{ \
+		printk(KERN_ERR DEVICE_NAME " %s %s\n", #expr, "is untrue."); \
+		return val; \
+	}
+
 __u32 chars_to_u32(const char *data);
 __s32 offset_to_value(const struct fscc_registers *registers, unsigned offset);
 int str_to_offset(const char *str);

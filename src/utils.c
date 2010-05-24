@@ -49,8 +49,10 @@ int str_to_offset(const char *str)
 		return CMDR_OFFSET;
 	else if (strcmp(str, "star") == 0)
 		return STAR_OFFSET;
-	else if (strcmp(str, "ccr0") == 0)
+	else if (strcmp(str, "ccr0") == 0) {
+		printk("A\n");
 		return CCR0_OFFSET;
+	}
 	else if (strcmp(str, "ccr1") == 0)
 		return CCR1_OFFSET;
 	else if (strcmp(str, "ccr2") == 0)

@@ -57,8 +57,11 @@ static ssize_t register_show(struct kobject *kobj, struct kobj_attribute *attr,
 
 	register_offset = str_to_offset(attr->attr.name);
 	
+	printk("B %x %i\n", register_offset, bar_number);
+	
 	if (register_offset >= 0) {
 		printk(KERN_DEBUG "%s reading register 0x%02x\n", port->name, register_offset);
+		printk("C %x\n", fscc_port_get_register(port, bar_number, (unsigned)register_offset));
 		return sprintf(buf, "%08x\n", fscc_port_get_register(port, bar_number, (unsigned)register_offset));
 	}
 
@@ -242,15 +245,43 @@ static ssize_t input_memory(struct kobject *kobj, struct kobj_attribute *attr,
 	return sprintf(buf, "%i\n", fscc_port_get_input_memory_usage(port));
 }
 
+static ssize_t output_frames(struct kobject *kobj, struct kobj_attribute *attr,
+                            char *buf)
+{
+	struct fscc_port *port = 0;
+	
+	port = (struct fscc_port *)dev_get_drvdata((struct device *)kobj);
+	
+	return sprintf(buf, "%i\n", fscc_port_get_output_frames_qty(port));
+}
+
+static ssize_t input_frames(struct kobject *kobj, struct kobj_attribute *attr,
+                            char *buf)
+{
+	struct fscc_port *port = 0;
+	
+	port = (struct fscc_port *)dev_get_drvdata((struct device *)kobj);
+	
+	return sprintf(buf, "%i\n", fscc_port_get_input_frames_qty(port));
+}
+
 static struct kobj_attribute output_memory_attribute = 
 	__ATTR(output_memory, SYSFS_READ_ONLY_MODE, output_memory, 0);
 
 static struct kobj_attribute input_memory_attribute = 
 	__ATTR(input_memory, SYSFS_READ_ONLY_MODE, input_memory, 0);
 
+static struct kobj_attribute output_frames_attribute = 
+	__ATTR(output_frames, SYSFS_READ_ONLY_MODE, output_frames, 0);
+
+static struct kobj_attribute input_frames_attribute = 
+	__ATTR(input_frames, SYSFS_READ_ONLY_MODE, input_frames, 0);
+
 static struct attribute *info_attrs[] = {
 	&output_memory_attribute.attr,
 	&input_memory_attribute.attr,
+	&output_frames_attribute.attr,
+	&input_frames_attribute.attr,
 	NULL,
 };
 
