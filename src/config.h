@@ -23,6 +23,8 @@
 
 #define DEVICE_NAME "fscc"
 
+#define STATUS_LENGTH 2
+
 #define TX_FIFO_SIZE 4096
 #define RX_FIFO_SIZE 8192
 

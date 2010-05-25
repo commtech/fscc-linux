@@ -52,11 +52,19 @@
 #define ISR_OFFSET 0x50
 #define IMR_OFFSET 0x54
 
-void tdu_handler(unsigned long data);
-void tft_handler(unsigned long data);
-void rfs_handler(unsigned long data);
-void rft_handler(unsigned long data);
-void rfe_handler(unsigned long data);
+#define RFE 0x00000004
+#define RFT 0x00000002
+#define RFS 0x00000001
+#define RFO 0x00000008
+#define RDO 0x00000010
+#define RFL 0x00000020
+#define TIN 0x00000100
+#define TDU 0x00040000
+#define TFT 0x00010000
+#define ALLS 0x00020000
+#define CTSS 0x01000000
+#define DSRC 0x02000000
+#define CDC 0x04000000
 
 struct fscc_port {
 	struct list_head list;
@@ -82,20 +90,16 @@ struct fscc_port {
 	struct fscc_frame *pending_iframe; /* Frame retrieving from the FIFO */
 	
 	struct fscc_registers register_storage; /* Only valid on suspend/resume */
-
-	struct tasklet_struct rfs_tasklet;
-	struct tasklet_struct rft_tasklet;
-	struct tasklet_struct rfe_tasklet;
-	
-	struct tasklet_struct tft_tasklet;
-	struct tasklet_struct tdu_tasklet;
 	
 	struct tasklet_struct oframe_tasklet;
 	struct tasklet_struct iframe_tasklet;
+	struct tasklet_struct print_tasklet;
 	
-	unsigned started_frames;
-	unsigned ended_frames;
-	unsigned handled_frames;
+	unsigned last_isr_value;
+	
+	volatile unsigned started_frames;
+	volatile unsigned ended_frames;
+	volatile unsigned handled_frames;
 };
 
 struct fscc_port *fscc_port_new(struct fscc_card *card, unsigned channel, 

@@ -38,69 +38,64 @@ void fscc_port_fill_TxFIFO(struct fscc_port *port, const char *data,
 __u32 fscc_port_empty_RxFIFO(struct fscc_port *port, char *buffer, 
                            unsigned byte_count);
 
-void tdu_handler(unsigned long data)
+void print_worker(unsigned long data)
 {
 	struct fscc_port *port = 0;
+	unsigned isr_value = 0;
 	
 	port = (struct fscc_port *)data;
-	
-	printk(KERN_ALERT "%s TDU (Transmit Data Underrun Interrupt)\n", port->name);
-}
+	isr_value = port->last_isr_value;
+	port->last_isr_value = 0;
 
-void tft_handler(unsigned long data)
-{
-	struct fscc_port *port = 0;
+	printk(KERN_DEBUG "%s interrupt: 0x%08x\n", port->name, isr_value);
 	
-	port = (struct fscc_port *)data;
-
-	printk(KERN_DEBUG "%s TFT (Transmit FIFO Trigger Interrupt)\n", port->name);
-	
-	tasklet_schedule(&port->oframe_tasklet);
-}
-
-void rfs_handler(unsigned long data)
-{
-	struct fscc_port *port = 0;
-
-	port = (struct fscc_port *)data;
-	
-	printk(KERN_DEBUG "%s RFS (Receive Frame Start Interrupt)\n", port->name);
-	
-	port->started_frames += 1;
-	
-	tasklet_schedule(&port->iframe_tasklet);
-}
-
-void rft_handler(unsigned long data)
-{
-	struct fscc_port *port = 0;
-
-	port = (struct fscc_port *)data;
+	if (isr_value & RFE)
+		printk(KERN_DEBUG "%s RFE (Receive Frame End Interrupt)\n", port->name);
 		
-	printk(KERN_DEBUG "%s RFT (Receive FIFO Trigger Interrupt)\n", port->name);
+	if (isr_value & RFT)
+		printk(KERN_DEBUG "%s RFT (Receive FIFO Trigger Interrupt)\n", port->name);
+		
+	if (isr_value & RFS)
+		printk(KERN_DEBUG "%s RFS (Receive Frame Start Interrupt)\n", port->name);
 	
-	tasklet_schedule(&port->iframe_tasklet);
-}
-
-void rfe_handler(unsigned long data)
-{
-	struct fscc_port *port = 0;
-
-	port = (struct fscc_port *)data;
+	if (isr_value & RFO)
+		printk(KERN_ALERT "%s RFO (Receive Frame Overflow Interrupt)\n", port->name);
 	
-	printk(KERN_DEBUG "%s RFE (Receive Frame End Interrupt)\n", port->name);
+	if (isr_value & RDO)
+		printk(KERN_ALERT "%s RDO (Receive Data Overflow Interrupt)\n", port->name);
 	
-	port->ended_frames += 1;
+	if (isr_value & RFL)
+		printk(KERN_ALERT "%s RFL (Receive Frame Lost Interrupt)\n", port->name);
 	
-	tasklet_schedule(&port->iframe_tasklet);
+	if (isr_value & TIN)
+		printk(KERN_DEBUG "%s TIN (Timer Expiration Interrupt)\n", port->name);
+	
+	if (isr_value & TFT)
+		printk(KERN_DEBUG "%s TFT (Transmit FIFO Trigger Interrupt)\n", port->name);
+		
+	if (isr_value & TDU)
+		printk(KERN_ALERT "%s TDU (Transmit Data Underrun Interrupt)\n", port->name);
+	
+	if (isr_value & TDU)
+		printk(KERN_ALERT "%s TDU (Transmit Data Underrun Interrupt)\n", port->name);
+	
+	if (isr_value & ALLS)
+		printk(KERN_DEBUG "%s ALLS (All Sent Interrupt)\n", port->name);
+	
+	if (isr_value & CTSS)
+		printk(KERN_DEBUG "%s CTSS (CTS State Change Interrupt)\n", port->name);
+	
+	if (isr_value & DSRC)
+		printk(KERN_DEBUG "%s DSRC (DSR Change Interrupt)\n", port->name);
+	
+	if (isr_value & CDC)
+		printk(KERN_DEBUG "%s CDC (CD Change Interrupt)\n", port->name);
 }
 
 void iframe_worker(unsigned long data)
-{
-	
+{	
 	struct fscc_port *port = 0;
-	unsigned byte_count = 0;
-	unsigned receive_length = 0;
+	int receive_length = 0; //need to be signed
 	unsigned leftover_count = 0;
 	unsigned finished_frame = 0;
 	__u32 last_data_chunk = 0;
@@ -126,40 +121,57 @@ void iframe_worker(unsigned long data)
 	finished_frame = (port->handled_frames < port->ended_frames);
 
 	if (finished_frame) {
-		byte_count = fscc_port_get_register(port, 0, BC_FIFO_L_OFFSET) - 2;
-		receive_length = byte_count - fscc_frame_get_current_length(port->pending_iframe);
+		unsigned bc_fifo_l = 0;
+		
+		//printk("finished\n");
+		
+		bc_fifo_l = fscc_port_get_register(port, 0, BC_FIFO_L_OFFSET);
+		receive_length = bc_fifo_l - STATUS_LENGTH - fscc_frame_get_current_length(port->pending_iframe);
+		
+		//printk("bc_fifo_l %i\n", bc_fifo_l);
 	}
 	else {
+		unsigned rxcnt = 0;
+		
+		//printk("unfinished\n");
+		
 		//We take off 2 bytes from the amount we can read just in case all the
 		//data got transfered in between the time we determined all of the data
 		//wasn't in the FIFO and now. In this case, we let the next pass take
-		//care of that data.
-		byte_count = receive_length = fscc_port_get_RXCNT(port) - 2;
-	}
-	
-	leftover_count = receive_length % 4;
-	
-	if (!finished_frame)
-		receive_length -= leftover_count;	
-	
-	buffer = (char *)kmalloc(receive_length, GFP_ATOMIC);
+		//care of that data.		
 		
-	if (buffer == NULL) {
-		printk(KERN_ALERT "%s F#%i receive rejected (kmalloc)\n",
-			   port->name, port->pending_iframe->number);
-				   
-		fscc_frame_delete(port->pending_iframe);
-		port->pending_iframe = 0;
+		//3 is the maximum amount of leftover bytes
+		rxcnt = fscc_port_get_RXCNT(port);
+		receive_length = rxcnt - STATUS_LENGTH - 3;
+		receive_length -= receive_length % 4;
 		
-			//TODO: Flush rx?
-		//fscc_port_flush_rx(port);
-		return;
+		//printk("rxcnt %i\n", rxcnt);
 	}
+		
+	//printk("receive_length %i\n", receive_length);
 	
-	last_data_chunk = fscc_port_empty_RxFIFO(port, buffer, receive_length);
-	fscc_frame_add_data(port->pending_iframe, buffer, receive_length);
+	if (receive_length > 0) {
+		buffer = (char *)kmalloc(receive_length, GFP_ATOMIC);
+		
+		if (buffer == NULL) {
+			printk(KERN_ALERT "%s F#%i receive rejected (kmalloc of %i bytes)\n",
+				   port->name, port->pending_iframe->number, receive_length);
+					   
+			fscc_frame_delete(port->pending_iframe);
+			port->pending_iframe = 0;
+		
+				//TODO: Flush rx?
+			//fscc_port_flush_rx(port);
+			return;
+		}
 	
-	kfree(buffer);
+		last_data_chunk = fscc_port_empty_RxFIFO(port, buffer, receive_length);
+		fscc_frame_add_data(port->pending_iframe, buffer, receive_length);
+
+		kfree(buffer);
+	}
+	//else
+	//	printk("passing on buffer\n");
 
 	if (receive_length == 1)
 		printk(KERN_DEBUG "%s F#%i %i byte <= FIFO\n", 
@@ -170,7 +182,9 @@ void iframe_worker(unsigned long data)
 		       
 	if (!finished_frame)
 		return;
-
+	
+	leftover_count = receive_length % 4;
+	
 	switch (leftover_count) {
 		case 0:
 			frame_status = fscc_port_get_register(port, 0, FIFO_OFFSET) & 0x0000FFFF;
@@ -206,12 +220,15 @@ void iframe_worker(unsigned long data)
 			wake_up_interruptible(&port->input_queue);
 		}
 		else {
-			printk(KERN_ALERT "%s F#%i receive rejected (invalid frame)\n", port->name, 
-				   port->pending_iframe->number);
+			printk(KERN_ALERT "%s F#%i receive rejected (invalid frame 0x%08x)\n", 
+			       port->name, port->pending_iframe->number, frame_status);
 				   
 			fscc_frame_delete(port->pending_iframe);
 		}
 	}
+	
+	//printk("rxcnt %i\n", fscc_port_get_RXCNT(port));
+	//printk("txcnt %i\n", fscc_port_get_TXCNT(port));
 
 	port->handled_frames += 1;	       
 	port->pending_iframe = 0;	
@@ -246,7 +263,6 @@ void oframe_worker(unsigned long data)
 	fifo_space = TX_FIFO_SIZE - fscc_port_get_TXCNT(port);		
 	
 	transmit_length = (current_length + padding_bytes > fifo_space) ? fifo_space : current_length;
-	
 	fscc_port_fill_TxFIFO(port, port->pending_oframe->data, transmit_length);
 	fscc_frame_remove_data(port->pending_oframe, transmit_length);
 		
@@ -256,7 +272,7 @@ void oframe_worker(unsigned long data)
 	else
 		printk(KERN_DEBUG "%s F#%i %i bytes => FIFO\n", 
 		       port->name, port->pending_oframe->number, transmit_length);
-	
+		       
 	/* If this is the first time we add data to the FIFO for this frame */
 	if (current_length == target_length)
 		fscc_port_set_register(port, 0, BC_FIFO_L_OFFSET, target_length);
@@ -333,14 +349,11 @@ struct fscc_port *fscc_port_new(struct fscc_card *card, unsigned channel,
 		return 0;
 	}
 	
-	tasklet_init(&port->rfs_tasklet, rfs_handler, (unsigned long)port);
-	tasklet_init(&port->rft_tasklet, rft_handler, (unsigned long)port);
-	tasklet_init(&port->rfe_tasklet, rfe_handler, (unsigned long)port);
-	tasklet_init(&port->tft_tasklet, tft_handler, (unsigned long)port);
-	tasklet_init(&port->tdu_tasklet, tdu_handler, (unsigned long)port);
-	
 	tasklet_init(&port->oframe_tasklet, oframe_worker, (unsigned long)port);
 	tasklet_init(&port->iframe_tasklet, iframe_worker, (unsigned long)port);
+	tasklet_init(&port->print_tasklet, print_worker, (unsigned long)port);
+	
+	port->last_isr_value = 0;
 	
 	fscc_port_set_register(port, 0, IMR_OFFSET, 0x0f000000);
 	fscc_port_set_register(port, 0, BGR_OFFSET, 0x00000002);
@@ -465,13 +478,15 @@ void fscc_port_fill_TxFIFO(struct fscc_port *port, const char *data,
                            unsigned byte_count)
 {
 	unsigned leftover_count = 0;
+	unsigned chunks = 0;
 	
 	return_if_untrue(port);
 	
 	leftover_count = byte_count % 4;
+	chunks = (byte_count - leftover_count) / 4;
 	
-	fscc_port_set_register_rep(port, 0, FIFO_OFFSET, data, 
-	                           (byte_count - leftover_count) / 4);
+	if (chunks)
+		fscc_port_set_register_rep(port, 0, FIFO_OFFSET, data, chunks);
 	
 	/* Writes the leftover bytes (non 4 byte chunk) */
 	if (leftover_count)
@@ -484,17 +499,21 @@ __u32 fscc_port_empty_RxFIFO(struct fscc_port *port, char *buffer,
 {
 	unsigned leftover_count = 0;
 	__u32 incoming_data = 0;
+	unsigned chunks = 0;
 	
 	return_val_if_untrue(port, 0);
 	
 	leftover_count = byte_count % 4;
+	chunks = (byte_count - leftover_count) / 4;
 	
-	fscc_port_get_register_rep(port, 0, FIFO_OFFSET, buffer, 
-	                           (byte_count - leftover_count) / 4);
+	if (chunks && buffer)
+		fscc_port_get_register_rep(port, 0, FIFO_OFFSET, buffer, chunks);
 	
 	if (leftover_count) {
 		incoming_data = fscc_port_get_register(port, 0, FIFO_OFFSET);
-		memmove(buffer + (byte_count - leftover_count), (char *)(&incoming_data), leftover_count);
+		
+		if (buffer)
+			memmove(buffer + (byte_count - leftover_count), (char *)(&incoming_data), leftover_count);
 	}
 	
 	return incoming_data;
@@ -604,7 +623,7 @@ void fscc_port_set_register_rep(struct fscc_port *port, unsigned bar,
 
 	if (port->channel == 1)
 		offset += 0x80;
-	
+		
 	fscc_card_set_register_rep(port->card, bar, offset, data, chunks);
 }
 

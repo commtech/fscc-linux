@@ -47,55 +47,27 @@ irqreturn_t fscc_isr(int irq, void *potential_port)
 	if (!port_exists(potential_port))
 		return IRQ_NONE;
 	
-	port = (struct fscc_port *)potential_port;
-	
+	port = (struct fscc_port *)potential_port;	
 	isr_value = fscc_port_get_register(port, 0, ISR_OFFSET);
 	
-	if (isr_value)
-		printk(KERN_DEBUG "%s interrupt: 0x%08x\n",port->name, isr_value);
-	else
+	if (!isr_value)
 		return IRQ_NONE;
+	
+	port->last_isr_value |= isr_value;
+	tasklet_schedule(&port->print_tasklet);
 		
-	/* Receive interrupts need to be in this order */
-	if (isr_value & 0x00000004)
-		tasklet_schedule(&port->rfe_tasklet);
+	if (isr_value & RFE)
+		port->ended_frames += 1;
 	
-	if (isr_value & 0x00000002)
-		tasklet_schedule(&port->rft_tasklet);
+	if (isr_value & RFS)
+		port->started_frames += 1;	
 	
-	if (isr_value & 0x00000001)
-		tasklet_schedule(&port->rfs_tasklet);
+	if (isr_value & (RFE | RFT | RFS))
+		tasklet_schedule(&port->iframe_tasklet); 
 	
-	if (isr_value & 0x00000008)
-		printk(KERN_ALERT "%s RFO (Receive Frame Overflow Interrupt)\n", port->name);
-	
-	if (isr_value & 0x00000010)
-		printk(KERN_ALERT "%s RDO (Receive Data Overflow Interrupt)\n", port->name);
-	
-	if (isr_value & 0x00000020)
-		printk(KERN_ALERT "%s RFL (Receive Frame Lost Interrupt)\n", port->name);
-	
-	if (isr_value & 0x00000100)
-		printk(KERN_DEBUG "%s TIN (Timer Expiration Interrupt)\n", port->name);
-	
-	if (isr_value & 0x00040000)
-		tasklet_schedule(&port->tdu_tasklet);
-	
-	if (isr_value & 0x00010000)
-		tasklet_schedule(&port->tft_tasklet);
-	
-	if (isr_value & 0x00020000)
-		printk(KERN_DEBUG "%s ALLS (All Sent Interrupt)\n", port->name);
-	
-	if (isr_value & 0x01000000)
-		printk(KERN_DEBUG "%s CTSS (CTS State Change Interrupt)\n", port->name);
-	
-	if (isr_value & 0x02000000)
-		printk(KERN_DEBUG "%s DSRC (DSR Change Interrupt)\n", port->name);
-	
-	if (isr_value & 0x04000000)
-		printk(KERN_DEBUG "%s CDC (CD Change Interrupt)\n", port->name);
-	
+	if (isr_value & TFT)
+		tasklet_schedule(&port->oframe_tasklet);
+		
 	return IRQ_HANDLED;
 }
 

@@ -110,7 +110,7 @@ ssize_t fscc_write(struct file *file, const char *buf, size_t count,
 	
 	if (down_interruptible(&current_port->write_semaphore))
 		return -ERESTARTSYS;
-	
+		
 	err = fscc_port_write(current_port, buf, count);
 	
 	up(&current_port->write_semaphore);
