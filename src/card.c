@@ -39,6 +39,8 @@ struct fscc_card *fscc_card_new(struct pci_dev *pdev,
 	
 	card = (struct fscc_card*)kmalloc(sizeof(struct fscc_card), GFP_KERNEL);
 	
+	return_val_if_untrue(card != NULL, 0);
+	
 	INIT_LIST_HEAD(&card->list);
 	INIT_LIST_HEAD(&card->ports);
 	
@@ -132,6 +134,9 @@ struct fscc_card *fscc_card_find(struct pci_dev *pdev,
 {
 	struct fscc_card *current_card = 0;
 	
+	return_val_if_untrue(pdev, 0);
+	return_val_if_untrue(card_list, 0);
+	
 	list_for_each_entry(current_card, card_list, list) {
 		if (current_card->pci_dev == pdev)
 			return current_card;
@@ -157,9 +162,9 @@ __u32 fscc_card_get_register(struct fscc_card *card, unsigned bar,
 	__u32 value = 0;
 	
 	return_val_if_untrue(card, 0);
+	return_val_if_untrue(bar <= 2, 0);
 	
-	address = fscc_card_get_BAR(card, bar);
-	
+	address = fscc_card_get_BAR(card, bar);	
 	value = ioread32(address + offset);
 	
 	return value;
@@ -172,6 +177,9 @@ void fscc_card_get_register_rep(struct fscc_card *card, unsigned bar,
 	void __iomem *address = 0;
 	
 	return_if_untrue(card);
+	return_if_untrue(bar <= 2);
+	return_if_untrue(buf);
+	return_if_untrue(chunks > 0);
 	
 	address = fscc_card_get_BAR(card, bar);
 	
@@ -184,6 +192,7 @@ void fscc_card_set_register(struct fscc_card *card, unsigned bar,
 	void __iomem *address = 0;
 	
 	return_if_untrue(card);
+	return_if_untrue(bar <= 2);
 	
 	address = fscc_card_get_BAR(card, bar);
 
@@ -197,9 +206,26 @@ void fscc_card_set_register_rep(struct fscc_card *card, unsigned bar,
 	void __iomem *address = 0;
 	
 	return_if_untrue(card);
+	return_if_untrue(bar <= 2);
+	return_if_untrue(data);
+	return_if_untrue(chunks > 0);
 	
 	address = fscc_card_get_BAR(card, bar);
 	
 	iowrite32_rep(address + offset, data, chunks);
+}
+
+struct list_head *fscc_card_get_ports(struct fscc_card *card)
+{
+	return_val_if_untrue(card, 0);
+	
+	return &card->ports;
+}
+
+unsigned fscc_card_get_irq(struct fscc_card *card)
+{
+	return_val_if_untrue(card, 0);
+	
+	return card->pci_dev->irq;
 }
 

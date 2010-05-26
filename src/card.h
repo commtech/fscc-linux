@@ -67,4 +67,8 @@ void fscc_card_get_register_rep(struct fscc_card *card, unsigned bar,
 void fscc_card_set_register_rep(struct fscc_card *card, unsigned bar,
                                 unsigned offset, const char *data,
                                 unsigned long chunks);
+                                
+struct list_head *fscc_card_get_ports(struct fscc_card *card);
+unsigned fscc_card_get_irq(struct fscc_card *card);
+
 #endif

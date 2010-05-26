@@ -123,17 +123,11 @@ void iframe_worker(unsigned long data)
 	if (finished_frame) {
 		unsigned bc_fifo_l = 0;
 		
-		//printk("finished\n");
-		
 		bc_fifo_l = fscc_port_get_register(port, 0, BC_FIFO_L_OFFSET);
 		receive_length = bc_fifo_l - STATUS_LENGTH - fscc_frame_get_current_length(port->pending_iframe);
-		
-		//printk("bc_fifo_l %i\n", bc_fifo_l);
 	}
 	else {
 		unsigned rxcnt = 0;
-		
-		//printk("unfinished\n");
 		
 		//We take off 2 bytes from the amount we can read just in case all the
 		//data got transfered in between the time we determined all of the data
@@ -144,11 +138,7 @@ void iframe_worker(unsigned long data)
 		rxcnt = fscc_port_get_RXCNT(port);
 		receive_length = rxcnt - STATUS_LENGTH - 3;
 		receive_length -= receive_length % 4;
-		
-		//printk("rxcnt %i\n", rxcnt);
 	}
-		
-	//printk("receive_length %i\n", receive_length);
 	
 	if (receive_length > 0) {
 		buffer = (char *)kmalloc(receive_length, GFP_ATOMIC);
@@ -160,7 +150,7 @@ void iframe_worker(unsigned long data)
 			fscc_frame_delete(port->pending_iframe);
 			port->pending_iframe = 0;
 		
-				//TODO: Flush rx?
+			//TODO: Flush rx?
 			//fscc_port_flush_rx(port);
 			return;
 		}
@@ -169,16 +159,14 @@ void iframe_worker(unsigned long data)
 		fscc_frame_add_data(port->pending_iframe, buffer, receive_length);
 
 		kfree(buffer);
-	}
-	//else
-	//	printk("passing on buffer\n");
 
-	if (receive_length == 1)
-		printk(KERN_DEBUG "%s F#%i %i byte <= FIFO\n", 
-		       port->name, port->pending_iframe->number, receive_length);
-	else
-		printk(KERN_DEBUG "%s F#%i %i bytes <= FIFO\n", 
-		       port->name, port->pending_iframe->number, receive_length);
+		if (receive_length == 1)
+			printk(KERN_DEBUG "%s F#%i %i byte <= FIFO\n", 
+				   port->name, port->pending_iframe->number, receive_length);
+		else
+			printk(KERN_DEBUG "%s F#%i %i bytes <= FIFO\n", 
+				   port->name, port->pending_iframe->number, receive_length);
+	}
 		       
 	if (!finished_frame)
 		return;
@@ -226,9 +214,6 @@ void iframe_worker(unsigned long data)
 			fscc_frame_delete(port->pending_iframe);
 		}
 	}
-	
-	//printk("rxcnt %i\n", fscc_port_get_RXCNT(port));
-	//printk("txcnt %i\n", fscc_port_get_TXCNT(port));
 
 	port->handled_frames += 1;	       
 	port->pending_iframe = 0;	
@@ -341,7 +326,7 @@ struct fscc_port *fscc_port_new(struct fscc_card *card, unsigned channel,
 		return 0;
 	}
 	
-	list_add_tail(&port->list, &card->ports);
+	list_add_tail(&port->list, fscc_card_get_ports(card));
 	
 	port->device = device_create(class, 0, port->dev_t, port, port->name);
 	if (port->device <= 0) {
@@ -366,7 +351,7 @@ struct fscc_port *fscc_port_new(struct fscc_card *card, unsigned channel,
 	fscc_port_execute_RRES(port);
 	fscc_port_execute_TRES(port);
 	
-	irq_num = card->pci_dev->irq;
+	irq_num = fscc_card_get_irq(card);
 	if (request_irq(irq_num, &fscc_isr, IRQF_SHARED, port->name, port)) {
 		printk(KERN_ERR "%s request_irq failed on irq %i\n", port->name, irq_num);
 		return 0;
@@ -395,6 +380,8 @@ struct fscc_port *fscc_port_new(struct fscc_card *card, unsigned channel,
 
 void fscc_port_delete(struct fscc_port *port)
 {
+	unsigned irq_num = 0;
+	
 	return_if_untrue(port);
 		
 	if (port->pending_iframe)
@@ -406,7 +393,8 @@ void fscc_port_delete(struct fscc_port *port)
 	fscc_port_empty_frames(port, &port->iframes);
 	fscc_port_empty_frames(port, &port->oframes);
 	
-	free_irq(port->card->pci_dev->irq, port);	
+	irq_num = fscc_card_get_irq(port->card);
+	free_irq(irq_num, port);	
 	
 	device_destroy(port->class, port->dev_t);
 	cdev_del(&port->cdev);
@@ -419,7 +407,7 @@ void fscc_port_delete(struct fscc_port *port)
 }
 
 // Returns -ENOMEM if write size will go over user cap.
-// Returns -ENOMEM if kmalloc fails. TODO: Should this be different than above
+// Returns -ENOMEM if kmalloc fails. TODO: Should this be different than above?
 /* Length is user data length. Without 32bit padding. */
 int fscc_port_write(struct fscc_port *port, const char *data, unsigned length)
 {
@@ -472,8 +460,6 @@ ssize_t fscc_port_read(struct fscc_port *port, char *buf, size_t count)
 	return sent_length;
 }
 
-/* Must have room available */
-/* Puts data into the FIFO */
 void fscc_port_fill_TxFIFO(struct fscc_port *port, const char *data, 
                            unsigned byte_count)
 {
