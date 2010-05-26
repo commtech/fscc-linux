@@ -18,6 +18,7 @@
 	
 */
 
+#include <linux/version.h>
 #include "card.h"
 #include "port.h"
 #include "config.h"
@@ -58,7 +59,12 @@ struct fscc_card *fscc_card_new(struct pci_dev *pdev,
 	start_minor_number = minor_number;
 	
 	for (i = 0; i < 3; i++) {
+	
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 28)
+		card->bar[i] = pci_ioremap_bar(card->pci_dev, i);
+#else
 		card->bar[i] = pci_iomap(card->pci_dev, i, 0);
+#endif
 		
 		if (card->bar[i] == NULL) {
 			printk(KERN_ERR DEVICE_NAME " %s: pci_iomap failed on bar #%i\n",

@@ -20,6 +20,7 @@
 
 #include <linux/pci.h>
 #include <linux/kernel.h>
+#include <linux/version.h>
 #include "port.h"
 #include "card.h"
 #include "utils.h"
@@ -328,7 +329,12 @@ struct fscc_port *fscc_port_new(struct fscc_card *card, unsigned channel,
 	
 	list_add_tail(&port->list, fscc_card_get_ports(card));
 	
-	port->device = device_create(class, 0, port->dev_t, port, port->name);
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 27)
+	port->device = device_create(class, 0, port->dev_t, port, "%s", port->name);
+#else
+	port->device = device_create_drvdata(class, 0, port->dev_t, port, "%s", port->name);
+#endif
+
 	if (port->device <= 0) {
 		printk(KERN_ERR "%s device_create failed\n", port->name);
 		return 0;
