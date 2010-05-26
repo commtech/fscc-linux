@@ -31,8 +31,10 @@ unsigned port_exists(void *port)
 	
 	return_val_if_untrue(port, 0);
 	
-	list_for_each_entry(current_card, &fscc_cards, list) {		
-		list_for_each_entry(current_port, fscc_card_get_ports(current_card), list) {
+	list_for_each_entry(current_card, &fscc_cards, list) {	
+		struct list_head *ports = fscc_card_get_ports(current_card);
+			
+		list_for_each_entry(current_port, ports, list) {
 			if (port == current_port)
 				return 1;
 		}

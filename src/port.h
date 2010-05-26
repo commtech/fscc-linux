@@ -104,7 +104,8 @@ struct fscc_port {
 
 struct fscc_port *fscc_port_new(struct fscc_card *card, unsigned channel, 
                                 unsigned major_number, unsigned minor_number, 
-                                struct class *class, struct file_operations *fops);
+                                struct device *parent, struct class *class, 
+                                struct file_operations *fops);
                                 
 void fscc_port_delete(struct fscc_port *port);
 

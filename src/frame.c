@@ -32,7 +32,7 @@ struct fscc_frame *fscc_frame_new(unsigned target_length)
 {
 	struct fscc_frame *frame = 0;
 	
-	frame = (struct fscc_frame *)kmalloc(sizeof(struct fscc_frame), GFP_ATOMIC);
+	frame = kmalloc(sizeof(*frame), GFP_ATOMIC);
 	
 	return_val_if_untrue(frame, 0);
     
@@ -150,7 +150,7 @@ void fscc_frame_update_buffer_size(struct fscc_frame *frame, unsigned length)
 	if (frame->target_length == length)
 		return;	
 
-	new_data = (char *)kmalloc(length, GFP_KERNEL);
+	new_data = kmalloc(length, GFP_KERNEL);
 	
 	return_if_untrue(new_data);
 	

@@ -38,7 +38,7 @@ struct fscc_card *fscc_card_new(struct pci_dev *pdev,
 	unsigned start_minor_number = 0;
 	unsigned i = 0;
 	
-	card = (struct fscc_card*)kmalloc(sizeof(struct fscc_card), GFP_KERNEL);
+	card = kmalloc(sizeof(*card), GFP_KERNEL);
 	
 	return_val_if_untrue(card != NULL, 0);
 	
@@ -48,9 +48,7 @@ struct fscc_card *fscc_card_new(struct pci_dev *pdev,
 	card->pci_dev = pdev;
 	
 	if (pci_request_regions(card->pci_dev, DEVICE_NAME) != 0) {
-		printk(KERN_ERR DEVICE_NAME " %s: pci_request_regions failed\n", 
-		       pci_name(card->pci_dev));
-		       
+		dev_err(&card->pci_dev->dev, "pci_request_regions failed\n");		       
 		return 0;
 	}
 	
@@ -60,23 +58,21 @@ struct fscc_card *fscc_card_new(struct pci_dev *pdev,
 	
 	for (i = 0; i < 3; i++) {
 	
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 28)
-		card->bar[i] = pci_ioremap_bar(card->pci_dev, i);
-#else
+//#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 28)
+//		card->bar[i] = pci_ioremap_bar(card->pci_dev, i);
+//#else
 		card->bar[i] = pci_iomap(card->pci_dev, i, 0);
-#endif
+//#endif
 		
 		if (card->bar[i] == NULL) {
-			printk(KERN_ERR DEVICE_NAME " %s: pci_iomap failed on bar #%i\n",
-			       pci_name(card->pci_dev), i);
-			       
+			dev_err(&card->pci_dev->dev, "pci_iomap failed on bar #%i\n", i);			       
 			return 0;
 		}
 	}
 	
 	for (i = 0; i < 2; i++) {
 		port_iter = fscc_port_new(card, i, major_number, minor_number, 
-		                          class, fops);
+		                          &card->pci_dev->dev, class, fops);
 		                          
 		minor_number += 1;        
 	}
@@ -129,8 +125,8 @@ void fscc_card_resume(struct fscc_card *card)
 	
 	current_value = fscc_card_get_register(card, 2, FCR_OFFSET);
 	
-	printk(KERN_DEBUG DEVICE_NAME " %s: FCR restoring 0x%08x => 0x%08x\n", 
-           pci_name(card->pci_dev), current_value, card->fcr_storage);
+	dev_dbg(&card->pci_dev->dev, "FCR restoring 0x%08x => 0x%08x\n", 
+            current_value, card->fcr_storage);
 	
 	fscc_card_set_register(card, 2, FCR_OFFSET, card->fcr_storage);
 }

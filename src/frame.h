@@ -36,7 +36,10 @@ void fscc_frame_delete(struct fscc_frame *frame);
 unsigned fscc_frame_get_target_length(struct fscc_frame *frame);
 unsigned fscc_frame_get_current_length(struct fscc_frame *frame);
 unsigned fscc_frame_get_missing_length(struct fscc_frame *frame);
-void fscc_frame_add_data(struct fscc_frame *frame, const char *data, unsigned length);
+
+void fscc_frame_add_data(struct fscc_frame *frame, const char *data, 
+                         unsigned length);
+                         
 void fscc_frame_remove_data(struct fscc_frame *frame, unsigned length);
 bool fscc_frame_is_empty(struct fscc_frame *frame);
 bool fscc_frame_is_full(struct fscc_frame *frame);

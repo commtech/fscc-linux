@@ -84,8 +84,10 @@ ssize_t fscc_read(struct file *file, char *buf, size_t count, loff_t *ppos)
 		if (file->f_flags & O_NONBLOCK)
 			return -EAGAIN;
 			
-		if (wait_event_interruptible(current_port->input_queue, fscc_port_has_iframes(current_port)))
+		if (wait_event_interruptible(current_port->input_queue, 
+		                             fscc_port_has_iframes(current_port))) {
 			return -ERESTARTSYS;
+		}
 			
 		if (down_interruptible(&current_port->read_semaphore))
 			return -ERESTARTSYS;
@@ -147,45 +149,45 @@ int fscc_ioctl(struct inode *inode, struct file *file, unsigned int cmd,
 	port = file->private_data;
 	
 	switch (cmd) {
-		case FSCC_GET_REGISTERS: {
-				unsigned i = 0;
+	case FSCC_GET_REGISTERS: {
+			unsigned i = 0;
 			
-				for (i = 0; i < sizeof(struct fscc_registers) / sizeof(int32_t); i++) {
-					if (((int32_t *)arg)[i] != FSCC_UPDATE_VALUE)
-						continue;
+			for (i = 0; i < sizeof(struct fscc_registers) / sizeof(int32_t); i++) {
+				if (((int32_t *)arg)[i] != FSCC_UPDATE_VALUE)
+					continue;
 						
-					((uint32_t *)arg)[i] = fscc_port_get_register(port, 0, i * 4);
-				}
-			}			
-			break;
-
-		case FSCC_SET_REGISTERS: {
-				unsigned i = 0;
-			
-				for (i = 0; i < sizeof(struct fscc_registers) / sizeof(int32_t); i++) {
-					if (((int32_t *)arg)[i] < 0)
-						continue;
-						
-					fscc_port_set_register(port, 0, i * 4, ((uint32_t *)arg)[i]);
-				}
+				((uint32_t *)arg)[i] = fscc_port_get_register(port, 0, i * 4);
 			}
-			break;
-			
-		case FSCC_FLUSH_TX:
-			fscc_port_flush_tx(port);
-			break;
-			
-		case FSCC_FLUSH_RX:
-			fscc_port_flush_rx(port);
-			break;
+		}			
+		break;
 
-		/* This makes us appear to be a tty device for fread */
-		case TCGETS:
-			break;
+	case FSCC_SET_REGISTERS: {
+			unsigned i = 0;
 			
-		default:
-			printk(KERN_NOTICE DEVICE_NAME " unknown ioctl %x\n", cmd);
-			return -ENOTTY;			
+			for (i = 0; i < sizeof(struct fscc_registers) / sizeof(int32_t); i++) {
+				if (((int32_t *)arg)[i] < 0)
+					continue;
+						
+				fscc_port_set_register(port, 0, i * 4, ((uint32_t *)arg)[i]);
+			}
+		}
+		break;
+			
+	case FSCC_FLUSH_TX:
+		fscc_port_flush_tx(port);
+		break;
+			
+	case FSCC_FLUSH_RX:
+		fscc_port_flush_rx(port);
+		break;
+
+	/* This makes us appear to be a tty device for fread */
+	case TCGETS:
+		break;
+			
+	default:
+		dev_notice(port->device, "unknown ioctl %x\n", cmd);
+		return -ENOTTY;			
 	}
 	
 	return 0;
@@ -209,23 +211,23 @@ static int __devinit fscc_probe(struct pci_dev *pdev,
 		return -EIO;
 	
 	switch (id->device) {
-		case FSCC_ID:			
-		case FSCC_232_ID:
-		case FSCC_4_ID:
-		case SFSCC_ID:
-		case SFSCC_4_ID:
-		case SFSCC_4_LVDS_ID:
-		case SFSCCe_4_ID:		
-			new_card = fscc_card_new(pdev, id, fscc_major_number, fscc_class,
-                                     &fscc_fops);
-			
-			if (new_card)                         
-				list_add_tail(&new_card->list, &fscc_cards);
+	case FSCC_ID:			
+	case FSCC_232_ID:
+	case FSCC_4_ID:
+	case SFSCC_ID:
+	case SFSCC_4_ID:
+	case SFSCC_4_LVDS_ID:
+	case SFSCCe_4_ID:		
+		new_card = fscc_card_new(pdev, id, fscc_major_number, fscc_class,
+                                 &fscc_fops);
+		
+		if (new_card)                         
+			list_add_tail(&new_card->list, &fscc_cards);
 				
-			break;
+		break;
 			
-		default:
-			printk(KERN_DEBUG DEVICE_NAME "unknown device\n");
+	default:
+		printk(KERN_DEBUG DEVICE_NAME "unknown device\n");
 	}
 
 	return 0;
@@ -251,7 +253,7 @@ static int fscc_suspend(struct pci_dev *pdev, pm_message_t state)
 		
 	card = fscc_card_find(pdev, &fscc_cards);
 	
-	printk(KERN_DEBUG " %s: suspending\n", pci_name(card->pci_dev));
+	dev_dbg(&card->pci_dev->dev, "suspending\n");
 	
 	fscc_card_suspend(card);
 
@@ -267,7 +269,7 @@ static int fscc_resume(struct pci_dev *pdev)
 	
 	card = fscc_card_find(pdev, &fscc_cards);
 	
-	printk(KERN_DEBUG " %s: resuming\n", pci_name(card->pci_dev));
+	dev_dbg(&card->pci_dev->dev, "resuming\n");
 
 	pci_set_power_state(pdev, PCI_D0);
 	pci_restore_state(pdev);

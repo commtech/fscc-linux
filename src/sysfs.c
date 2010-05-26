@@ -25,7 +25,8 @@
 #include "utils.h"
 
 static ssize_t register_store(struct kobject *kobj, struct kobj_attribute *attr,
-                              const char *buf, size_t count, unsigned bar_number)
+                              const char *buf, size_t count, 
+                              unsigned bar_number)
 {
 	struct fscc_port *port = 0;
 	int register_offset = 0;
@@ -38,7 +39,9 @@ static ssize_t register_store(struct kobject *kobj, struct kobj_attribute *attr,
 	value = (unsigned)simple_strtoul(buf, &end, 16);
 
 	if (register_offset >= 0) {
-		printk(KERN_DEBUG "%s setting register 0x%02x to 0x%08x\n", port->name, register_offset, value);
+		dev_dbg(port->device, "setting register 0x%02x to 0x%08x\n",
+		        register_offset, value);
+		       
 		fscc_port_set_register(port, bar_number, register_offset, value);
 		return count;
 	}
@@ -57,37 +60,37 @@ static ssize_t register_show(struct kobject *kobj, struct kobj_attribute *attr,
 
 	register_offset = str_to_offset(attr->attr.name);
 	
-	printk("B %x %i\n", register_offset, bar_number);
-	
 	if (register_offset >= 0) {
-		printk(KERN_DEBUG "%s reading register 0x%02x\n", port->name, register_offset);
-		printk("C %x\n", fscc_port_get_register(port, bar_number, (unsigned)register_offset));
+		dev_dbg(port->device, "reading register 0x%02x\n", register_offset);
+		       
 		return sprintf(buf, "%08x\n", fscc_port_get_register(port, bar_number, (unsigned)register_offset));
 	}
 
 	return 0;
 }
 
-static ssize_t bar0_register_store(struct kobject *kobj, struct kobj_attribute *attr,
-                                   const char *buf, size_t count)
+static ssize_t bar0_register_store(struct kobject *kobj, 
+                                   struct kobj_attribute *attr, const char *buf, 
+                                   size_t count)
 {
 	return register_store(kobj, attr, buf, count, 0);
 }
 
-static ssize_t bar0_register_show(struct kobject *kobj, struct kobj_attribute *attr,
-                                  char *buf)
+static ssize_t bar0_register_show(struct kobject *kobj, 
+                                  struct kobj_attribute *attr, char *buf)
 {
 	return register_show(kobj, attr, buf, 0);
 }
 
-static ssize_t bar2_register_store(struct kobject *kobj, struct kobj_attribute *attr,
-                                   const char *buf, size_t count)
+static ssize_t bar2_register_store(struct kobject *kobj, 
+                                   struct kobj_attribute *attr, const char *buf, 
+                                   size_t count)
 {
 	return register_store(kobj, attr, buf, count, 2);
 }
 
-static ssize_t bar2_register_show(struct kobject *kobj, struct kobj_attribute *attr,
-                                  char *buf)
+static ssize_t bar2_register_show(struct kobject *kobj, 
+                                  struct kobj_attribute *attr, char *buf)
 {
 	return register_show(kobj, attr, buf, 2);
 }
