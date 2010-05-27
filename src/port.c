@@ -197,20 +197,15 @@ void iframe_worker(unsigned long data)
 		       
 		fscc_frame_delete(port->pending_iframe);
 	} else {
-		if (frame_status & 0x00000004) {
-			fscc_frame_trim(port->pending_iframe);		
-			list_add_tail(&port->pending_iframe->list, &port->iframes);
+		fscc_frame_set_status(port->pending_iframe, frame_status);
+		fscc_frame_trim(port->pending_iframe);
 		
-			dev_dbg(port->device, "F#%i receive successful\n", 
+		list_add_tail(&port->pending_iframe->list, &port->iframes);
+		
+		dev_dbg(port->device, "F#%i receive successful\n", 
 				    port->pending_iframe->number);
 				   
-			wake_up_interruptible(&port->input_queue);
-		} else {
-			dev_alert(port->device, "F#%i receive rejected (invalid frame 0x%08x)\n", 
-			          port->pending_iframe->number, frame_status);
-				   
-			fscc_frame_delete(port->pending_iframe);
-		}
+		wake_up_interruptible(&port->input_queue);
 	}
 
 	port->handled_frames += 1;	       
@@ -292,13 +287,14 @@ struct fscc_port *fscc_port_new(struct fscc_card *card, unsigned channel,
 	port->pending_iframe = 0;
 	port->pending_oframe = 0;
 	port->dev_t = MKDEV(major_number, minor_number);
+	port->append_status = DEFAULT_APPEND_STATUS;
 	
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 27)
 	port->device = device_create(port->class, parent, port->dev_t, port, "%s", 
 	                             port->name);
 #else
-	port->device = device_create_drvdata(port->class, parent, port->dev_t, port, "%s", 
-	                                     port->name);
+	port->device = device_create_drvdata(port->class, parent, port->dev_t, port, 
+	                                     "%s", port->name);
 #endif
 
 	if (port->device <= 0) {
@@ -450,13 +446,32 @@ ssize_t fscc_port_read(struct fscc_port *port, char *buf, size_t count)
 	frame = fscc_port_peek_front_frame(port, &port->iframes);
 	
 	if (frame && fscc_frame_is_full(frame)) {
-		if (count < fscc_frame_get_target_length(frame))
-			return ENOBUFS;
+		if (port->append_status) {
+			__u16 status = 0;
 			
-		copy_to_user(buf, fscc_frame_get_remaining_data(frame), 
-		             fscc_frame_get_target_length(frame));
-		             
-		sent_length = fscc_frame_get_target_length(frame);
+			if (count < fscc_frame_get_target_length(frame) + STATUS_LENGTH)
+				return ENOBUFS;
+			
+			copy_to_user(buf, fscc_frame_get_remaining_data(frame), 
+				         fscc_frame_get_target_length(frame));
+			
+			status = fscc_frame_get_status(frame);
+			
+			copy_to_user(buf + fscc_frame_get_target_length(frame), 
+			             (void *)(&status), STATUS_LENGTH);
+				         
+			sent_length = fscc_frame_get_target_length(frame) + STATUS_LENGTH;
+					
+		} else {
+			if (count < fscc_frame_get_target_length(frame))
+				return ENOBUFS;
+			
+			copy_to_user(buf, fscc_frame_get_remaining_data(frame), 
+				         fscc_frame_get_target_length(frame));
+				         
+			sent_length = fscc_frame_get_target_length(frame);
+		}
+		
 		list_del(&frame->list); 
 		fscc_frame_delete(frame);
 	}

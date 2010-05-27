@@ -21,21 +21,9 @@ int main(void)
 
 	bytes_read = read(port_fd, data, sizeof(data));
 
-	if (bytes_read == -1) {
-		perror("read");
-
-		if (close(port_fd) == -1)
-			perror("close");
-			
-		return EXIT_FAILURE;
-	}
-
 	fprintf(stdout, "%s\n", data);
 
-	if (close(port_fd) == -1) {
-		perror("close");
-		return EXIT_FAILURE;
-	}
+	close(port_fd);
 	
 	return EXIT_SUCCESS;
 }

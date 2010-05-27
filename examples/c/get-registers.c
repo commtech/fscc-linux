@@ -23,23 +23,13 @@ int main(void)
 	regs.CCR1 = FSCC_UPDATE_VALUE;
 	regs.CCR2 = FSCC_UPDATE_VALUE;
 
-	if (ioctl(port_fd, FSCC_GET_REGISTERS, &regs) == -1) {
-		perror("FSCC_GET_REGISTERS");
-
-		if (close(port_fd) == -1)
-			perror("close");
-			
-		return EXIT_FAILURE;
-	}
+	ioctl(port_fd, FSCC_GET_REGISTERS, &regs);
 	
 	fprintf(stdout, "CCR0 = 0x%08x\n", (unsigned)regs.CCR0);
 	fprintf(stdout, "CCR1 = 0x%08x\n", (unsigned)regs.CCR1);
 	fprintf(stdout, "CCR2 = 0x%08x\n", (unsigned)regs.CCR2);
 
-	if (close(port_fd) == -1) {
-		perror("close");
-		return EXIT_FAILURE;
-	}		
+	close(port_fd);	
 	
 	return EXIT_SUCCESS;
 }

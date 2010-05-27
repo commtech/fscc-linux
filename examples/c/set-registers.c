@@ -23,19 +23,9 @@ int main(void)
 	regs.CCR1 = 0x00000000;
 	regs.CCR2 = 0x00000000;
 
-	if (ioctl(port_fd, FSCC_SET_REGISTERS, &regs) == -1) {
-		perror("FSCC_SET_REGISTERS");
+	ioctl(port_fd, FSCC_SET_REGISTERS, &regs);
 
-		if (close(port_fd) == -1)
-			perror("close");
-			
-		return EXIT_FAILURE;
-	}
-
-	if (close(port_fd) == -1) {
-		perror("close");
-		return EXIT_FAILURE;
-	}	
+	close(port_fd);
 	
 	return EXIT_SUCCESS;
 }

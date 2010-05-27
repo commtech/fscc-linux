@@ -60,6 +60,7 @@ struct fscc_registers {
 #define FSCC_SET_REGISTERS _IOW(FSCC_IOCTL_MAGIC, 1, struct fscc_registers *)
 #define FSCC_FLUSH_TX _IO(FSCC_IOCTL_MAGIC, 2)
 #define FSCC_FLUSH_RX _IO(FSCC_IOCTL_MAGIC, 3)
+#define FSCC_APPEND_STATUS _IOW(FSCC_IOCTL_MAGIC, 4, unsigned)
 
 #define FSCC_REGISTERS_INIT(registers) memset(&registers, -1, sizeof(registers))
 

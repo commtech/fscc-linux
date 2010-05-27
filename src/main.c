@@ -36,7 +36,7 @@
 
 static int fscc_major_number;
 static struct class *fscc_class = 0;
-unsigned memory_cap = DEFAULT_MEMEMORY_CAP;
+unsigned memory_cap = DEFAULT_MEMORY_CAP;
 
 LIST_HEAD(fscc_cards);
 
@@ -61,19 +61,13 @@ int fscc_open(struct inode *inode, struct file *file)
 	return 0;
 }
 
-//Returns ENOBUFS if read size is smaller than next frame
+//Returns -ENOBUFS if read size is smaller than next frame
 ssize_t fscc_read(struct file *file, char *buf, size_t count, loff_t *ppos)
 {
 	struct fscc_port *current_port = 0;
 	ssize_t read_count = 0;
 	
 	current_port = file->private_data;
-	
-	/* Checks and returns if this is an fread automatic retry */
-	if (*ppos == 1) {
-		*ppos = 0;
-		return 0;
-	}
 	
 	if (down_interruptible(&current_port->read_semaphore))
 		return -ERESTARTSYS;
@@ -92,9 +86,6 @@ ssize_t fscc_read(struct file *file, char *buf, size_t count, loff_t *ppos)
 		if (down_interruptible(&current_port->read_semaphore))
 			return -ERESTARTSYS;
 	}
-	
-	/* Marks the read as complete so the fread automatic retry finishes */
-	*ppos = 1;
 	
 	read_count = fscc_port_read(current_port, buf, count);
 	up(&current_port->read_semaphore);
@@ -116,7 +107,7 @@ ssize_t fscc_write(struct file *file, const char *buf, size_t count,
 	err = fscc_port_write(current_port, buf, count);
 	
 	up(&current_port->write_semaphore);
-
+	
 	return (err) ? err : count;
 }
 
@@ -180,8 +171,11 @@ int fscc_ioctl(struct inode *inode, struct file *file, unsigned int cmd,
 	case FSCC_FLUSH_RX:
 		fscc_port_flush_rx(port);
 		break;
+		
+	case FSCC_APPEND_STATUS:
+		port->append_status = (unsigned)arg;
 
-	/* This makes us appear to be a tty device for fread */
+	/* This makes us appear to be a tty device */
 	case TCGETS:
 		break;
 			
@@ -316,8 +310,9 @@ static int __init fscc_init(void)
 		return err;
 	}
 
-	if (memory_cap != DEFAULT_MEMEMORY_CAP)
-		printk(KERN_INFO DEVICE_NAME " changing the memory cap from %u => %u (bytes)\n", DEFAULT_MEMEMORY_CAP, memory_cap);
+	if (memory_cap != DEFAULT_MEMORY_CAP)
+		printk(KERN_INFO DEVICE_NAME " changing the memory cap from %u => %u (bytes)\n", 
+		       DEFAULT_MEMORY_CAP, memory_cap);
 	
 	return 0;
 }
@@ -334,10 +329,12 @@ MODULE_DEVICE_TABLE(pci, fscc_id_table);
 MODULE_LICENSE("GPL");
 MODULE_VERSION("2.0");
 MODULE_AUTHOR("William Fagan <willf@commtech-fastcom.com>");
+
 MODULE_DESCRIPTION("Driver for the FSCC series of cards from Commtech, Inc."); 
 
 module_param(memory_cap, int, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
 MODULE_PARM_DESC(memory_cap, "The maximum user data (in bytes) the driver will keep in it's buffer.");
 
 module_init(fscc_init);
-module_exit(fscc_exit);  
+module_exit(fscc_exit); 
+ 

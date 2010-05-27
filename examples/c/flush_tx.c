@@ -16,19 +16,9 @@ int main(void)
 		return EXIT_FAILURE;
 	}
 
-	if (ioctl(port_fd, FSCC_FLUSH_TX) == -1) {
-		perror("FSCC_FLUSH_TX");
+	ioctl(port_fd, FSCC_FLUSH_TX);
 
-		if (close(port_fd) == -1)
-			perror("close");
-			
-		return EXIT_FAILURE;
-	}
-
-	if (close(port_fd) == -1) {
-		perror("close");
-		return EXIT_FAILURE;
-	}	
+	close(port_fd);
 	
 	return EXIT_SUCCESS;
 }

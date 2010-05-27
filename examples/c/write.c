@@ -1,3 +1,13 @@
+/**
+ * @file
+ *
+ * @brief
+ * Demonstrates how to write data to the FSCC card.
+ *
+ * @see error-checking.c
+ * Examples of correct error checking.
+ */
+ 
 #include <fcntl.h> /* open, O_WRONLY */
 #include <unistd.h> /* write, close */
 #include <stdio.h> /* perror */
@@ -17,20 +27,8 @@ int main(void)
 	}
 
 	bytes_written = write(port_fd, data, sizeof(data));
-
-	if (bytes_written < 0) {
-		perror("write");
-
-		if (close(port_fd) == -1)
-			perror("close");
-			
-		return EXIT_FAILURE;
-	}
-
-	if (close(port_fd) == -1) {
-		perror("close");
-		return EXIT_FAILURE;
-	}	
+	
+	close(port_fd);
 	
 	return EXIT_SUCCESS;
 }

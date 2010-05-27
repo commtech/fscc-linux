@@ -100,6 +100,8 @@ struct fscc_port {
 	volatile unsigned started_frames;
 	volatile unsigned ended_frames;
 	volatile unsigned handled_frames;
+	
+	unsigned append_status;
 };
 
 struct fscc_port *fscc_port_new(struct fscc_card *card, unsigned channel, 

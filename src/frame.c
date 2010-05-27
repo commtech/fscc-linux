@@ -40,6 +40,7 @@ struct fscc_frame *fscc_frame_new(unsigned target_length)
 	
 	frame->target_length = 0;
 	frame->current_length = 0;
+	frame->status = 0;
 	frame->data = 0;
 	
 	frame->number = frame_counter;	
@@ -125,6 +126,16 @@ void fscc_frame_trim(struct fscc_frame *frame)
 	return_if_untrue(frame);
 	
 	fscc_frame_update_buffer_size(frame, frame->current_length);
+}
+
+__u16 fscc_frame_get_status(struct fscc_frame *frame)
+{
+	return frame->status;
+}
+
+void fscc_frame_set_status(struct fscc_frame *frame, __u16 status)
+{
+	frame->status = status;
 }
 
 void fscc_frame_update_buffer_size(struct fscc_frame *frame, unsigned length)
