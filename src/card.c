@@ -27,6 +27,13 @@
 
 unsigned minor_number = 0;
 
+struct pciserial_board pci_board = {
+	.flags = FL_BASE1,
+	.num_ports = 2,
+	.base_baud = 921600,
+	.uart_offset = 8,
+};
+
 struct fscc_card *fscc_card_new(struct pci_dev *pdev,
                                 const struct pci_device_id *id,
                                 unsigned major_number,
@@ -77,6 +84,8 @@ struct fscc_card *fscc_card_new(struct pci_dev *pdev,
 		minor_number += 1;        
 	}
 	
+	card->serial_priv = pciserial_init_ports(pdev, &pci_board);
+	
 	return card;
 }
 
@@ -87,6 +96,7 @@ void fscc_card_delete(struct fscc_card *card)
 		
 	return_if_untrue(card);
 		
+	pciserial_remove_ports(card->serial_priv);
 	pci_set_drvdata(card->pci_dev, 0);	
 	pci_release_regions(card->pci_dev);
 	
@@ -104,6 +114,8 @@ void fscc_card_suspend(struct fscc_card *card)
 	struct fscc_port *current_port = 0;
 		
 	return_if_untrue(card);
+	
+	pciserial_suspend_ports(card->serial_priv);
 			
 	list_for_each_entry(current_port, &card->ports, list) {	
 		fscc_port_suspend(current_port);
@@ -118,6 +130,8 @@ void fscc_card_resume(struct fscc_card *card)
 	__u32 current_value = 0;	
 		
 	return_if_untrue(card);
+	
+	pciserial_resume_ports(card->serial_priv);
 			
 	list_for_each_entry(current_port, &card->ports, list) {	
 		fscc_port_resume(current_port);

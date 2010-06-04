@@ -155,4 +155,12 @@ unsigned fscc_port_get_output_memory_usage(struct fscc_port *port);
 unsigned fscc_port_get_input_memory_usage(struct fscc_port *port);
 unsigned fscc_port_get_memory_usage(struct fscc_port *port);
 
+void fscc_port_set_clock_bits(struct fscc_port *port, const unsigned char *clock_data);
+
+void fscc_port_use_async(struct fscc_port *port);
+void fscc_port_use_sync(struct fscc_port *port);
+
+void fscc_port_enable_append_status(struct fscc_port *port);
+void fscc_port_disable_append_status(struct fscc_port *port);
+
 #endif

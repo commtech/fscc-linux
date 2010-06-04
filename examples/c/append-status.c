@@ -4,7 +4,7 @@
 #include <stdlib.h> /* EXIT_SUCCESS, EXIT_FAILURE */
 #include <string.h> /* memset */
 #include <sys/ioctl.h> /* ioctl */
-#include <fscc/fscc.h> /* FSCC_APPEND_STATUS */
+#include <fscc/fscc.h> /* FSCC_SET_APPEND_STATUS */
 
 int main(void)
 {
@@ -22,7 +22,7 @@ int main(void)
 		return EXIT_FAILURE;
 	}
 	
-	ioctl(port_fd, FSCC_APPEND_STATUS, 0);		
+	ioctl(port_fd, FSCC_DISABLE_APPEND_STATUS);
 	bytes_written = write(port_fd, data, sizeof(data));
 	
 	memset(&buffer, 0, sizeof(buffer));	
@@ -33,7 +33,7 @@ int main(void)
 	fprintf(stdout, "data = %s\n", buffer);
 	fprintf(stdout, "status = 0x????\n\n");
 
-	ioctl(port_fd, FSCC_APPEND_STATUS, 1);
+	ioctl(port_fd, FSCC_ENABLE_APPEND_STATUS);
 	bytes_written = write(port_fd, data, sizeof(data));
 	
 	memset(&buffer, 0, sizeof(buffer));	

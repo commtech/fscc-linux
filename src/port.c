@@ -341,7 +341,7 @@ struct fscc_port *fscc_port_new(struct fscc_card *card, unsigned channel,
 	port->last_isr_value = 0;
 	
 	fscc_port_set_register(port, 0, IMR_OFFSET, 0x0f000000);
-	fscc_port_set_register(port, 0, BGR_OFFSET, 0x00000002);
+	fscc_port_set_register(port, 0, BGR_OFFSET, 0x00000000);
 	fscc_port_set_register(port, 0, CCR0_OFFSET, 0x0000001c);
 	fscc_port_set_register(port, 0, CCR1_OFFSET, 0x00000008);	
 	
@@ -867,5 +867,77 @@ unsigned fscc_port_get_memory_usage(struct fscc_port *port)
 	input_memory = fscc_port_get_input_memory_usage(port);
 
 	return output_memory + input_memory;
+}
+
+#define STRB_BASE 0x00000008
+#define DTA_BASE 0x00000001
+#define CLK_BASE 0x00000002
+
+void fscc_port_set_clock_bits(struct fscc_port *port, const unsigned char *clock_data)
+{
+}
+
+void fscc_port_use_async(struct fscc_port *port)
+{
+	__u32 orig_fcr_value = 0;
+	__u32 new_fcr_value = 0;
+	
+	return_if_untrue(port);
+	
+	orig_fcr_value = fscc_card_get_register(port->card, 2, FCR_OFFSET);
+	
+	switch (port->channel) {
+	case 0:
+		new_fcr_value = orig_fcr_value | 0x01000000;
+		break;
+		
+	case 1:
+		new_fcr_value = orig_fcr_value | 0x02000000;
+		break;
+	}
+	
+	if (orig_fcr_value == new_fcr_value)
+		return;
+	
+	fscc_card_set_register(port->card, 2, FCR_OFFSET, new_fcr_value);
+}
+
+void fscc_port_use_sync(struct fscc_port *port)
+{
+	__u32 orig_fcr_value = 0;
+	__u32 new_fcr_value = 0;
+	
+	return_if_untrue(port);
+	
+	orig_fcr_value = fscc_card_get_register(port->card, 2, FCR_OFFSET);
+	
+	switch (port->channel) {
+	case 0:
+		new_fcr_value = orig_fcr_value & !(0x01000000);
+		break;
+		
+	case 1:
+		new_fcr_value = orig_fcr_value & !(0x02000000);
+		break;
+	}
+	
+	if (orig_fcr_value == new_fcr_value)
+		return;
+	
+	fscc_card_set_register(port->card, 2, FCR_OFFSET, new_fcr_value);
+}
+
+void fscc_port_enable_append_status(struct fscc_port *port)
+{	
+	return_if_untrue(port);
+	
+	port->append_status = 1;
+}
+
+void fscc_port_disable_append_status(struct fscc_port *port)
+{	
+	return_if_untrue(port);
+	
+	port->append_status = 0;
 }
 
