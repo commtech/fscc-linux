@@ -1027,3 +1027,16 @@ void fscc_port_set_registers(struct fscc_port *port,
 	}
 }
 
+void fscc_port_get_registers(struct fscc_port *port,
+                             struct fscc_registers *regs)
+{
+	unsigned i = 0;
+			
+	for (i = 0; i < sizeof(struct fscc_registers) / sizeof(int32_t); i++) {
+		if (((int32_t *)regs)[i] != FSCC_UPDATE_VALUE)
+			continue;
+						
+		((uint32_t *)regs)[i] = fscc_port_get_register(port, 0, i * 4);
+	}
+}
+

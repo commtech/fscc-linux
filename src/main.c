@@ -150,20 +150,12 @@ int fscc_ioctl(struct inode *inode, struct file *file, unsigned int cmd,
 	port = file->private_data;
 	
 	switch (cmd) {
-	case FSCC_GET_REGISTERS:
-		fscc_port_set_registers(port, (struct fscc_registers *)arg);	
+	case FSCC_GET_REGISTERS: 
+		fscc_port_get_registers(port, (struct fscc_registers *)arg);
 		break;
 
-	case FSCC_SET_REGISTERS: {
-			unsigned i = 0;
-			
-			for (i = 0; i < sizeof(struct fscc_registers) / sizeof(int32_t); i++) {
-				if (((int32_t *)arg)[i] < 0)
-					continue;
-						
-				fscc_port_set_register(port, 0, i * 4, ((uint32_t *)arg)[i]);
-			}
-		}
+	case FSCC_SET_REGISTERS:
+		fscc_port_set_registers(port, (struct fscc_registers *)arg);
 		break;
 			
 	case FSCC_FLUSH_TX:
