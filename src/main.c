@@ -34,9 +34,19 @@
 #include "utils.h"
 #include "fscc.h"
 
+#define COMMTECH_VENDOR_ID 0x18f7
+
+#define FSCC_ID 0x000f
+#define SFSCC_ID 0x0014
+#define FSCC_232_ID 0x0016
+#define SFSCC_4_ID 0x0018
+#define FSCC_4_ID 0x001b
+#define SFSCC_4_LVDS_ID 0x001c
+#define SFSCCe_4_ID 0x001e
+
 static int fscc_major_number;
 static struct class *fscc_class = 0;
-unsigned memory_cap = DEFAULT_MEMORY_CAP;
+unsigned memory_cap = DEFAULT_MEMORY_CAP_VALUE;
 
 LIST_HEAD(fscc_cards);
 
@@ -140,16 +150,8 @@ int fscc_ioctl(struct inode *inode, struct file *file, unsigned int cmd,
 	port = file->private_data;
 	
 	switch (cmd) {
-	case FSCC_GET_REGISTERS: {
-			unsigned i = 0;
-			
-			for (i = 0; i < sizeof(struct fscc_registers) / sizeof(int32_t); i++) {
-				if (((int32_t *)arg)[i] != FSCC_UPDATE_VALUE)
-					continue;
-						
-				((uint32_t *)arg)[i] = fscc_port_get_register(port, 0, i * 4);
-			}
-		}			
+	case FSCC_GET_REGISTERS:
+		fscc_port_set_registers(port, (struct fscc_registers *)arg);	
 		break;
 
 	case FSCC_SET_REGISTERS: {
@@ -193,8 +195,8 @@ int fscc_ioctl(struct inode *inode, struct file *file, unsigned int cmd,
 		break;
 
 	/* This makes us appear to be a tty device */
-	case TCGETS:
-		break;
+	//case TCGETS:
+	//	break;
 			
 	default:
 		dev_notice(port->device, "unknown ioctl %x\n", cmd);
@@ -229,7 +231,7 @@ static int __devinit fscc_probe(struct pci_dev *pdev,
 	case SFSCC_4_ID:
 	case SFSCC_4_LVDS_ID:
 	case SFSCCe_4_ID:		
-		new_card = fscc_card_new(pdev, id, fscc_major_number, fscc_class,
+		new_card = fscc_card_new(pdev, fscc_major_number, fscc_class,
                                  &fscc_fops);
 		
 		if (new_card)                         
@@ -327,9 +329,9 @@ static int __init fscc_init(void)
 		return err;
 	}
 
-	if (memory_cap != DEFAULT_MEMORY_CAP)
+	if (memory_cap != DEFAULT_MEMORY_CAP_VALUE)
 		printk(KERN_INFO DEVICE_NAME " changing the memory cap from %u => %u (bytes)\n", 
-		       DEFAULT_MEMORY_CAP, memory_cap);
+		       DEFAULT_MEMORY_CAP_VALUE, memory_cap);
 	
 	return 0;
 }
@@ -338,6 +340,7 @@ static void __exit fscc_exit(void)
 {
 	pci_unregister_driver(&fscc_pci_driver);
 	unregister_chrdev(fscc_major_number, "fscc");
+
 	class_destroy(fscc_class);	
 }
 

@@ -40,8 +40,7 @@ struct fscc_card {
 	__u32 fcr_storage;
 };
 
-struct fscc_card *fscc_card_new(struct pci_dev *pdev, 
-                                const struct pci_device_id *id,
+struct fscc_card *fscc_card_new(struct pci_dev *pdev,
                                 unsigned major_number,
                                 struct class *class,
                                 struct file_operations *fops);

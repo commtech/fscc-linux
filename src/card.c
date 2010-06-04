@@ -35,7 +35,6 @@ struct pciserial_board pci_board = {
 };
 
 struct fscc_card *fscc_card_new(struct pci_dev *pdev,
-                                const struct pci_device_id *id,
                                 unsigned major_number,
                                 struct class *class,
                                 struct file_operations *fops)
@@ -54,12 +53,16 @@ struct fscc_card *fscc_card_new(struct pci_dev *pdev,
 	
 	card->pci_dev = pdev;
 	
-	if (pci_request_regions(card->pci_dev, DEVICE_NAME) != 0) {
-		dev_err(&card->pci_dev->dev, "pci_request_regions failed\n");		       
+	/* This requests the pci regions for us. Doing so again will cause our
+	   uarts not to appear correctly. */
+	card->serial_priv = pciserial_init_ports(pdev, &pci_board);
+	
+	if (IS_ERR(card->serial_priv)) {
+		dev_err(&card->pci_dev->dev, "pciserial_init_ports failed\n");
 		return 0;
 	}
 	
-	pci_set_drvdata(card->pci_dev, card);
+	pci_set_drvdata(pdev, card->serial_priv);
 	
 	start_minor_number = minor_number;
 	
@@ -80,11 +83,11 @@ struct fscc_card *fscc_card_new(struct pci_dev *pdev,
 	for (i = 0; i < 2; i++) {
 		port_iter = fscc_port_new(card, i, major_number, minor_number, 
 		                          &card->pci_dev->dev, class, fops);
-		                          
+		                                                  
 		minor_number += 1;        
 	}
 	
-	card->serial_priv = pciserial_init_ports(pdev, &pci_board);
+	fscc_card_set_register(card, 2, FCR_OFFSET, DEFAULT_FCR_VALUE);
 	
 	return card;
 }
@@ -95,16 +98,15 @@ void fscc_card_delete(struct fscc_card *card)
 	struct list_head *temp_node = 0;
 		
 	return_if_untrue(card);
-		
-	pciserial_remove_ports(card->serial_priv);
-	pci_set_drvdata(card->pci_dev, 0);	
-	pci_release_regions(card->pci_dev);
 	
 	list_for_each_safe(current_node, temp_node, &card->ports) {
 		struct fscc_port *current_port = 0;
 		current_port = list_entry(current_node, struct fscc_port, list);
 		fscc_port_delete(current_port);
 	}
+
+	pciserial_remove_ports(card->serial_priv);
+	pci_set_drvdata(card->pci_dev, NULL);
 	
 	kfree(card);
 }

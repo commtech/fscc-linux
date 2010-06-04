@@ -67,5 +67,8 @@ struct fscc_registers {
 	__s32 IMR;
 };
 
+extern unsigned memory_cap;
+extern struct list_head fscc_cards;
+
 #endif
 

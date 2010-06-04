@@ -163,4 +163,6 @@ void fscc_port_use_sync(struct fscc_port *port);
 void fscc_port_enable_append_status(struct fscc_port *port);
 void fscc_port_disable_append_status(struct fscc_port *port);
 
+void fscc_port_set_registers(struct fscc_port *port, const struct fscc_registers *regs);
+
 #endif
