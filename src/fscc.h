@@ -21,6 +21,12 @@
 #ifndef FSCC_H
 #define FSCC_H
 
+#include <linux/cdev.h>
+#include <linux/serial_core.h>
+#include <linux/list.h>
+#include <linux/wait.h>
+#include <linux/workqueue.h>
+
 #define FSCC_UPDATE_VALUE -2
 
 #define FSCC_IOCTL_MAGIC 0x18
@@ -69,6 +75,9 @@ struct fscc_registers {
 
 extern unsigned memory_cap;
 extern struct list_head fscc_cards;
+extern wait_queue_head_t output_queue;
+
+unsigned fscc_memory_usage(void);
 
 #endif
 

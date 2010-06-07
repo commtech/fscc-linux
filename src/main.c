@@ -48,6 +48,7 @@ static int fscc_major_number;
 static struct class *fscc_class = 0;
 unsigned memory_cap = DEFAULT_MEMORY_CAP_VALUE;
 
+wait_queue_head_t output_queue;
 LIST_HEAD(fscc_cards);
 
 struct pci_device_id fscc_id_table[] __devinitdata = {
@@ -71,34 +72,46 @@ int fscc_open(struct inode *inode, struct file *file)
 	return 0;
 }
 
+unsigned fscc_memory_usage(void)
+{	
+	struct fscc_card *current_card = 0;
+	unsigned memory = 0;
+	
+	list_for_each_entry(current_card, &fscc_cards, list) {	
+		memory += fscc_card_get_memory_usage(current_card);
+	}
+	
+	return memory;
+}
+
 //Returns -ENOBUFS if read size is smaller than next frame
 ssize_t fscc_read(struct file *file, char *buf, size_t count, loff_t *ppos)
 {
-	struct fscc_port *current_port = 0;
+	struct fscc_port *port = 0;
 	ssize_t read_count = 0;
 	
-	current_port = file->private_data;
+	port = file->private_data;
 	
-	if (down_interruptible(&current_port->read_semaphore))
+	if (down_interruptible(&port->read_semaphore))
 		return -ERESTARTSYS;
 		
-	while (!fscc_port_has_iframes(current_port)) {
-		up(&current_port->read_semaphore);
+	while (!fscc_port_has_iframes(port)) {
+		up(&port->read_semaphore);
 		
 		if (file->f_flags & O_NONBLOCK)
 			return -EAGAIN;
 			
-		if (wait_event_interruptible(current_port->input_queue, 
-		                             fscc_port_has_iframes(current_port))) {
+		if (wait_event_interruptible(port->input_queue, 
+		                             fscc_port_has_iframes(port))) {
 			return -ERESTARTSYS;
 		}
 			
-		if (down_interruptible(&current_port->read_semaphore))
+		if (down_interruptible(&port->read_semaphore))
 			return -ERESTARTSYS;
 	}
 	
-	read_count = fscc_port_read(current_port, buf, count);
-	up(&current_port->read_semaphore);
+	read_count = fscc_port_read(port, buf, count);
+	up(&port->read_semaphore);
 	
 	return read_count;
 }
@@ -106,38 +119,54 @@ ssize_t fscc_read(struct file *file, char *buf, size_t count, loff_t *ppos)
 ssize_t fscc_write(struct file *file, const char *buf, size_t count, 
                    loff_t *ppos)
 {
-	struct fscc_port *current_port = 0;
-	int err = 0;
+	struct fscc_port *port = 0;
 	
-	current_port = file->private_data;
+	port = file->private_data;
 	
-	if (down_interruptible(&current_port->write_semaphore))
+	if (down_interruptible(&port->write_semaphore))
 		return -ERESTARTSYS;
 		
-	err = fscc_port_write(current_port, buf, count);
+	while (fscc_memory_usage() + count > memory_cap) {
+		up(&port->write_semaphore);
+		
+		if (file->f_flags & O_NONBLOCK)
+			return -EAGAIN;
+			
+		if (wait_event_interruptible(output_queue, 
+		                             fscc_memory_usage() + count <= memory_cap)) {
+			return -ERESTARTSYS;
+		}
+			
+		if (down_interruptible(&port->write_semaphore))
+			return -ERESTARTSYS;
+	}
+		
+	fscc_port_write(port, buf, count);
 	
-	up(&current_port->write_semaphore);
+	up(&port->write_semaphore);
 	
-	return (err) ? err : count;
+	return count;
 }
 
-//TODO: This needs to determine a set of rules of when we should block
 unsigned fscc_poll(struct file *file, struct poll_table_struct *wait)
 {
-	struct fscc_port *current_port = 0;
+	struct fscc_port *port = 0;
 	unsigned mask = 0;
 	
-	current_port = file->private_data;
+	port = file->private_data;
 	
-	down(&current_port->poll_semaphore);
+	down(&port->poll_semaphore);
 	
-	poll_wait(file, &current_port->input_queue, wait);
-	poll_wait(file, &current_port->output_queue, wait);
+	poll_wait(file, &port->input_queue, wait);
+	poll_wait(file, &output_queue, wait);
 	
-	if (fscc_port_has_iframes(current_port))
+	if (fscc_port_has_iframes(port))
 		mask |= POLLIN | POLLRDNORM;
+		
+	if (fscc_memory_usage() < memory_cap)
+		mask |= POLLOUT | POLLWRNORM;
 	
-	up(&current_port->poll_semaphore);
+	up(&port->poll_semaphore);
 	
 	return mask;
 }
@@ -324,6 +353,8 @@ static int __init fscc_init(void)
 	if (memory_cap != DEFAULT_MEMORY_CAP_VALUE)
 		printk(KERN_INFO DEVICE_NAME " changing the memory cap from %u => %u (bytes)\n", 
 		       DEFAULT_MEMORY_CAP_VALUE, memory_cap);
+	
+	init_waitqueue_head(&output_queue);
 	
 	return 0;
 }

@@ -27,6 +27,7 @@
 #include "config.h"
 #include "isr.h"
 #include "sysfs.h"
+#include "fscc.h"
 
 #define STATUS_LENGTH 2
 #define TX_FIFO_SIZE 4096
@@ -194,7 +195,7 @@ void iframe_worker(unsigned long data)
 		break;
 	}
 	
-	if (fscc_port_get_memory_usage(port) + receive_length > memory_cap) {
+	if (fscc_memory_usage() + receive_length > memory_cap) {
 		dev_alert(port->device, "F#%i receive rejected (memory constraint)\n",
 		          port->pending_iframe->number);
 		       
@@ -326,7 +327,6 @@ struct fscc_port *fscc_port_new(struct fscc_card *card, unsigned channel,
 	init_MUTEX(&port->poll_semaphore);
 	
 	init_waitqueue_head(&port->input_queue);
-	init_waitqueue_head(&port->output_queue);
 	
 	cdev_init(&port->cdev, fops);
 	port->cdev.owner = THIS_MODULE;
@@ -421,21 +421,16 @@ void fscc_port_delete(struct fscc_port *port)
 	kfree(port);
 }
 
-// Returns -ENOMEM if write size will go over user cap.
-// Returns -ENOMEM if kmalloc fails. TODO: Should this be different than above?
-/* Length is user data length. Without 32bit padding. */
-int fscc_port_write(struct fscc_port *port, const char *data, unsigned length)
+void fscc_port_write(struct fscc_port *port, const char *data, unsigned length)
 {
 	struct fscc_frame *frame = 0;
 	char *temp_storage = 0;
 	
-	return_val_if_untrue(port, 0);
-	
-	if (fscc_port_get_memory_usage(port) + length > memory_cap)
-		return -ENOMEM;
+	return_if_untrue(port);
 	
 	temp_storage = kmalloc(length, GFP_KERNEL);	
-	return_val_if_untrue(temp_storage != NULL, -ENOMEM);	
+	return_if_untrue(temp_storage != NULL);
+	
 	copy_from_user(temp_storage, data, length);
 	
 	frame = fscc_frame_new(length);	
@@ -445,8 +440,6 @@ int fscc_port_write(struct fscc_port *port, const char *data, unsigned length)
 	
 	list_add_tail(&frame->list, &port->oframes);	
 	tasklet_schedule(&port->oframe_tasklet);
-	
-	return 0;
 }
 
 //Returns ENOBUFS if count is smaller than pending frame size
@@ -458,38 +451,39 @@ ssize_t fscc_port_read(struct fscc_port *port, char *buf, size_t count)
 	
 	return_val_if_untrue(port, 0);
 	
-	frame = fscc_port_peek_front_frame(port, &port->iframes);
+	if (fscc_port_get_input_frames_qty(port) == 0)
+		return 0;
 	
-	if (frame && fscc_frame_is_full(frame)) {
-		if (port->append_status) {
-			__u16 status = 0;
-			
-			if (count < fscc_frame_get_target_length(frame) + STATUS_LENGTH)
-				return ENOBUFS;
-			
-			copy_to_user(buf, fscc_frame_get_remaining_data(frame), 
-				         fscc_frame_get_target_length(frame));
-			
-			status = fscc_frame_get_status(frame);
-			
-			copy_to_user(buf + fscc_frame_get_target_length(frame), 
-			             (void *)(&status), STATUS_LENGTH);
-				         
-			sent_length = fscc_frame_get_target_length(frame) + STATUS_LENGTH;
-					
-		} else {
-			if (count < fscc_frame_get_target_length(frame))
-				return ENOBUFS;
-			
-			copy_to_user(buf, fscc_frame_get_remaining_data(frame), 
-				         fscc_frame_get_target_length(frame));
-				         
-			sent_length = fscc_frame_get_target_length(frame);
-		}
+	frame = fscc_port_peek_front_frame(port, &port->iframes);
 		
-		list_del(&frame->list); 
-		fscc_frame_delete(frame);
+	if (port->append_status) {
+		__u16 status = 0;
+			
+		if (count < fscc_frame_get_target_length(frame) + STATUS_LENGTH)
+			return ENOBUFS;
+			
+		copy_to_user(buf, fscc_frame_get_remaining_data(frame), 
+			         fscc_frame_get_target_length(frame));
+			
+		status = fscc_frame_get_status(frame);
+			
+		copy_to_user(buf + fscc_frame_get_target_length(frame), 
+		             (void *)(&status), STATUS_LENGTH);
+				         
+		sent_length = fscc_frame_get_target_length(frame) + STATUS_LENGTH;
+					
+	} else {
+		if (count < fscc_frame_get_target_length(frame))
+			return ENOBUFS;
+			
+		copy_to_user(buf, fscc_frame_get_remaining_data(frame), 
+			         fscc_frame_get_target_length(frame));
+				         
+		sent_length = fscc_frame_get_target_length(frame);
 	}
+		
+	list_del(&frame->list); 
+	fscc_frame_delete(frame);
 	
 	return sent_length;
 }
@@ -768,12 +762,13 @@ void fscc_port_resume(struct fscc_port *port)
 		current_value = fscc_port_get_register(port, 0, i * 4);
 		
 		if (current_value != ((uint32_t *)&port->register_storage)[i]) {
-			dev_dbg(port->device, "register 0x%02x restoring 0x%08x => 0x%08x\n",
+			dev_dbg(port->device, 
+			        "register 0x%02x restoring 0x%08x => 0x%08x\n",
 			        i * 4, current_value, 
 			        offset_to_value(&port->register_storage, i * 4));
 			       
 			fscc_port_set_register(port, 0, i * 4, 
-			                    offset_to_value(&port->register_storage, i * 4));
+			                  offset_to_value(&port->register_storage, i * 4));
 		}
 	}
 	

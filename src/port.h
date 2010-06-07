@@ -81,7 +81,6 @@ struct fscc_port {
 	struct semaphore poll_semaphore;
 	
 	wait_queue_head_t input_queue;
-	wait_queue_head_t output_queue;
 	
 	struct list_head oframes; /* Frames not yet in the FIFO yet */
 	struct list_head iframes; /* Frames already retrieved from the FIFO */
@@ -111,7 +110,7 @@ struct fscc_port *fscc_port_new(struct fscc_card *card, unsigned channel,
                                 
 void fscc_port_delete(struct fscc_port *port);
 
-int fscc_port_write(struct fscc_port *port, const char *data, unsigned length);                     
+void fscc_port_write(struct fscc_port *port, const char *data, unsigned length);                     
 ssize_t fscc_port_read(struct fscc_port *port, char *buf, size_t count);
                            
 bool fscc_port_has_iframes(struct fscc_port *port);

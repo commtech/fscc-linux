@@ -21,7 +21,8 @@
 #include "frame.h"
 #include "utils.h"
 #include "config.h"
-#include <linux/pci.h>
+#include "fscc.h"
+#include <linux/module.h>
 #include <asm/uaccess.h>
 
 static unsigned frame_counter = 1;
@@ -59,6 +60,8 @@ void fscc_frame_delete(struct fscc_frame *frame)
 		kfree(frame->data);
 		
 	kfree(frame);
+	
+	wake_up_interruptible(&output_queue);
 }
 
 unsigned fscc_frame_get_target_length(struct fscc_frame *frame)
