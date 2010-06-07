@@ -51,7 +51,8 @@ irqreturn_t fscc_isr(int irq, void *potential_port)
 	if (!port_exists(potential_port))
 		return IRQ_NONE;
 	
-	port = (struct fscc_port *)potential_port;	
+	port = (struct fscc_port *)potential_port;
+		
 	isr_value = fscc_port_get_register(port, 0, ISR_OFFSET);
 	
 	if (!isr_value)

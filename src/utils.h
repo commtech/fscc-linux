@@ -47,5 +47,6 @@
 __u32 chars_to_u32(const char *data);
 __s32 offset_to_value(const struct fscc_registers *registers, unsigned offset);
 int str_to_offset(const char *str);
+unsigned is_read_only_register(unsigned offset);
 
 #endif

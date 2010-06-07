@@ -86,3 +86,14 @@ int str_to_offset(const char *str)
 
 	return -1;
 }
+
+unsigned is_read_only_register(unsigned offset)
+{
+	switch (offset) {
+	case STAR_OFFSET:
+	case VSTR_OFFSET:
+			return 1;
+	}
+	
+	return 0;
+}

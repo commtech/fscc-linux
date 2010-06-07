@@ -1015,6 +1015,9 @@ void fscc_port_set_registers(struct fscc_port *port,
 	unsigned i = 0;
 			
 	for (i = 0; i < sizeof(*regs) / sizeof(regs->FIFOT); i++) {
+		if (is_read_only_register(i * 4))
+			continue;
+			
 		if (((int32_t *)regs)[i] < 0)
 			continue;
 						
