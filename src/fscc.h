@@ -21,11 +21,8 @@
 #ifndef FSCC_H
 #define FSCC_H
 
-#include <linux/cdev.h>
-#include <linux/serial_core.h>
-#include <linux/list.h>
-#include <linux/wait.h>
-#include <linux/workqueue.h>
+#include <linux/sched.h> /* wait_queue_head_t */
+#include <linux/fs.h> /* struct indode on <= 2.6.19 */
 
 #define FSCC_UPDATE_VALUE -2
 

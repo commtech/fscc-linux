@@ -18,7 +18,11 @@
 	
 */
 
+#include <linux/version.h>
 #include "sysfs.h"
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25)
+
 #include "port.h"
 #include "card.h"
 #include "config.h"
@@ -292,4 +296,6 @@ struct attribute_group port_info_attr_group = {
 	.name = "info",
 	.attrs = info_attrs,
 };
+
+#endif
 

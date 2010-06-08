@@ -21,8 +21,14 @@
 #ifndef FSCC_ISR_H
 #define FSCC_ISR_H
 
-#include <linux/interrupt.h>
+//#include <linux/irqreturn.h> /* irqreturn_t */
+#include <linux/version.h> /* LINUX_VERSION_CODE, KERNEL_VERSION */
+#include <linux/interrupt.h> /* struct pt_regs */
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 19)
 irqreturn_t fscc_isr(int irq, void *dev_id);
+#else
+irqreturn_t fscc_isr(int irq, void *dev_id, struct pt_regs *regs);
+#endif
 
 #endif

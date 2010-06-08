@@ -19,10 +19,10 @@
 */
 
 #include "isr.h"
-#include "port.h"
-#include "card.h"
-#include "utils.h"
-#include "config.h"
+#include "card.h" /* struct fscc_card */
+#include "port.h" /* struct fscc_port */
+#include "utils.h" /* return_{val_}_if_untrue */
+#include "config.h" /* DEVICE_NAME */
 
 unsigned port_exists(void *port)
 {	
@@ -43,7 +43,11 @@ unsigned port_exists(void *port)
 	return 0;
 }
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 19)
 irqreturn_t fscc_isr(int irq, void *potential_port)
+#else
+irqreturn_t fscc_isr(int irq, void *potential_port, struct pt_regs *regs)
+#endif
 {
 	struct fscc_port *port = 0;
 	unsigned isr_value = 0;

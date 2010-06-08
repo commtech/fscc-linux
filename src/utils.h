@@ -21,8 +21,7 @@
 #ifndef FSCC_UTILS_H
 #define FSCC_UTILS_H
 
-#include <linux/fs.h>
-#include "fscc.h"
+#include "fscc.h" /* struct fscc_registers */
 
 #define warn_if_untrue(expr) \
 	if (expr) {} else \

@@ -18,21 +18,10 @@
 	
 */
 
-#include <linux/fs.h>
-#include <linux/module.h>
-#include <linux/list.h>
-#include <linux/pci.h>
-#include <linux/cdev.h>
-#include <linux/serial_core.h>
-#include <linux/interrupt.h>
-#include <linux/poll.h>
-#include <linux/moduleparam.h>
-#include "card.h"
-#include "port.h"
-#include "isr.h"
-#include "config.h"
-#include "utils.h"
-#include "fscc.h"
+#include <linux/poll.h> /* poll_wait, POLL* */
+#include "card.h" /* struct fscc_card */
+#include "port.h" /* struct fscc_port */
+#include "config.h" /* DEVICE_NAME, DEFAULT_* */
 
 #define COMMTECH_VENDOR_ID 0x18f7
 
@@ -220,7 +209,7 @@ int fscc_ioctl(struct inode *inode, struct file *file, unsigned int cmd,
 	//	break;
 			
 	default:
-		dev_notice(port->device, "unknown ioctl %x\n", cmd);
+		dev_dbg(port->device, "unknown ioctl %x\n", cmd);
 		return -ENOTTY;			
 	}
 	

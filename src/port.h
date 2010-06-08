@@ -21,13 +21,15 @@
 #ifndef FSCC_PORT
 #define FSCC_PORT
 
-#include <linux/cdev.h>
-#include <linux/serial_core.h>
-#include <linux/list.h>
-#include <linux/wait.h>
-#include <linux/workqueue.h>
-#include "frame.h"
-#include "fscc.h"
+#include <linux/cdev.h> /* struct cdev */
+#include <linux/interrupt.h> /* struct tasklet_struct */
+#include <linux/version.h> /* LINUX_VERSION_CODE, KERNEL_VERSION */
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 26)
+#include <linux/semaphore.h> /* struct semaphore */
+#endif
+
+#include "fscc.h" /* struct fscc_registers */
 
 #define FIFO_OFFSET 0x00
 #define BC_FIFO_L_OFFSET 0x04
@@ -113,8 +115,8 @@ void fscc_port_delete(struct fscc_port *port);
 void fscc_port_write(struct fscc_port *port, const char *data, unsigned length);                     
 ssize_t fscc_port_read(struct fscc_port *port, char *buf, size_t count);
                            
-bool fscc_port_has_iframes(struct fscc_port *port);
-bool fscc_port_has_oframes(struct fscc_port *port);
+unsigned fscc_port_has_iframes(struct fscc_port *port);
+unsigned fscc_port_has_oframes(struct fscc_port *port);
 
 __u32 fscc_port_get_register(struct fscc_port *port, unsigned bar, 
                              unsigned register_offset);

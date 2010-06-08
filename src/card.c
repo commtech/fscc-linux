@@ -20,10 +20,9 @@
 
 #include <linux/version.h>
 #include "card.h"
-#include "port.h"
-#include "config.h"
-#include "isr.h"
-#include "utils.h"
+#include "port.h" /* struct fscc_port */
+#include "config.h" /* DEVICE_NAME */
+#include "utils.h" /* return_{val_}if_true */
 
 unsigned minor_number = 0;
 

@@ -21,10 +21,9 @@
 #ifndef FSCC_CARD
 #define FSCC_CARD
 
-#include <linux/pci.h>
-#include <linux/list.h>
-#include <linux/fs.h>
-#include <linux/8250_pci.h>
+#include <linux/pci.h> /* struct pci_dev */
+#include <linux/fs.h> /* struct file_operations */
+#include <linux/8250_pci.h> /* struct serial_private */
 
 #define FCR_OFFSET 0x00
 #define DMACCR_OFFSET 0x04

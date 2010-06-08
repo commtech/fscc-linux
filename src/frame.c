@@ -18,12 +18,11 @@
 	
 */
 
+#include <linux/slab.h> /* kmalloc */
+
 #include "frame.h"
-#include "utils.h"
-#include "config.h"
-#include "fscc.h"
-#include <linux/module.h>
-#include <asm/uaccess.h>
+#include "utils.h" /* return_{val_}if_true */
+#include "config.h" /* DEVICE_NAME */
 
 static unsigned frame_counter = 1;
 
@@ -85,14 +84,14 @@ unsigned fscc_frame_get_missing_length(struct fscc_frame *frame)
 	return frame->target_length - frame->current_length;        
 }
 
-bool fscc_frame_is_empty(struct fscc_frame *frame)
+unsigned fscc_frame_is_empty(struct fscc_frame *frame)
 {
 	return_val_if_untrue(frame, 0);
 	
 	return !fscc_frame_get_current_length(frame);
 }
 
-bool fscc_frame_is_full(struct fscc_frame *frame)
+unsigned fscc_frame_is_full(struct fscc_frame *frame)
 {
 	return_val_if_untrue(frame, 0);
 	

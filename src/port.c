@@ -18,16 +18,18 @@
 	
 */
 
-#include <linux/pci.h>
-#include <linux/kernel.h>
-#include <linux/version.h>
+#include <linux/version.h> /* LINUX_VERSION_CODE, KERNEL_VERSION */
+#include <linux/fs.h> /* TODO: Needed to compile but isn't correct */
+
+#include <asm/uaccess.h> /* copy_*_user in <= 2.6.24 */
+
 #include "port.h"
-#include "card.h"
-#include "utils.h"
-#include "config.h"
-#include "isr.h"
-#include "sysfs.h"
-#include "fscc.h"
+#include "frame.h" /* struct fscc_frame */
+#include "card.h" /* fscc_card_* */
+#include "utils.h" /* return_{val_}_if_untrue, chars_to_u32, ... */
+#include "config.h" /* DEVICE_NAME, DEFAULT_* */
+#include "isr.h" /* fscc_isr */
+#include "sysfs.h" /* port_*_attribute_group */
 
 #define STATUS_LENGTH 2
 #define TX_FIFO_SIZE 4096
@@ -64,13 +66,13 @@ void print_worker(unsigned long data)
 		dev_dbg(port->device, "RFS (Receive Frame Start Interrupt)\n");
 	
 	if (isr_value & RFO)
-		dev_alert(port->device, "RFO (Receive Frame Overflow Interrupt)\n");
+		dev_notice(port->device, "RFO (Receive Frame Overflow Interrupt)\n");
 	
 	if (isr_value & RDO)
-		dev_alert(port->device, "RDO (Receive Data Overflow Interrupt)\n");
+		dev_notice(port->device, "RDO (Receive Data Overflow Interrupt)\n");
 	
 	if (isr_value & RFL)
-		dev_alert(port->device, "RFL (Receive Frame Lost Interrupt)\n");
+		dev_notice(port->device, "RFL (Receive Frame Lost Interrupt)\n");
 	
 	if (isr_value & TIN)
 		dev_dbg(port->device, "TIN (Timer Expiration Interrupt)\n");
@@ -79,10 +81,10 @@ void print_worker(unsigned long data)
 		dev_dbg(port->device, "TFT (Transmit FIFO Trigger Interrupt)\n");
 		
 	if (isr_value & TDU)
-		dev_alert(port->device, "TDU (Transmit Data Underrun Interrupt)\n");
+		dev_notice(port->device, "TDU (Transmit Data Underrun Interrupt)\n");
 	
 	if (isr_value & TDU)
-		dev_alert(port->device, "TDU (Transmit Data Underrun Interrupt)\n");
+		dev_notice(port->device, "TDU (Transmit Data Underrun Interrupt)\n");
 	
 	if (isr_value & ALLS)
 		dev_dbg(port->device, "ALLS (All Sent Interrupt)\n");
@@ -148,7 +150,7 @@ void iframe_worker(unsigned long data)
 		buffer = kmalloc(receive_length, GFP_ATOMIC);
 		
 		if (buffer == NULL) {
-			dev_alert(port->device, "F#%i receive rejected (kmalloc of %i bytes)\n",
+			dev_notice(port->device, "F#%i receive rejected (kmalloc of %i bytes)\n",
 				   port->pending_iframe->number, receive_length);
 					   
 			fscc_frame_delete(port->pending_iframe);
@@ -196,7 +198,7 @@ void iframe_worker(unsigned long data)
 	}
 	
 	if (fscc_memory_usage() + receive_length > memory_cap) {
-		dev_alert(port->device, "F#%i receive rejected (memory constraint)\n",
+		dev_notice(port->device, "F#%i receive rejected (memory constraint)\n",
 		          port->pending_iframe->number);
 		       
 		fscc_frame_delete(port->pending_iframe);
@@ -298,8 +300,10 @@ struct fscc_port *fscc_port_new(struct fscc_card *card, unsigned channel,
 	port->device = device_create(port->class, parent, port->dev_t, port, "%s", 
 	                             port->name);
 #else
-	port->device = device_create_drvdata(port->class, parent, port->dev_t, port, 
-	                                     "%s", port->name);
+	port->device = device_create(port->class, parent, port->dev_t, "%s", 
+	                             port->name);
+	                                     
+	dev_set_drvdata(port->device, port);
 #endif
 
 	if (port->device <= 0) {
@@ -309,7 +313,7 @@ struct fscc_port *fscc_port_new(struct fscc_card *card, unsigned channel,
 	
 	//TODO: This needs to be better
 	if (fscc_port_get_PREV(port) == 0xff) {
-		dev_notice(port->device, "couldn't initialize\n");
+		dev_warn(port->device, "couldn't initialize\n");
 		
 		if (port->name)
 			kfree(port->name);
@@ -367,11 +371,19 @@ struct fscc_port *fscc_port_new(struct fscc_card *card, unsigned channel,
 	fscc_port_execute_TRES(port);
 	
 	irq_num = fscc_card_get_irq(card);
+	
+	
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 18)
 	if (request_irq(irq_num, &fscc_isr, IRQF_SHARED, port->name, port)) {
+#else
+	if (request_irq(irq_num, &fscc_isr, SA_SHIRQ, port->name, port)) {
+#endif
 		dev_err(port->device, "request_irq failed on irq %i\n", irq_num);
 		return 0;
 	}
-	
+
+//TODO: Can I get this to work?	
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25)
 	if (sysfs_create_group(&port->device->kobj, &port_registers_attr_group)) {
 		dev_err(port->device, "sysfs_create_group\n");
 		return 0;
@@ -386,6 +398,7 @@ struct fscc_port *fscc_port_new(struct fscc_card *card, unsigned channel,
 		dev_err(port->device, "sysfs_create_group\n");
 		return 0;
 	}
+#endif
 	
 	dev_info(port->device, "revision %x.%02x\n", fscc_port_get_PREV(port), 
 	         fscc_port_get_FREV(port));
@@ -425,13 +438,15 @@ void fscc_port_write(struct fscc_port *port, const char *data, unsigned length)
 {
 	struct fscc_frame *frame = 0;
 	char *temp_storage = 0;
+	unsigned uncopied_bytes = 0;
 	
 	return_if_untrue(port);
 	
 	temp_storage = kmalloc(length, GFP_KERNEL);	
 	return_if_untrue(temp_storage != NULL);
 	
-	copy_from_user(temp_storage, data, length);
+	uncopied_bytes = copy_from_user(temp_storage, data, length);
+	return_if_untrue(!uncopied_bytes);
 	
 	frame = fscc_frame_new(length);	
 	fscc_frame_add_data(frame, temp_storage, length);
@@ -448,6 +463,7 @@ ssize_t fscc_port_read(struct fscc_port *port, char *buf, size_t count)
 {
 	struct fscc_frame *frame = 0;
 	unsigned sent_length = 0;
+	unsigned uncopied_bytes = 0;
 	
 	return_val_if_untrue(port, 0);
 	
@@ -462,13 +478,15 @@ ssize_t fscc_port_read(struct fscc_port *port, char *buf, size_t count)
 		if (count < fscc_frame_get_target_length(frame) + STATUS_LENGTH)
 			return ENOBUFS;
 			
-		copy_to_user(buf, fscc_frame_get_remaining_data(frame), 
-			         fscc_frame_get_target_length(frame));
+		uncopied_bytes = copy_to_user(buf, fscc_frame_get_remaining_data(frame), 
+			                          fscc_frame_get_target_length(frame));
 			
+		return_val_if_untrue(!uncopied_bytes, 0);
+		
 		status = fscc_frame_get_status(frame);
 			
-		copy_to_user(buf + fscc_frame_get_target_length(frame), 
-		             (void *)(&status), STATUS_LENGTH);
+		uncopied_bytes = copy_to_user(buf + fscc_frame_get_target_length(frame), 
+		                              (void *)(&status), STATUS_LENGTH);
 				         
 		sent_length = fscc_frame_get_target_length(frame) + STATUS_LENGTH;
 					
@@ -476,8 +494,10 @@ ssize_t fscc_port_read(struct fscc_port *port, char *buf, size_t count)
 		if (count < fscc_frame_get_target_length(frame))
 			return ENOBUFS;
 			
-		copy_to_user(buf, fscc_frame_get_remaining_data(frame), 
-			         fscc_frame_get_target_length(frame));
+		uncopied_bytes = copy_to_user(buf, fscc_frame_get_remaining_data(frame), 
+			                          fscc_frame_get_target_length(frame));
+			
+		return_val_if_untrue(!uncopied_bytes, 0);
 				         
 		sent_length = fscc_frame_get_target_length(frame);
 	}
@@ -566,14 +586,14 @@ struct fscc_frame *fscc_port_peek_front_frame(struct fscc_port *port,
 	return 0;
 }
 
-bool fscc_port_has_iframes(struct fscc_port *port)
+unsigned fscc_port_has_iframes(struct fscc_port *port)
 {
 	return_val_if_untrue(port, 0);
 	
 	return !list_empty(&port->iframes);
 }
 
-bool fscc_port_has_oframes(struct fscc_port *port)
+unsigned fscc_port_has_oframes(struct fscc_port *port)
 {
 	return_val_if_untrue(port, 0);
 	

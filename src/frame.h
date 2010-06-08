@@ -21,7 +21,7 @@
 #ifndef FSCC_FRAME_H
 #define FSCC_FRAME_H
 
-#include <linux/list.h>
+#include <linux/list.h> /* struct list_head */
 
 struct fscc_frame {
 	struct list_head list;
@@ -42,8 +42,8 @@ void fscc_frame_add_data(struct fscc_frame *frame, const char *data,
                          unsigned length);
                          
 void fscc_frame_remove_data(struct fscc_frame *frame, unsigned length);
-bool fscc_frame_is_empty(struct fscc_frame *frame);
-bool fscc_frame_is_full(struct fscc_frame *frame);
+unsigned fscc_frame_is_empty(struct fscc_frame *frame);
+unsigned fscc_frame_is_full(struct fscc_frame *frame);
 
 char *fscc_frame_get_remaining_data(struct fscc_frame *frame);
 void fscc_frame_trim(struct fscc_frame *frame);
