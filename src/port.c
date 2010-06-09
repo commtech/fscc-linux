@@ -305,9 +305,8 @@ struct fscc_port *fscc_port_new(struct fscc_card *card, unsigned channel,
 	                                     
 	dev_set_drvdata(port->device, port);
 #endif
-
 	if (port->device <= 0) {
-		printk(KERN_ERR DEVICE_NAME "%s: device_create failed\n", port->name);
+		printk(KERN_ERR DEVICE_NAME " %s: device_create failed\n", port->name);
 		return 0;
 	}
 	
