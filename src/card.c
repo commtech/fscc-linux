@@ -36,7 +36,8 @@ struct pciserial_board pci_board = {
 struct fscc_card *fscc_card_new(struct pci_dev *pdev,
                                 unsigned major_number,
                                 struct class *class,
-                                struct file_operations *fops)
+                                struct file_operations *fops,
+                                const struct pci_device_id *id)
 {
 	struct fscc_card *card = 0;
 	struct fscc_port *port_iter = 0;
@@ -52,6 +53,19 @@ struct fscc_card *fscc_card_new(struct pci_dev *pdev,
 	
 	card->pci_dev = pdev;
 	
+	switch (id->device) {
+		case SFSCC_ID:
+		case SFSCC_4_ID:
+		case SFSCC_4_LVDS_ID:
+		case SFSCCe_4_ID:
+			pci_set_master(card->pci_dev);
+			card->dma = 1;
+			break;
+			
+		default:
+			card->dma = 0;
+	}
+	
 	/* This requests the pci regions for us. Doing so again will cause our
 	   uarts not to appear correctly. */
 	card->serial_priv = pciserial_init_ports(pdev, &pci_board);
@@ -62,6 +76,11 @@ struct fscc_card *fscc_card_new(struct pci_dev *pdev,
 	}
 	
 	pci_set_drvdata(pdev, card->serial_priv);
+	
+	if (pci_set_dma_mask(pdev, DMA_BIT_MASK(32))) {
+		dev_warn(&card->pci_dev->dev, "no suitable DMA available\n");
+		return 0;
+	}
 	
 	start_minor_number = minor_number;
 	
@@ -79,14 +98,14 @@ struct fscc_card *fscc_card_new(struct pci_dev *pdev,
 		}
 	}
 	
+	fscc_card_set_register(card, 2, FCR_OFFSET, DEFAULT_FCR_VALUE);
+	
 	for (i = 0; i < 2; i++) {
 		port_iter = fscc_port_new(card, i, major_number, minor_number, 
 		                          &card->pci_dev->dev, class, fops);
 		                                                  
 		minor_number += 1;        
 	}
-	
-	fscc_card_set_register(card, 2, FCR_OFFSET, DEFAULT_FCR_VALUE);
 	
 	return card;
 }

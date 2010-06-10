@@ -22,6 +22,7 @@
 #define FSCC_FRAME_H
 
 #include <linux/list.h> /* struct list_head */
+#include "descriptor.h" /* struct fscc_descriptor */
 
 struct fscc_frame {
 	struct list_head list;
@@ -30,10 +31,17 @@ struct fscc_frame {
 	unsigned current_length;
 	unsigned number;
 	__u16 status;
+		
+	unsigned dma;
+	struct fscc_descriptor descriptor;
+	dma_addr_t data_handle;
+	dma_addr_t descriptor_handle;
+	struct fscc_port *port;
 };
 
-struct fscc_frame *fscc_frame_new(unsigned target_length);
+struct fscc_frame *fscc_frame_new(unsigned target_length, unsigned dma, struct fscc_port *port);
 void fscc_frame_delete(struct fscc_frame *frame);
+
 unsigned fscc_frame_get_target_length(struct fscc_frame *frame);
 unsigned fscc_frame_get_current_length(struct fscc_frame *frame);
 unsigned fscc_frame_get_missing_length(struct fscc_frame *frame);

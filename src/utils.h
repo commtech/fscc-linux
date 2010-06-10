@@ -22,6 +22,7 @@
 #define FSCC_UTILS_H
 
 #include "fscc.h" /* struct fscc_registers */
+#include "port.h" /* struct fscc_port */
 
 #define warn_if_untrue(expr) \
 	if (expr) {} else \
@@ -47,5 +48,6 @@ __u32 chars_to_u32(const char *data);
 __s32 offset_to_value(const struct fscc_registers *registers, unsigned offset);
 int str_to_offset(const char *str);
 unsigned is_read_only_register(unsigned offset);
+unsigned port_offset(struct fscc_port *port, unsigned bar, unsigned offset);
 
 #endif

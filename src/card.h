@@ -26,7 +26,7 @@
 #include <linux/8250_pci.h> /* struct serial_private */
 
 #define FCR_OFFSET 0x00
-#define DMACCR_OFFSET 0x04
+#define DSTAR_OFFSET 0x30
 
 struct fscc_card {
 	struct list_head list;
@@ -37,12 +37,14 @@ struct fscc_card {
 	void __iomem *bar[3];
 	
 	__u32 fcr_storage;
+	unsigned dma;
 };
 
 struct fscc_card *fscc_card_new(struct pci_dev *pdev,
                                 unsigned major_number,
                                 struct class *class,
-                                struct file_operations *fops);
+                                struct file_operations *fops,
+                                const struct pci_device_id *id);
                                 
 void fscc_card_delete(struct fscc_card *card);
 void fscc_card_suspend(struct fscc_card *card);

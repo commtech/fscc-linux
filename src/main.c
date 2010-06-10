@@ -17,21 +17,10 @@
 	along with fscc-linux.  If not, see <http://www.gnu.org/licenses/>.
 	
 */
-
 #include <linux/poll.h> /* poll_wait, POLL* */
 #include "card.h" /* struct fscc_card */
 #include "port.h" /* struct fscc_port */
 #include "config.h" /* DEVICE_NAME, DEFAULT_* */
-
-#define COMMTECH_VENDOR_ID 0x18f7
-
-#define FSCC_ID 0x000f
-#define SFSCC_ID 0x0014
-#define FSCC_232_ID 0x0016
-#define SFSCC_4_ID 0x0018
-#define FSCC_4_ID 0x001b
-#define SFSCC_4_LVDS_ID 0x001c
-#define SFSCCe_4_ID 0x001e
 
 static int fscc_major_number;
 static struct class *fscc_class = 0;
@@ -242,7 +231,7 @@ static int __devinit fscc_probe(struct pci_dev *pdev,
 	case SFSCC_4_LVDS_ID:
 	case SFSCCe_4_ID:		
 		new_card = fscc_card_new(pdev, fscc_major_number, fscc_class,
-                                 &fscc_fops);
+                                 &fscc_fops, id);
 		
 		if (new_card)                         
 			list_add_tail(&new_card->list, &fscc_cards);
@@ -250,7 +239,7 @@ static int __devinit fscc_probe(struct pci_dev *pdev,
 		break;
 			
 	default:
-		printk(KERN_DEBUG DEVICE_NAME "unknown device\n");
+		printk(KERN_DEBUG DEVICE_NAME " unknown device\n");
 	}
 
 	return 0;
@@ -352,7 +341,6 @@ static void __exit fscc_exit(void)
 {
 	pci_unregister_driver(&fscc_pci_driver);
 	unregister_chrdev(fscc_major_number, "fscc");
-
 	class_destroy(fscc_class);	
 }
 

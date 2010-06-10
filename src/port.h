@@ -30,6 +30,7 @@
 #endif
 
 #include "fscc.h" /* struct fscc_registers */
+#include "descriptor.h" /* struct fscc_descriptor */
 
 #define FIFO_OFFSET 0x00
 #define BC_FIFO_L_OFFSET 0x04
@@ -54,6 +55,12 @@
 #define ISR_OFFSET 0x50
 #define IMR_OFFSET 0x54
 
+#define DMACCR_OFFSET 0x04
+#define DMA_RX_BASE_OFFSET 0x0c
+#define DMA_TX_BASE_OFFSET 0x10
+#define DMA_CURRENT_RX_BASE_OFFSET 0x20
+#define DMA_CURRENT_TX_BASE_OFFSET 0x24
+
 #define RFE 0x00000004
 #define RFT 0x00000002
 #define RFS 0x00000001
@@ -67,6 +74,12 @@
 #define CTSS 0x01000000
 #define DSRC 0x02000000
 #define CDC 0x04000000
+#define DR_STOP 0x00004000
+#define DT_STOP 0x00008000
+#define DT_FE 0x00002000
+#define DR_FE 0x00001000
+#define DT_HI 0x00000800
+#define DR_HI 0x00000400
 
 struct fscc_port {
 	struct list_head list;
@@ -169,5 +182,8 @@ void fscc_port_set_registers(struct fscc_port *port,
                              
 void fscc_port_get_registers(struct fscc_port *port,
                              struct fscc_registers *regs);
+
+struct fscc_frame *fscc_port_peek_front_frame(struct fscc_port *port, 
+                                              struct list_head *frames);
                              
 #endif
