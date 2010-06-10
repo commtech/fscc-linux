@@ -131,7 +131,6 @@ void fscc_frame_add_data(struct fscc_frame *frame, const char *data, unsigned le
 	frame->current_length += length;
 	
 	if (frame->dma && frame->data) {
-		printk("AAAAA\n");
 		frame->data_handle = pci_map_single(frame->port->card->pci_dev, 
 		                                    frame->data, 
 		                                    frame->current_length, 
@@ -143,8 +142,6 @@ void fscc_frame_add_data(struct fscc_frame *frame, const char *data, unsigned le
 		frame->descriptor.data_address = cpu_to_le32(frame->data_handle);
 		frame->descriptor.data_count = frame->current_length; 
 		frame->descriptor.next_descriptor = 0;
-	
-		printk("#%i %s (%i)\n", frame->number, frame->data, frame->current_length);
 	}
 }
 

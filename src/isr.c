@@ -63,8 +63,6 @@ irqreturn_t fscc_isr(int irq, void *potential_port, struct pt_regs *regs)
 	
 	if (!isr_value)
 		return IRQ_NONE;
-		
-	printk("isr = 0x%08x\n", isr_value);
 	
 	port->last_isr_value |= isr_value;
 	tasklet_schedule(&port->print_tasklet);
@@ -80,14 +78,6 @@ irqreturn_t fscc_isr(int irq, void *potential_port, struct pt_regs *regs)
 	
 	if (isr_value & TFT && !port->card->dma)
 		tasklet_schedule(&port->oframe_tasklet);
-		
-	if (isr_value & DT_STOP) {
-		struct fscc_frame *frame = 0;
-
-		frame = fscc_port_peek_front_frame(port, &port->oframes);
-		
-		printk("0x%08x\n", frame->descriptor.control); 
-	}
 		
 	return IRQ_HANDLED;
 }
