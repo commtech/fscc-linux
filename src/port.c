@@ -787,36 +787,16 @@ void fscc_port_execute_XF(struct fscc_port *port)
 
 void fscc_port_suspend(struct fscc_port *port)
 {
-	unsigned i = 0;
-	
 	return_if_untrue(port);	
 	
-	for (i = 0; i < sizeof(struct fscc_registers) / sizeof(int32_t); i++)
-		((uint32_t *)&port->register_storage)[i] = fscc_port_get_register(port, 0, i * 4);
+	fscc_port_get_registers(port, &port->register_storage);
 }
 
 void fscc_port_resume(struct fscc_port *port)
 {
-	unsigned i = 0;
+	return_if_untrue(port);
 	
-	return_if_untrue(port);	
-	
-	for (i = 0; i < sizeof(struct fscc_registers) / sizeof(int32_t); i++) {
-		__u32 current_value = 0;	
-		
-		current_value = fscc_port_get_register(port, 0, i * 4);
-		
-		if (current_value != ((uint32_t *)&port->register_storage)[i]) {
-			dev_dbg(port->device, 
-			        "register 0x%02x restoring 0x%08x => 0x%08x\n",
-			        i * 4, current_value, 
-			        offset_to_value(&port->register_storage, i * 4));
-			       
-			fscc_port_set_register(port, 0, i * 4, 
-			                  offset_to_value(&port->register_storage, i * 4));
-		}
-	}
-	
+	fscc_port_set_registers(port, &port->register_storage);
 }
 
 void fscc_port_flush_tx(struct fscc_port *port)

@@ -163,14 +163,11 @@ void fscc_card_suspend(struct fscc_card *card)
 	list_for_each_entry(current_port, &card->ports, list) {	
 		fscc_port_suspend(current_port);
 	}
-	
-	card->fcr_storage = fscc_card_get_register(card, 2, FCR_OFFSET);
 }
 
 void fscc_card_resume(struct fscc_card *card)
 {
 	struct fscc_port *current_port = 0;
-	__u32 current_value = 0;	
 		
 	return_if_untrue(card);
 	
@@ -179,13 +176,6 @@ void fscc_card_resume(struct fscc_card *card)
 	list_for_each_entry(current_port, &card->ports, list) {	
 		fscc_port_resume(current_port);
 	}
-	
-	current_value = fscc_card_get_register(card, 2, FCR_OFFSET);
-	
-	dev_dbg(&card->pci_dev->dev, "FCR restoring 0x%08x => 0x%08x\n", 
-            current_value, card->fcr_storage);
-	
-	fscc_card_set_register(card, 2, FCR_OFFSET, card->fcr_storage);
 }
 
 struct fscc_card *fscc_card_find(struct pci_dev *pdev, 
@@ -286,5 +276,12 @@ unsigned fscc_card_get_irq(struct fscc_card *card)
 	return_val_if_untrue(card, 0);
 	
 	return card->pci_dev->irq;
+}
+
+struct device *fscc_card_get_device(struct fscc_card *card)
+{
+	return_val_if_untrue(card, 0);
+	
+	return &card->pci_dev->dev;
 }
 

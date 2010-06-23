@@ -253,7 +253,7 @@ static int fscc_suspend(struct pci_dev *pdev, pm_message_t state)
 		
 	card = fscc_card_find(pdev, &fscc_cards);
 	
-	dev_dbg(&card->pci_dev->dev, "suspending\n");
+	dev_dbg(fscc_card_get_device(card), "suspending\n");
 	
 	fscc_card_suspend(card);
 
@@ -269,7 +269,7 @@ static int fscc_resume(struct pci_dev *pdev)
 	
 	card = fscc_card_find(pdev, &fscc_cards);
 	
-	dev_dbg(&card->pci_dev->dev, "resuming\n");
+	dev_dbg(fscc_card_get_device(card), "resuming\n");
 
 	pci_set_power_state(pdev, PCI_D0);
 	pci_restore_state(pdev);
