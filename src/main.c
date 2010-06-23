@@ -181,21 +181,9 @@ int fscc_ioctl(struct inode *inode, struct file *file, unsigned int cmd,
 		fscc_port_disable_append_status(port);
 		break;
 		
-	case FSCC_USE_ASYNC:
-		fscc_port_use_async(port);
-		break;
-		
-	case FSCC_USE_SYNC:
-		fscc_port_use_sync(port);
-		break;
-		
 	case FSCC_SET_CLOCK_BITS:
 		fscc_port_set_clock_bits(port, (char *)arg);
 		break;
-
-	/* This makes us appear to be a tty device */
-	//case TCGETS:
-	//	break;
 			
 	default:
 		dev_dbg(port->device, "unknown ioctl %x\n", cmd);

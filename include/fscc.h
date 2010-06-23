@@ -25,7 +25,11 @@
 #include <string.h>
 #include <sys/ioctl.h>
 
+#define FSCC_REGISTERS_INIT(registers) memset(&registers, -1, sizeof(registers))
+#define FSCC_UPDATE_VALUE -2
+
 struct fscc_registers {
+	/* BAR 0 */
 	int32_t reserved1[2];
 
 	int32_t FIFOT;
@@ -51,9 +55,11 @@ struct fscc_registers {
 	int32_t reserved3[1];
 	
 	int32_t IMR;
+	
+	/* BAR 2 */
+	int32_t FCR;
 };
 
-#define FSCC_UPDATE_VALUE -2
 
 #define FSCC_IOCTL_MAGIC 0x18
 
@@ -66,12 +72,7 @@ struct fscc_registers {
 #define FSCC_ENABLE_APPEND_STATUS _IO(FSCC_IOCTL_MAGIC, 4)
 #define FSCC_DISABLE_APPEND_STATUS _IO(FSCC_IOCTL_MAGIC, 5)
 
-#define FSCC_USE_ASYNC _IO(FSCC_IOCTL_MAGIC, 6)
-#define FSCC_USE_SYNC _IO(FSCC_IOCTL_MAGIC, 7)
-
 #define FSCC_SET_CLOCK_BITS _IOW(FSCC_IOCTL_MAGIC, 8, const unsigned char[20])
-
-#define FSCC_REGISTERS_INIT(registers) memset(&registers, -1, sizeof(registers))
 
 #endif
 

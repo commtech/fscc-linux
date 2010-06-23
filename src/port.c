@@ -259,6 +259,18 @@ void oframe_worker(unsigned long data)
 			return;
 		}
 	}
+	
+	if (port->card->dma) {		              
+		fscc_port_set_register(port, 2, DMA_TX_BASE_OFFSET, 
+		                       cpu_to_le32(port->pending_oframe->descriptor_handle));
+		
+		dev_dbg(port->device, "F#%i sending\n", port->pending_oframe->number);	
+		fscc_port_execute_GO_T(port);
+		//TODO: Memory leak because DMA needs to access the memory. What to do?
+		//fscc_frame_delete(port->pending_oframe);
+		port->pending_oframe = 0;
+		return;
+	}
 
 	current_length = fscc_frame_get_current_length(port->pending_oframe);
 	target_length = fscc_frame_get_target_length(port->pending_oframe);
@@ -364,7 +376,7 @@ struct fscc_port *fscc_port_new(struct fscc_card *card, unsigned channel,
 	
 	port->last_isr_value = 0;
 	
-	memset(&initial_registers, -1, sizeof(initial_registers));
+	FSCC_REGISTERS_INIT(initial_registers);
 	
 	initial_registers.FIFOT = DEFAULT_FIFOT_VALUE;
 	initial_registers.CCR0 = DEFAULT_CCR0_VALUE;
@@ -379,14 +391,18 @@ struct fscc_port *fscc_port_new(struct fscc_card *card, unsigned channel,
 	initial_registers.RAMR = DEFAULT_RAMR_VALUE;
 	initial_registers.PPR = DEFAULT_PPR_VALUE;
 	initial_registers.TCR = DEFAULT_TCR_VALUE;
-	initial_registers.IMR = DEFAULT_IMR_VALUE;
+	
+	if (port->card->dma)
+		initial_registers.IMR = DEFAULT_IMR_VALUE_WITH_DMA;
+	else
+		initial_registers.IMR = DEFAULT_IMR_VALUE_WITHOUT_DMA;
 	
 	fscc_port_set_registers(port, &initial_registers);
 	
 	fscc_port_set_register(port, 2, DMACCR_OFFSET, 0x02000000);
 	
-	fscc_port_execute_RST_T(port);
 	fscc_port_execute_RST_R(port);
+	fscc_port_execute_RST_T(port);
 	
 	fscc_port_execute_RRES(port);
 	fscc_port_execute_TRES(port);
@@ -475,23 +491,14 @@ void fscc_port_write(struct fscc_port *port, const char *data, unsigned length)
 	uncopied_bytes = copy_from_user(temp_storage, data, length);
 	return_if_untrue(!uncopied_bytes);
 	
-	if (port->card->dma) {
+	if (port->card->dma)
 		frame = fscc_frame_new(length, 1, port);
-		fscc_frame_add_data(frame, temp_storage, length);
-		
-		list_add_tail(&frame->list, &port->oframes);
-		              
-		fscc_port_set_register(port, 2, DMA_TX_BASE_OFFSET, 
-		                       cpu_to_le32(frame->descriptor_handle));
-		
-		fscc_port_execute_GO_T(port);
-	} else {
+	else
 		frame = fscc_frame_new(length, 0, port);
-		fscc_frame_add_data(frame, temp_storage, length);
 	
-		list_add_tail(&frame->list, &port->oframes);	
-		tasklet_schedule(&port->oframe_tasklet);
-	}
+	fscc_frame_add_data(frame, temp_storage, length);
+	list_add_tail(&frame->list, &port->oframes);	
+	tasklet_schedule(&port->oframe_tasklet);
 	
 	kfree(temp_storage);
 }
@@ -863,6 +870,7 @@ unsigned fscc_port_get_output_frames_qty(struct fscc_port *port)
     return fscc_port_get_frames_qty(port, &port->oframes);
 }
 
+
 unsigned fscc_port_get_input_frames_qty(struct fscc_port *port)
 {	
 	return_val_if_untrue(port, 0);	
@@ -983,6 +991,7 @@ void fscc_port_set_clock_bits(struct fscc_port *port, const unsigned char *clock
 	fscc_card_set_register(port->card, 2, FCR_OFFSET, orig_fcr_value); // Restore old values
 }
 
+/*
 void fscc_port_use_async(struct fscc_port *port)
 {
 	__u32 orig_fcr_value = 0;
@@ -1032,6 +1041,7 @@ void fscc_port_use_sync(struct fscc_port *port)
 	
 	fscc_card_set_register(port->card, 2, FCR_OFFSET, new_fcr_value);
 }
+*/
 
 void fscc_port_enable_append_status(struct fscc_port *port)
 {	
@@ -1061,8 +1071,11 @@ void fscc_port_set_registers(struct fscc_port *port,
 			
 		if (((int32_t *)regs)[i] < 0)
 			continue;
-						
-		fscc_port_set_register(port, 0, i * 4, ((uint32_t *)regs)[i]);
+		
+		if (i * 4 <= IMR_OFFSET)
+			fscc_port_set_register(port, 0, i * 4, ((uint32_t *)regs)[i]);
+		else
+			fscc_port_set_register(port, 2, FCR_OFFSET, ((uint32_t *)regs)[i]);
 	}
 }
 
@@ -1077,8 +1090,11 @@ void fscc_port_get_registers(struct fscc_port *port,
 	for (i = 0; i < sizeof(struct fscc_registers) / sizeof(int32_t); i++) {
 		if (((int32_t *)regs)[i] != FSCC_UPDATE_VALUE)
 			continue;
-						
-		((uint32_t *)regs)[i] = fscc_port_get_register(port, 0, i * 4);
+		
+		if (i * 4 <= IMR_OFFSET)				
+			((uint32_t *)regs)[i] = fscc_port_get_register(port, 0, i * 4);
+		else
+			((uint32_t *)regs)[i] = fscc_port_get_register(port, 2, FCR_OFFSET);
 	}
 }
 

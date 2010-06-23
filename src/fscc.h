@@ -24,6 +24,7 @@
 #include <linux/sched.h> /* wait_queue_head_t */
 #include <linux/fs.h> /* struct indode on <= 2.6.19 */
 
+#define FSCC_REGISTERS_INIT(registers) memset(&registers, -1, sizeof(registers))
 #define FSCC_UPDATE_VALUE -2
 
 #define FSCC_IOCTL_MAGIC 0x18
@@ -37,12 +38,10 @@
 #define FSCC_ENABLE_APPEND_STATUS _IO(FSCC_IOCTL_MAGIC, 4)
 #define FSCC_DISABLE_APPEND_STATUS _IO(FSCC_IOCTL_MAGIC, 5)
 
-#define FSCC_USE_ASYNC _IO(FSCC_IOCTL_MAGIC, 6)
-#define FSCC_USE_SYNC _IO(FSCC_IOCTL_MAGIC, 7)
-
 #define FSCC_SET_CLOCK_BITS _IOW(FSCC_IOCTL_MAGIC, 8, const unsigned char[20])
 
 struct fscc_registers {
+	/* BAR 0 */
 	__s32 reserved1[2];
 
 	__s32 FIFOT;
@@ -68,6 +67,9 @@ struct fscc_registers {
 	__s32 reserved3[1];
 	
 	__s32 IMR;
+	
+	/* BAR 2 */
+	__s32 FCR;
 };
 
 extern unsigned memory_cap;

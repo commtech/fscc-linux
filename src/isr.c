@@ -45,6 +45,8 @@ unsigned port_exists(void *port)
 	return 0;
 }
 
+unsigned dsrc_count = 0;
+
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 19)
 irqreturn_t fscc_isr(int irq, void *potential_port)
 #else
@@ -78,6 +80,14 @@ irqreturn_t fscc_isr(int irq, void *potential_port, struct pt_regs *regs)
 	
 	if (isr_value & TFT && !port->card->dma)
 		tasklet_schedule(&port->oframe_tasklet);
+	
+	if (isr_value & DT_STOP)
+		tasklet_schedule(&port->oframe_tasklet);
+	
+	/*	
+	if (isr_value & DSRC) 
+		printk("DSRC %i\n", ++dsrc_count);
+	*/
 		
 	return IRQ_HANDLED;
 }

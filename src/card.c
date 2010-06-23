@@ -52,19 +52,25 @@ struct fscc_card *fscc_card_new(struct pci_dev *pdev,
 	INIT_LIST_HEAD(&card->ports);
 	
 	card->pci_dev = pdev;
+	card->dma = 0;
 	
+#ifdef EXPERIMENTAL_DMA
 	switch (id->device) {
 		case SFSCC_ID:
 		case SFSCC_4_ID:
 		case SFSCC_4_LVDS_ID:
-		case SFSCCe_4_ID:
-			pci_set_master(card->pci_dev);
-			card->dma = 1;
+		case SFSCCe_4_ID:	
+			if (pci_set_dma_mask(pdev, 0xffffffff)) {
+				dev_warn(&card->pci_dev->dev, "no suitable DMA available\n");
+			}
+			else {
+				card->dma = 1;
+				pci_set_master(card->pci_dev);
+			}
+				
 			break;
-			
-		default:
-			card->dma = 0;
 	}
+#endif
 	
 	/* This requests the pci regions for us. Doing so again will cause our
 	   uarts not to appear correctly. */
@@ -77,7 +83,7 @@ struct fscc_card *fscc_card_new(struct pci_dev *pdev,
 	
 	pci_set_drvdata(pdev, card->serial_priv);
 	
-	if (pci_set_dma_mask(pdev, DMA_BIT_MASK(32))) {
+	if (pci_set_dma_mask(pdev, 0xffffffff)) {
 		dev_warn(&card->pci_dev->dev, "no suitable DMA available\n");
 		return 0;
 	}
