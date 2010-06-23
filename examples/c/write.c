@@ -18,6 +18,14 @@ int main(void)
 	}
 
 	bytes_written = write(port_fd, data, sizeof(data));
+
+	if (bytes_written < 0) {
+		perror("write");
+
+		close(port_fd);
+			
+		return EXIT_FAILURE;
+	}
 	
 	close(port_fd);
 	

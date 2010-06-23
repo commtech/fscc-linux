@@ -104,8 +104,6 @@ struct fscc_card *fscc_card_new(struct pci_dev *pdev,
 		}
 	}
 	
-	fscc_card_set_register(card, 2, FCR_OFFSET, DEFAULT_FCR_VALUE);
-	
 	for (i = 0; i < 2; i++) {
 		port_iter = fscc_port_new(card, i, major_number, minor_number, 
 		                          &card->pci_dev->dev, class, fops);

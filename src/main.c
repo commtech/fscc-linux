@@ -63,12 +63,18 @@ unsigned fscc_memory_usage(void)
 }
 
 //Returns -ENOBUFS if read size is smaller than next frame
+//Returns -EOPNOTSUPP if in async mode
 ssize_t fscc_read(struct file *file, char *buf, size_t count, loff_t *ppos)
 {
 	struct fscc_port *port = 0;
 	ssize_t read_count = 0;
 	
 	port = file->private_data;
+		
+	if (fscc_port_using_async(port)) {
+		dev_warn(port->device, "use /dev/ttySx nodes while in async mode\n");
+		return -EOPNOTSUPP;
+	}
 	
 	if (down_interruptible(&port->read_semaphore))
 		return -ERESTARTSYS;
@@ -100,6 +106,11 @@ ssize_t fscc_write(struct file *file, const char *buf, size_t count,
 	struct fscc_port *port = 0;
 	
 	port = file->private_data;
+		
+	if (fscc_port_using_async(port)) {
+		dev_warn(port->device, "use /dev/ttySx nodes while in async mode\n");
+		return -EOPNOTSUPP;
+	}
 	
 	if (down_interruptible(&port->write_semaphore))
 		return -ERESTARTSYS;

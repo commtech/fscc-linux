@@ -185,5 +185,7 @@ void fscc_port_get_registers(struct fscc_port *port,
 
 struct fscc_frame *fscc_port_peek_front_frame(struct fscc_port *port, 
                                               struct list_head *frames);
+                                              
+unsigned fscc_port_using_async(struct fscc_port *port);
                              
 #endif

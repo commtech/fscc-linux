@@ -304,7 +304,6 @@ struct fscc_port *fscc_port_new(struct fscc_card *card, unsigned channel,
                                 struct file_operations *fops)
 {
 	struct fscc_port *port = 0;
-	struct fscc_registers initial_registers;
 	unsigned irq_num = 0;
 	
 	port = kmalloc(sizeof(*port), GFP_KERNEL);
@@ -376,28 +375,30 @@ struct fscc_port *fscc_port_new(struct fscc_card *card, unsigned channel,
 	
 	port->last_isr_value = 0;
 	
-	FSCC_REGISTERS_INIT(initial_registers);
+	FSCC_REGISTERS_INIT(port->register_storage);
 	
-	initial_registers.FIFOT = DEFAULT_FIFOT_VALUE;
-	initial_registers.CCR0 = DEFAULT_CCR0_VALUE;
-	initial_registers.CCR1 = DEFAULT_CCR1_VALUE;
-	initial_registers.CCR2 = DEFAULT_CCR2_VALUE;
-	initial_registers.BGR = DEFAULT_BGR_VALUE;
-	initial_registers.SSR = DEFAULT_SSR_VALUE;
-	initial_registers.SMR = DEFAULT_SMR_VALUE;
-	initial_registers.TSR = DEFAULT_TSR_VALUE;
-	initial_registers.TMR = DEFAULT_TMR_VALUE;
-	initial_registers.RAR = DEFAULT_RAR_VALUE;
-	initial_registers.RAMR = DEFAULT_RAMR_VALUE;
-	initial_registers.PPR = DEFAULT_PPR_VALUE;
-	initial_registers.TCR = DEFAULT_TCR_VALUE;
+	port->register_storage.FIFOT = DEFAULT_FIFOT_VALUE;
+	port->register_storage.CCR0 = DEFAULT_CCR0_VALUE;
+	port->register_storage.CCR1 = DEFAULT_CCR1_VALUE;
+	port->register_storage.CCR2 = DEFAULT_CCR2_VALUE;
+	port->register_storage.BGR = DEFAULT_BGR_VALUE;
+	port->register_storage.SSR = DEFAULT_SSR_VALUE;
+	port->register_storage.SMR = DEFAULT_SMR_VALUE;
+	port->register_storage.TSR = DEFAULT_TSR_VALUE;
+	port->register_storage.TMR = DEFAULT_TMR_VALUE;
+	port->register_storage.RAR = DEFAULT_RAR_VALUE;
+	port->register_storage.RAMR = DEFAULT_RAMR_VALUE;
+	port->register_storage.PPR = DEFAULT_PPR_VALUE;
+	port->register_storage.TCR = DEFAULT_TCR_VALUE;
 	
 	if (port->card->dma)
-		initial_registers.IMR = DEFAULT_IMR_VALUE_WITH_DMA;
+		port->register_storage.IMR = DEFAULT_IMR_VALUE_WITH_DMA;
 	else
-		initial_registers.IMR = DEFAULT_IMR_VALUE_WITHOUT_DMA;
+		port->register_storage.IMR = DEFAULT_IMR_VALUE_WITHOUT_DMA;
+		
+	port->register_storage.FCR = DEFAULT_FCR_VALUE;
 	
-	fscc_port_set_registers(port, &initial_registers);
+	fscc_port_set_registers(port, &port->register_storage);
 	
 	fscc_port_set_register(port, 2, DMACCR_OFFSET, 0x02000000);
 	
@@ -522,7 +523,7 @@ ssize_t fscc_port_read(struct fscc_port *port, char *buf, size_t count)
 	data_length += (port->append_status) ? STATUS_LENGTH : 0;
 	
 	if (count < data_length)
-			return ENOBUFS;
+		return ENOBUFS;
 			
 	uncopied_bytes = copy_to_user(buf, fscc_frame_get_remaining_data(frame), 
 			                      fscc_frame_get_target_length(frame));
@@ -680,6 +681,11 @@ void fscc_port_set_register(struct fscc_port *port, unsigned bar,
 	offset = port_offset(port, bar, register_offset);
 		
 	fscc_card_set_register(port->card, bar, offset, value);
+	
+	if (bar == 0)
+		((uint32_t *)&port->register_storage)[offset / 4] = value;
+	else if (offset == FCR_OFFSET)
+		port->register_storage.FCR = value;
 }
 
 void fscc_port_set_register_rep(struct fscc_port *port, unsigned bar,
@@ -696,6 +702,47 @@ void fscc_port_set_register_rep(struct fscc_port *port, unsigned bar,
 	offset = port_offset(port, bar, register_offset);
 		
 	fscc_card_set_register_rep(port->card, bar, offset, data, chunks);
+}
+
+void fscc_port_set_registers(struct fscc_port *port, 
+                             const struct fscc_registers *regs)
+{
+	unsigned i = 0;
+	
+	return_if_untrue(port);	
+	return_if_untrue(regs);
+			
+	for (i = 0; i < sizeof(*regs) / sizeof(regs->FIFOT); i++) {
+		if (is_read_only_register(i * 4))
+			continue;
+			
+		if (((int32_t *)regs)[i] < 0)
+			continue;
+		
+		if (i * 4 <= IMR_OFFSET)
+			fscc_port_set_register(port, 0, i * 4, ((uint32_t *)regs)[i]);
+		else
+			fscc_port_set_register(port, 2, FCR_OFFSET, ((uint32_t *)regs)[i]);
+	}
+}
+
+void fscc_port_get_registers(struct fscc_port *port,
+                             struct fscc_registers *regs)
+{
+	unsigned i = 0;
+	
+	return_if_untrue(port);	
+	return_if_untrue(regs);
+			
+	for (i = 0; i < sizeof(struct fscc_registers) / sizeof(int32_t); i++) {
+		if (((int32_t *)regs)[i] != FSCC_UPDATE_VALUE)
+			continue;
+		
+		if (i * 4 <= IMR_OFFSET)				
+			((uint32_t *)regs)[i] = fscc_port_get_register(port, 0, i * 4);
+		else
+			((uint32_t *)regs)[i] = fscc_port_get_register(port, 2, FCR_OFFSET);
+	}
 }
 
 __u32 fscc_port_get_TXCNT(struct fscc_port *port)
@@ -1037,47 +1084,6 @@ void fscc_port_disable_append_status(struct fscc_port *port)
 	port->append_status = 0;
 }
 
-void fscc_port_set_registers(struct fscc_port *port, 
-                             const struct fscc_registers *regs)
-{
-	unsigned i = 0;
-	
-	return_if_untrue(port);	
-	return_if_untrue(regs);
-			
-	for (i = 0; i < sizeof(*regs) / sizeof(regs->FIFOT); i++) {
-		if (is_read_only_register(i * 4))
-			continue;
-			
-		if (((int32_t *)regs)[i] < 0)
-			continue;
-		
-		if (i * 4 <= IMR_OFFSET)
-			fscc_port_set_register(port, 0, i * 4, ((uint32_t *)regs)[i]);
-		else
-			fscc_port_set_register(port, 2, FCR_OFFSET, ((uint32_t *)regs)[i]);
-	}
-}
-
-void fscc_port_get_registers(struct fscc_port *port,
-                             struct fscc_registers *regs)
-{
-	unsigned i = 0;
-	
-	return_if_untrue(port);	
-	return_if_untrue(regs);
-			
-	for (i = 0; i < sizeof(struct fscc_registers) / sizeof(int32_t); i++) {
-		if (((int32_t *)regs)[i] != FSCC_UPDATE_VALUE)
-			continue;
-		
-		if (i * 4 <= IMR_OFFSET)				
-			((uint32_t *)regs)[i] = fscc_port_get_register(port, 0, i * 4);
-		else
-			((uint32_t *)regs)[i] = fscc_port_get_register(port, 2, FCR_OFFSET);
-	}
-}
-
 void fscc_port_execute_GO_R(struct fscc_port *port)
 {	
 	return_if_untrue(port);	
@@ -1118,5 +1124,20 @@ void fscc_port_execute_STOP_T(struct fscc_port *port)
 	return_if_untrue(port);	
 	
 	fscc_port_set_register(port, 2, DMACCR_OFFSET, 0x00000200);
+}
+ 
+unsigned fscc_port_using_async(struct fscc_port *port)
+{
+	return_val_if_untrue(port, 0);	
+	
+	switch (port->channel) {
+	case 0:
+		return port->register_storage.FCR & 0x01000000;
+
+	case 1:
+		return port->register_storage.FCR & 0x02000000;
+	}
+	
+	return 0;
 }
 
