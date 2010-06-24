@@ -185,11 +185,11 @@ int fscc_ioctl(struct inode *inode, struct file *file, unsigned int cmd,
 		break;
 		
 	case FSCC_ENABLE_APPEND_STATUS:
-		fscc_port_enable_append_status(port);
+		fscc_port_set_append_status(port, 1);
 		break;
 		
 	case FSCC_DISABLE_APPEND_STATUS:
-		fscc_port_disable_append_status(port);
+		fscc_port_set_append_status(port, 0);
 		break;
 		
 	case FSCC_SET_CLOCK_BITS:

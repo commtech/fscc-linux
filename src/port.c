@@ -435,6 +435,11 @@ struct fscc_port *fscc_port_new(struct fscc_card *card, unsigned channel,
 		dev_err(port->device, "sysfs_create_group\n");
 		return 0;
 	}
+	
+	if (sysfs_create_group(&port->device->kobj, &port_settings_attr_group)) {
+		dev_err(port->device, "sysfs_create_group\n");
+		return 0;
+	}
 #endif
 	
 	dev_info(port->device, "revision %x.%02x\n", fscc_port_get_PREV(port), 
@@ -1070,18 +1075,19 @@ void fscc_port_use_sync(struct fscc_port *port)
 }
 */
 
-void fscc_port_enable_append_status(struct fscc_port *port)
-{	
+
+void fscc_port_set_append_status(struct fscc_port *port, unsigned value)
+{
 	return_if_untrue(port);
 	
-	port->append_status = 1;
+	port->append_status = (value) ? 1 : 0;
 }
 
-void fscc_port_disable_append_status(struct fscc_port *port)
-{	
-	return_if_untrue(port);
+unsigned fscc_port_get_append_status(struct fscc_port *port)
+{
+	return_val_if_untrue(port, 0);
 	
-	port->append_status = 0;
+	return port->append_status;
 }
 
 void fscc_port_execute_GO_R(struct fscc_port *port)

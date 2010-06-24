@@ -297,5 +297,50 @@ struct attribute_group port_info_attr_group = {
 	.attrs = info_attrs,
 };
 
+
+
+
+
+
+static ssize_t append_status_store(struct kobject *kobj, 
+                                   struct kobj_attribute *attr, const char *buf, 
+                                   size_t count)
+{
+	struct fscc_port *port = 0;
+	unsigned value = 0;
+    char *end = 0;
+    
+	port = (struct fscc_port *)dev_get_drvdata((struct device *)kobj);
+
+	value = (unsigned)simple_strtoul(buf, &end, 16);
+
+	fscc_port_set_append_status(port, value);
+
+	return count;
+}
+
+static ssize_t append_status_show(struct kobject *kobj, 
+                                  struct kobj_attribute *attr, char *buf)
+{
+	struct fscc_port *port = 0;
+	
+	port = (struct fscc_port *)dev_get_drvdata((struct device *)kobj);
+	
+	return sprintf(buf, "%i\n", fscc_port_get_append_status(port));
+}
+
+static struct kobj_attribute append_status_attribute = 
+	__ATTR(append_status, SYSFS_READ_WRITE_MODE, append_status_show, append_status_store);
+
+static struct attribute *settings_attrs[] = {
+	&append_status_attribute.attr,
+	NULL,
+};
+
+struct attribute_group port_settings_attr_group = {
+	.name = "settings",
+	.attrs = settings_attrs,
+};
+
 #endif
 
