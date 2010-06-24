@@ -1,0 +1,299 @@
+I.     Getting the latest driver
+       1) Switching between driver versions
+      
+II.    Compiling the driver
+       1) Enabling debug prints
+       2) Specifying non-default header files directory
+      
+III.   Loading the driver
+       1) Changing memory constraints
+      
+IV.    Installing the header files
+
+V.     Changing a port's register values
+       1) Using syfs from the command line
+       2) Using the ioctl call from within your application code
+       3) Using the config.h file for modifying the boot defaults
+      
+VI.    Asynchronous communication
+
+VII.   Viewing debug information (TODO)
+
+VIII.  Operating the driver
+       1) Writing data in C code
+       2) Writing data from the command line
+       3) Reading data in C code
+       4) Reading data from the command line
+       
+IX.    Viewing frame status data
+       1) Using sysfs from the command line
+       2) Using the ioctl call from within your application code
+       3) Using the config.h file for modifying the boot defaults
+
+X.     Flushing data out of driver
+       1) Using sysfs from the command line
+       2) Using the ioctl call from within your application code
+
+
+I. Getting the latest driver
+-------------------------------------------------------------------------------
+The source code for the FSCC driver is hosted on google code hosting. To check 
+out the lastest code you will need Mercurial and to run the following in a 
+terminal.
+
+   > hg clone https://fscc-linux.googlecode.com/hg/ fscc-linux
+   
+NOTE: This revision of code is likely unstable. You are recommended to switch
+      to a stable version which is shown below.
+   
+1) Now that you have the latest code checked out you will more than likely want 
+   to switch to a stable version within the code directory. To do this browse 
+   the various tags for one you would like to switch to.
+
+   > hg tags
+   > hg update 2.1
+   
+   
+II. Compiling the driver
+-------------------------------------------------------------------------------
+Compiling the driver is relatively simple assuming you have all of the 
+required dependencies. Typically you will need gcc, make and your kernel's
+header files. After assembling all of these things you can build the driver by
+simply running the make command from within the source code directory.
+
+   > cd fscc-linux/
+   > make
+
+1) If you would like to enable debug prints within the driver you need to add the
+   DEBUG option while building the driver.
+
+   > make DEBUG=1
+   
+2) If the kernel header files you would like to build against are not in the
+   default location '/lib/modules/$(shell uname -r)/build' then you can specify
+   the location with the KERNEL_PATH option while building the driver.
+
+   > make KERNEL_PATH="/location/to/kernel_headers/"
+
+III. Loading the driver
+-------------------------------------------------------------------------------
+Assuming the driver has been successfully built in the previous step you are
+now ready to load the driver so you can begin using it. To do this you insert
+the driver's kernel object file (fscc.ko) into the kernel.
+
+   > insmod fscc.ko
+   
+1) Since the card can read and hold data in the driver layer until you are
+   ready to read it there must be some sort of memory constraint associated 
+   with it so that the system doesn't run out of memory. The driver will
+   default to a reasonable value but in the instance that you need to change
+   it's value you specify the memory_cap option in bytes while loading the 
+   driver.
+   
+   > insmod fscc.ko memory_cap=40000
+    
+    
+IV. Installing the header files
+-------------------------------------------------------------------------------
+While the card will boot up in what we consider the most general configuration
+for the majority of our users you will more than likely need to tweak how the 
+card is configured for your specific situation. There are multiple ways of 
+doing this as outlined in section V. 
+
+If you decide you need to modify the driver while in your application's code 
+you will need a header file (.h) that allows you to interact with the FSCC 
+driver. To install the header file use the headers_install option to the make 
+command.
+
+   > make headers_install
+   
+After doing this you will have access to <fscc/fscc.h> which you can use in
+your C program.
+
+
+V. Changing a port's register values
+-------------------------------------------------------------------------------
+The FSCC driver is a swiss army knife of sorts when communication. It can
+handle many different situations if configured correctly. Typically to 
+configure it to handle your specific situation you need to modify the card's
+register values.
+
+There are multiple ways of modifying the card's registers varying from simply
+modifing a sysfs file to ioctl's calls within code. Here are a few ways of
+doing this.
+
+NOTE: For a listing of all of the configuration options please see the manual.
+
+1) Echo the register value in hexidecimal form to the sysfs file with the same
+   name of the register you would like to modify.
+
+   > echo 030000ff > /sys/class/fscc/fscc0/registers/bgr
+   
+2) Use the FSCC_SET_REGISTERS ioctl to set the values of any registers you
+   need to modify from within code. This ioctl can be found within 
+   <fscc/fscc.h> after you install the header files.
+   
+   struct fscc_registers regs;
+   FSCC_REGISTERS_INIT(regs);
+   regs.BGR = 0x030000ff;
+   ioctl(port_fd, FSCC_SET_REGISTERS, &regs);
+   
+3) Modify the '#define DEFAULT_[BGR|CCR0|...]_VALUE 0x030000ff' lines within 
+   the config.h file to be whatever you would like the card to boot up as. You 
+   will need to recompile the driver after doing this.
+   
+   NOTE: This will set all ports to this at driver boot up. It is a driver wide
+         setting.
+   
+
+VI. Asynchronous communication
+-------------------------------------------------------------------------------
+The FSCC driver lets the built in Linux serial driver handle asynchronous
+communication for our UARTs. The Linux serial driver is highly tested and 
+likely more stable than anything we could produce in any reasonably amount of 
+time.
+
+Prior to and after loading the FSCC driver (see section III) there are a few 
+steps needed to get the card ready for asynchronous communication.
+
+a) Most distributions have the default number of serial ports that Linux allows
+   to a smaller number than allowed. You will more than likely need to change
+   this value to something larger. 
+   
+   There are a couple ways of doing this. The easiest method is by appending 
+   '8250.nr_uarts=x' to your grub boot line.
+   
+   kernel /boot/vmlinuz-2.6.20-15-generic ro quiet splash 8250.nr_uarts=16
+   
+   This can be done temporarily by pressing 'e' at the grub menu during boot or 
+   by permenately modifying this value which is grub version specific. To do
+   this please check google for one of it's numerous guides on the subject.
+   
+   Another method is by editing the .config file of you kernel before compiling
+   it to allow for more serial ports. This is not preferred because you will
+   need to recompile the kernel for it to take effect. The line you need to
+   change in the .config file is SERIAL_8250_RUNTIME_UARTS.
+
+b) Load the FSCC driver. This will handle registering our UARTs with the serial
+   driver (see section III). Our UART's will now appear as ttyS nodes in the 
+   /dev/ directory.
+
+c) By default the FSCC driver boots up in a synchronous communication mode. To
+   switch to the asynchonous mode you must modify the FSCC card's FCR register 
+   to allow for asynchronous communication. There are multiple ways of doing 
+   this (see section V). Possibly the simplest method is using sysfs and the
+   command line.
+   
+   > echo 030000ff > /sys/class/fscc/fscc0/registers/bgr
+
+
+VIII.  Operating the driver
+-------------------------------------------------------------------------------
+The FSCC driver typically but not always works in "frames". This means that 
+data typically is packaged together in permanent chunks. If the card received
+two frames of data prior to you retrieving the data you will only get one chunk
+of data back at a time when you interface with the driver to get the data.
+
+There are multiple ways of reading/writing data to/from the card. Listed below
+are only a couple ways.
+
+1) Writing data will typically be done within C code using the write()
+   function found within the <unistd.h> file. You can find a more indepth
+   example named "sync-write.c within the examples directory. You will need
+   to look online for a more indepth explation of the parameters and return
+   value.
+   
+   bytes_written = write(port_fd, data, sizeof(data));
+   
+   In in addition to the standard errors that the write() function returns
+   there is a error specific to the FSCC you might run into.
+   
+   -EOPNOTSUPP: If trying to using a FSCC port using the /dev/fscc nodes while
+                in asyncronous communication mode (should be using /dev/ttyS
+                nodes).
+   
+2) A simpler but not nearly as useful way of sending data out of a FSCC port is
+   by using the built-in linux program echo. This is mainly useful while
+   debugging.
+   
+   echo "Hello world!" > /dev/fscc0
+   
+3) Reading data will typically be done within C code using the read() function
+   found within the <unistd.h> file. You can find a more indepth example named
+   "sync-read.c" within the examples directory. You will need to look online
+   for a more indepth explanation of the parameters and return value.
+      
+   bytes_read = read(port_fd, data, sizeof(data));
+   
+   In in addition to the standard errors that the read() function returns
+   there are a couple errors specific to the FSCC you might run into.
+   
+   -ENOBUFS: If the size parameter passed into the read() function is smaller 
+             than the next frame.
+   
+   -EOPNOTSUPP: If trying to using a FSCC port using the /dev/fscc nodes while
+                in asyncronous communication mode (should be using /dev/ttyS
+                nodes).
+   
+4) A simpler but not nearly as useful way of reading data out of a FSCC port is
+   by using the built-in linux program cat. This is mainly useful while
+   debugging.
+   
+   cat /dev/fscc0
+   
+NOTE: fread/fwrite are not allowable ways of interfacing with the card. They
+      make assumptions about the data that doesn't hold up with our "frame"
+      perspective. This means python functions like file.write() and
+      file.read() will not work because they are wrappers around fread/fwrite.
+      You will instead need to use file streams which act more like read/write.
+      
+        
+IX. Viewing frame status data
+-------------------------------------------------------------------------------
+More than likely when you are receiving frames of data from the card which
+you trust the data coming in was correctly formatted to whatever protocol
+you are expecting but occasionaly that isn't the case. In this situation you
+might want to view the status of each frame. For example if you want to see
+if the frame's CRC check succeeded or failed. 
+   
+The way the FSCC driver reports this data to you is by appending two 
+additional bytes to each frame you read from the card if you opt in to see 
+this data. There are a couple of ways of enabling this additional data.
+   
+1) The simplest method of doing this is by writing a value of 1 to the
+   append_status file in sysfs from the command line.
+   
+   echo 1 > /sys/class/fscc/fscc0/settings/append_status
+   
+2) Another way of doing this is by using the FSCC_ENABLE_APPEND_STATUS ioctl
+   from within your C code.
+   
+   ioctl(port_fd, FSCC_ENABLE_APPEND_STATUS);
+   
+3) Modify the '#define DEFAULT_APPEND_STATUS_VALUE 1' lines within the config.h 
+   file to be whatever you would like the card to boot up as. You will need to 
+   recompile the driver after doing this.
+   
+   NOTE: This will set all ports to this at driver boot up. It is a driver wide
+         setting.
+   
+
+X. Flushing data out of driver
+-------------------------------------------------------------------------------
+Between the hardware FIFO and the driver's software buffers there is multiple
+places data could be at excluding your application code. If you ever need to 
+clear this data out and start out fresh there is a couple ways of doing this.
+   
+1) The simplest method of doing this is by writing a value of 1 to the
+   flush_tx and flush_rx file in sysfs from the command line.
+   
+   echo 1 > /sys/class/fscc/fscc0/commands/flush_tx
+   echo 1 > /sys/class/fscc/fscc0/commands/flush_rx
+   
+2) Another way of doing this is by using the FSCC_FLUSH_TX and FSCC_FLUSH_TX
+   ioctl's from within your C code.
+   
+   ioctl(port_fd, FSCC_FLUSH_TX);
+   ioctl(port_fd, FSCC_FLUSH_RX);
+   
+   
