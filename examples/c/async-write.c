@@ -9,7 +9,7 @@ int main(void)
 	int port_fd = 0;
 	char data[] = "Hello world!";
 
-	port_fd = open("/dev/fscc0", O_WRONLY);
+	port_fd = open("/dev/ttyS4", O_WRONLY);
 
 	if (port_fd == -1) {
 		perror("open");
