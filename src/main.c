@@ -25,6 +25,7 @@
 static int fscc_major_number;
 static struct class *fscc_class = 0;
 unsigned memory_cap = DEFAULT_MEMORY_CAP_VALUE;
+unsigned hot_plug = DEFAULT_HOT_PLUG_VALUE;
 
 wait_queue_head_t output_queue;
 LIST_HEAD(fscc_cards);
@@ -301,7 +302,7 @@ struct pci_driver fscc_pci_driver = {
 
 static int __init fscc_init(void)
 {
-	unsigned err;
+	unsigned num_devices = 0;
 	
 	fscc_class = class_create(THIS_MODULE, DEVICE_NAME);
 	
@@ -315,18 +316,26 @@ static int __init fscc_init(void)
 	if (fscc_major_number < 0) {
 		printk(KERN_ERR DEVICE_NAME " register_chrdev failed\n");
 		class_destroy(fscc_class);
-		return -1;
+		return -1; /* TODO: Should probably return the err */
 	}
 	
-	err = pci_register_driver(&fscc_pci_driver);
+	num_devices = pci_register_driver(&fscc_pci_driver);
 	
-	if (err < 0) {
-		printk(KERN_ERR DEVICE_NAME " pci_register_driver failed");
+	if (num_devices < 0) {
+		printk(KERN_ERR DEVICE_NAME " pci_register_driver failed\n");
 		unregister_chrdev(fscc_major_number, "fscc");
 		class_destroy(fscc_class);
-		return err;
+		return num_devices;
 	}
-
+	
+	if (hot_plug == 0 && num_devices == 0) {
+		printk(KERN_ERR DEVICE_NAME " 0 devices found (is another driver present? or no card inserted?)\n");
+		pci_unregister_driver(&fscc_pci_driver);
+		unregister_chrdev(fscc_major_number, "fscc");
+		class_destroy(fscc_class);
+		return -ENODEV;
+	}
+	
 	if (memory_cap != DEFAULT_MEMORY_CAP_VALUE)
 		printk(KERN_INFO DEVICE_NAME " changing the memory cap from %u => %u (bytes)\n", 
 		       DEFAULT_MEMORY_CAP_VALUE, memory_cap);
@@ -352,7 +361,10 @@ MODULE_AUTHOR("William Fagan <willf@commtech-fastcom.com>");
 MODULE_DESCRIPTION("Driver for the FSCC series of cards from Commtech, Inc."); 
 
 module_param(memory_cap, int, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
-MODULE_PARM_DESC(memory_cap, "The maximum user data (in bytes) the driver will keep in it's buffer.");
+MODULE_PARM_DESC(memory_cap, "The maximum user data (in bytes) the driver will allow in it's buffer.");
+
+module_param(hot_plug, int, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
+MODULE_PARM_DESC(hot_plug, "Let's the driver load even if no devices exist.");
 
 module_init(fscc_init);
 module_exit(fscc_exit); 

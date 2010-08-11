@@ -8,3 +8,5 @@ syntax: glob
 *.ko
 *.mod.c
 *.out
+*.*~
+*.markers
