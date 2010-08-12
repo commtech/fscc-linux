@@ -55,6 +55,11 @@ void print_worker(unsigned long data)
 	unsigned isr_value = 0;
 	
 	port = (struct fscc_port *)data;
+	
+	//TODO: This may  not be needed
+	if (!port_exists(port))
+		return;
+	
 	isr_value = port->last_isr_value;
 	port->last_isr_value = 0;
 	
@@ -70,13 +75,13 @@ void print_worker(unsigned long data)
 		dev_dbg(port->device, "RFS (Receive Frame Start Interrupt)\n");
 	
 	if (isr_value & RFO)
-		dev_notice(port->device, "RFO (Receive Frame Overflow Interrupt)\n");
+		dev_dbg(port->device, "RFO (Receive Frame Overflow Interrupt)\n");
 	
 	if (isr_value & RDO)
-		dev_notice(port->device, "RDO (Receive Data Overflow Interrupt)\n");
+		dev_dbg(port->device, "RDO (Receive Data Overflow Interrupt)\n");
 	
 	if (isr_value & RFL)
-		dev_notice(port->device, "RFL (Receive Frame Lost Interrupt)\n");
+		dev_dbg(port->device, "RFL (Receive Frame Lost Interrupt)\n");
 	
 	if (isr_value & TIN)
 		dev_dbg(port->device, "TIN (Timer Expiration Interrupt)\n");
@@ -85,10 +90,10 @@ void print_worker(unsigned long data)
 		dev_dbg(port->device, "TFT (Transmit FIFO Trigger Interrupt)\n");
 		
 	if (isr_value & TDU)
-		dev_notice(port->device, "TDU (Transmit Data Underrun Interrupt)\n");
+		dev_dbg(port->device, "TDU (Transmit Data Underrun Interrupt)\n");
 	
 	if (isr_value & TDU)
-		dev_notice(port->device, "TDU (Transmit Data Underrun Interrupt)\n");
+		dev_dbg(port->device, "TDU (Transmit Data Underrun Interrupt)\n");
 	
 	if (isr_value & ALLS)
 		dev_dbg(port->device, "ALLS (All Sent Interrupt)\n");
@@ -172,7 +177,7 @@ void iframe_worker(unsigned long data)
 		buffer = kmalloc(receive_length, GFP_ATOMIC);
 		
 		if (buffer == NULL) {
-			dev_notice(port->device, "F#%i receive rejected (kmalloc of %i bytes)\n",
+			dev_dbg(port->device, "F#%i receive rejected (kmalloc of %i bytes)\n",
 				   port->pending_iframe->number, receive_length);
 					   
 			fscc_frame_delete(port->pending_iframe);
@@ -217,7 +222,7 @@ void iframe_worker(unsigned long data)
 	}
 	
 	if (fscc_memory_usage() + receive_length > memory_cap) {
-		dev_notice(port->device, "F#%i receive rejected (memory constraint)\n",
+		dev_dbg(port->device, "F#%i receive rejected (memory constraint)\n",
 		          port->pending_iframe->number);
 		       
 		fscc_frame_delete(port->pending_iframe);
@@ -314,7 +319,7 @@ struct fscc_port *fscc_port_new(struct fscc_card *card, unsigned channel,
 	
 	port->name = kmalloc(10, GFP_KERNEL);
 	sprintf(port->name, "%s%u", DEVICE_NAME, minor_number);
-	
+		
 	port->channel = channel;
 	port->card = card;
 	port->class = class;
@@ -323,14 +328,21 @@ struct fscc_port *fscc_port_new(struct fscc_card *card, unsigned channel,
 	port->dev_t = MKDEV(major_number, minor_number);
 	port->append_status = DEFAULT_APPEND_STATUS_VALUE;
 	
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 27)
-	port->device = device_create(port->class, parent, port->dev_t, port, "%s", 
-	                             port->name);
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 18)
+	                             
+	#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 27)
+		port->device = device_create(port->class, parent, port->dev_t, port, "%s", 
+			                         port->name);
+	#else
+		port->device = device_create(port->class, parent, port->dev_t, "%s", 
+			                         port->name);
+			                                 
+		dev_set_drvdata(port->device, port);
+	#endif
+	
 #else
-	port->device = device_create(port->class, parent, port->dev_t, "%s", 
-	                             port->name);
-	                                     
-	dev_set_drvdata(port->device, port);
+	class_device_create(port->class, 0, port->dev_t, port->device, "%s", 
+	                    port->name);
 #endif
 
 	if (port->device <= 0) {
@@ -369,10 +381,6 @@ struct fscc_port *fscc_port_new(struct fscc_card *card, unsigned channel,
 	
 	list_add_tail(&port->list, fscc_card_get_ports(card));
 	
-	tasklet_init(&port->oframe_tasklet, oframe_worker, (unsigned long)port);
-	tasklet_init(&port->iframe_tasklet, iframe_worker, (unsigned long)port);
-	tasklet_init(&port->print_tasklet, print_worker, (unsigned long)port);
-	
 	port->last_isr_value = 0;
 	
 	FSCC_REGISTERS_INIT(port->register_storage);
@@ -395,7 +403,7 @@ struct fscc_port *fscc_port_new(struct fscc_card *card, unsigned channel,
 		port->register_storage.IMR = DEFAULT_IMR_VALUE_WITH_DMA;
 	else
 		port->register_storage.IMR = DEFAULT_IMR_VALUE_WITHOUT_DMA;
-		
+	
 	port->register_storage.FCR = DEFAULT_FCR_VALUE;
 	
 	fscc_port_set_registers(port, &port->register_storage);
@@ -442,8 +450,14 @@ struct fscc_port *fscc_port_new(struct fscc_card *card, unsigned channel,
 	}
 #endif
 	
-	dev_info(port->device, "revision %x.%02x\n", fscc_port_get_PREV(port), 
-	         fscc_port_get_FREV(port));
+	/* TODO When these were up above before setting the registers channel 1
+	   wouldn't work when scheduling the prink tasklet */
+	tasklet_init(&port->oframe_tasklet, oframe_worker, (unsigned long)port);
+	tasklet_init(&port->iframe_tasklet, iframe_worker, (unsigned long)port);
+	tasklet_init(&port->print_tasklet, print_worker, (unsigned long)port);
+	
+	dev_info(port->device, "%s (%x.%02x)\n", fscc_card_get_name(port->card), 
+	         fscc_port_get_PREV(port), fscc_port_get_FREV(port));
 	
 	return port;
 }
@@ -473,7 +487,10 @@ void fscc_port_delete(struct fscc_port *port)
 	irq_num = fscc_card_get_irq(port->card);
 	free_irq(irq_num, port);
 	
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 18)	
 	device_destroy(port->class, port->dev_t);
+#endif
+
 	cdev_del(&port->cdev);
 	list_del(&port->list);
 	
@@ -519,11 +536,11 @@ ssize_t fscc_port_read(struct fscc_port *port, char *buf, size_t count)
 	
 	return_val_if_untrue(port, 0);
 	
-	if (fscc_port_get_input_frames_qty(port) == 0)
-		return 0;
-	
 	frame = fscc_port_peek_front_frame(port, &port->iframes);
 	
+	if (!frame)
+		return 0;
+		
 	data_length = fscc_frame_get_target_length(frame);	
 	data_length += (port->append_status) ? STATUS_LENGTH : 0;
 	
@@ -742,8 +759,8 @@ void fscc_port_get_registers(struct fscc_port *port,
 	for (i = 0; i < sizeof(struct fscc_registers) / sizeof(int32_t); i++) {
 		if (((int32_t *)regs)[i] != FSCC_UPDATE_VALUE)
 			continue;
-		
-		if (i * 4 <= IMR_OFFSET)				
+				
+		if (i * 4 <= IMR_OFFSET)
 			((uint32_t *)regs)[i] = fscc_port_get_register(port, 0, i * 4);
 		else
 			((uint32_t *)regs)[i] = fscc_port_get_register(port, 2, FCR_OFFSET);
@@ -844,6 +861,7 @@ void fscc_port_suspend(struct fscc_port *port)
 	fscc_port_get_registers(port, &port->register_storage);
 }
 
+
 void fscc_port_resume(struct fscc_port *port)
 {
 	return_if_untrue(port);
@@ -882,13 +900,14 @@ void fscc_port_flush_rx(struct fscc_port *port)
 unsigned fscc_port_get_frames_qty(struct fscc_port *port, 
                                   struct list_head *frames)
 {
-	struct fscc_frame *current_frame = 0;	
+	struct list_head *iter = 0;
+	struct list_head *temp = 0;
 	unsigned qty = 0;
 	
 	return_val_if_untrue(port, 0);	
-	return_val_if_untrue(frames, 0);		
+	return_val_if_untrue(frames, 0);
 	
-	list_for_each_entry(current_frame, frames, list) {
+	list_for_each_safe(iter, temp, frames) {
 		qty++;
 	}
 	
@@ -906,7 +925,7 @@ unsigned fscc_port_get_output_frames_qty(struct fscc_port *port)
 unsigned fscc_port_get_input_frames_qty(struct fscc_port *port)
 {	
 	return_val_if_untrue(port, 0);	
-	
+
     return fscc_port_get_frames_qty(port, &port->iframes);
 }
 

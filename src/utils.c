@@ -129,3 +129,38 @@ unsigned port_offset(struct fscc_port *port, unsigned bar, unsigned offset)
 	return offset;
 }
 
+unsigned port_exists(void *port)
+{	
+	struct fscc_card *current_card = 0;
+	struct fscc_port *current_port = 0;
+	
+	return_val_if_untrue(port, 0);
+	
+	list_for_each_entry(current_card, &fscc_cards, list) {	
+		struct list_head *ports = fscc_card_get_ports(current_card);
+			
+		list_for_each_entry(current_port, ports, list) {
+			if (port == current_port)
+				return 1;
+		}
+	}
+	
+	return 0;
+}
+
+unsigned is_fscc_device(struct pci_dev *pdev)
+{
+	if (pdev->device == FSCC_ID ||
+		pdev->device == SFSCC_ID ||
+		pdev->device == FSCC_232_ID ||
+		pdev->device == SFSCC_4_ID ||
+		pdev->device == FSCC_4_ID ||
+		pdev->device == SFSCC_4_ID ||
+		pdev->device == SFSCCe_4_ID) {
+		return 1;
+	} else {
+		return 0;
+	}
+}
+
+

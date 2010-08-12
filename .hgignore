@@ -1,7 +1,6 @@
 syntax: glob
 
 *.o
-*.o.d
 *.order
 *.cmd
 *.symvers
@@ -9,5 +8,4 @@ syntax: glob
 *.ko
 *.mod.c
 *.out
-*.*~
-*.markers
+*.pyc

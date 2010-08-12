@@ -113,7 +113,7 @@ struct fscc_card *fscc_card_new(struct pci_dev *pdev,
 	for (i = 0; i < 2; i++) {
 		port_iter = fscc_port_new(card, i, major_number, minor_number, 
 		                          &card->pci_dev->dev, class, fops);
-		                                                  
+		                                              
 		minor_number += 1;        
 	}
 	
@@ -287,5 +287,27 @@ struct device *fscc_card_get_device(struct fscc_card *card)
 	return_val_if_untrue(card, 0);
 	
 	return &card->pci_dev->dev;
+}
+
+char *fscc_card_get_name(struct fscc_card *card)
+{
+	switch (card->pci_dev->device) {
+	case FSCC_ID:
+		return "FSCC PCI";
+	case SFSCC_ID:
+		return "SuperFSCC PCI";
+	case FSCC_232_ID:
+		return "FSCC-232 PCI";
+	case SFSCC_4_ID:
+		return "SuperFSCC/4 PCI";
+	case FSCC_4_ID:
+		return "FSCC/4 PCI";
+	case SFSCC_4_LVDS_ID:
+		return "SuperFSCC/4 LVDS PCI";
+	case SFSCCe_4_ID:
+		return "SuperFSCC/4 PCIe";
+	}
+	
+	return "Unknown Device";
 }
 

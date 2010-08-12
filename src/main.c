@@ -17,10 +17,12 @@
 	along with fscc-linux.  If not, see <http://www.gnu.org/licenses/>.
 	
 */
+
 #include <linux/poll.h> /* poll_wait, POLL* */
 #include "card.h" /* struct fscc_card */
 #include "port.h" /* struct fscc_port */
 #include "config.h" /* DEVICE_NAME, DEFAULT_* */
+#include "utils.h" /* DEVICE_NAME, DEFAULT_* */
 
 static int fscc_major_number;
 static struct class *fscc_class = 0;
@@ -123,7 +125,7 @@ ssize_t fscc_write(struct file *file, const char *buf, size_t count,
 			return -EAGAIN;
 			
 		if (wait_event_interruptible(output_queue, 
-		                             fscc_memory_usage() + count <= memory_cap)) {
+		                          fscc_memory_usage() + count <= memory_cap)) {
 			return -ERESTARTSYS;
 		}
 			
@@ -169,7 +171,7 @@ int fscc_ioctl(struct inode *inode, struct file *file, unsigned int cmd,
 	port = file->private_data;
 	
 	switch (cmd) {
-	case FSCC_GET_REGISTERS: 
+	case FSCC_GET_REGISTERS:
 		fscc_port_get_registers(port, (struct fscc_registers *)arg);
 		break;
 
@@ -198,7 +200,7 @@ int fscc_ioctl(struct inode *inode, struct file *file, unsigned int cmd,
 		break;
 			
 	default:
-		dev_dbg(port->device, "unknown ioctl %x\n", cmd);
+		dev_dbg(port->device, "unknown ioctl 0x%x\n", cmd);
 		return -ENOTTY;			
 	}
 	
@@ -222,26 +224,12 @@ static int __devinit fscc_probe(struct pci_dev *pdev,
 	if (pci_enable_device(pdev))
 		return -EIO;
 	
-	switch (id->device) {
-	case FSCC_ID:			
-	case FSCC_232_ID:
-	case FSCC_4_ID:
-	case SFSCC_ID:
-	case SFSCC_4_ID:
-	case SFSCC_4_LVDS_ID:
-	case SFSCCe_4_ID:
-		new_card = fscc_card_new(pdev, fscc_major_number, fscc_class,
+	new_card = fscc_card_new(pdev, fscc_major_number, fscc_class,
                                  &fscc_fops);
 		
-		if (new_card)                         
-			list_add_tail(&new_card->list, &fscc_cards);
-				
-		break;
-			
-	default:
-		printk(KERN_DEBUG DEVICE_NAME " unknown device\n");
-	}
-
+	if (new_card)                         
+		list_add_tail(&new_card->list, &fscc_cards);
+	
 	return 0;
 }
 
@@ -292,7 +280,7 @@ static int fscc_resume(struct pci_dev *pdev)
 }
 
 struct pci_driver fscc_pci_driver = {
-	.name = "fscc",
+	.name = DEVICE_NAME,
 	.probe = fscc_probe,
 	.remove = fscc_remove,
 	.suspend = fscc_suspend,
@@ -302,6 +290,7 @@ struct pci_driver fscc_pci_driver = {
 
 static int __init fscc_init(void)
 {
+	unsigned registered_devices = 0;
 	unsigned num_devices = 0;
 	int error_code = 0;
 	
@@ -320,53 +309,35 @@ static int __init fscc_init(void)
 		return error_code;
 	}
 	
-	num_devices = error_code = pci_register_driver(&fscc_pci_driver);
+	registered_devices = error_code = pci_register_driver(&fscc_pci_driver);
 	
-	if (num_devices < 0) {
+	if (registered_devices < 0) {
 		printk(KERN_ERR DEVICE_NAME " pci_register_driver failed\n");
 		unregister_chrdev(fscc_major_number, "fscc");
 		class_destroy(fscc_class);
 		return error_code;
 	}
 
-	/*	
-	if (num_devices == 0) {	
+	if (hot_plug == 0 && registered_devices == 0) {	
 		struct pci_dev *pdev = NULL;	
 		
 		pdev = pci_get_device(COMMTECH_VENDOR_ID, PCI_ANY_ID, pdev);
 		
 		while (pdev != NULL) {
-			struct fscc_card *new_card = 0;
+			if (is_fscc_device(pdev))
+				++num_devices;  
 			
-			if (pdev->device != FSCC_ID &&
-			    pdev->device != SFSCC_ID)
-			    continue;
-			    
-			printk("%x\n", pdev->device);
-			
-			if (pci_enable_device(pdev))
-				return -EIO;
-			
-			new_card = fscc_card_new(pdev, fscc_major_number, fscc_class,
-		                             &fscc_fops, id);
-		
-			if (new_card)                         
-				list_add_tail(&new_card->list, &fscc_cards);
-			
-			pdev = pci_get_device(COMMTECH_VENDOR_ID, SFSCC_ID, pdev);
+			pdev = pci_get_device(COMMTECH_VENDOR_ID, PCI_ANY_ID, pdev);
 		}
+	
+		if (num_devices == 0) {
+			pci_unregister_driver(&fscc_pci_driver);
+			unregister_chrdev(fscc_major_number, "fscc");
+			class_destroy(fscc_class);
+			return -ENODEV;
+		}		
 	}
-	*/
-	
-	/*
-	if (hot_plug == 0 && num_devices == 0) {
-		printk(KERN_ERR DEVICE_NAME " 0 devices found (is another driver present? or no card inserted?)\n");
-		pci_unregister_driver(&fscc_pci_driver);
-		unregister_chrdev(fscc_major_number, "fscc");
-		class_destroy(fscc_class);
-		return -ENODEV;
-	}*/
-	
+
 	if (memory_cap != DEFAULT_MEMORY_CAP_VALUE)
 		printk(KERN_INFO DEVICE_NAME " changing the memory cap from %u => %u (bytes)\n", 
 		       DEFAULT_MEMORY_CAP_VALUE, memory_cap);
@@ -379,7 +350,7 @@ static int __init fscc_init(void)
 static void __exit fscc_exit(void)
 {
 	pci_unregister_driver(&fscc_pci_driver);
-	unregister_chrdev(fscc_major_number, "fscc");
+	unregister_chrdev(fscc_major_number, DEVICE_NAME);
 	class_destroy(fscc_class);	
 }
 

@@ -1,5 +1,5 @@
 #include <fcntl.h> /* open, O_RDWR */
-#include <unistd.h> /* close, read, write, close */
+#include <unistd.h> /* read, write, close */
 #include <stdio.h> /* perror */
 #include <stdlib.h> /* EXIT_SUCCESS, EXIT_FAILURE */
 #include <string.h> /* memset */

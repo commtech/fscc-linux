@@ -24,28 +24,8 @@
 #include "utils.h" /* return_{val_}_if_untrue */
 #include "config.h" /* DEVICE_NAME */
 
-#include "frame.h" //TODO Remove
-
-unsigned port_exists(void *port)
-{	
-	struct fscc_card *current_card = 0;
-	struct fscc_port *current_port = 0;
-	
-	return_val_if_untrue(port, 0);
-	
-	list_for_each_entry(current_card, &fscc_cards, list) {	
-		struct list_head *ports = fscc_card_get_ports(current_card);
-			
-		list_for_each_entry(current_port, ports, list) {
-			if (port == current_port)
-				return 1;
-		}
-	}
-	
-	return 0;
-}
-
 unsigned dsrc_count = 0;
+unsigned ctss_count = 0;
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 19)
 irqreturn_t fscc_isr(int irq, void *potential_port)
@@ -60,20 +40,20 @@ irqreturn_t fscc_isr(int irq, void *potential_port, struct pt_regs *regs)
 		return IRQ_NONE;
 	
 	port = (struct fscc_port *)potential_port;
-		
+	
 	isr_value = fscc_port_get_register(port, 0, ISR_OFFSET);
 	
 	if (!isr_value)
 		return IRQ_NONE;
 	
 	port->last_isr_value |= isr_value;
-	tasklet_schedule(&port->print_tasklet);
-		
+	tasklet_schedule(&port->print_tasklet);	
+	
 	if (isr_value & RFE)
 		port->ended_frames += 1;
 	
 	if (isr_value & RFS)
-		port->started_frames += 1;	
+		port->started_frames += 1;
 	
 	if (isr_value & (RFE | RFT | RFS))
 		tasklet_schedule(&port->iframe_tasklet); 
@@ -83,11 +63,12 @@ irqreturn_t fscc_isr(int irq, void *potential_port, struct pt_regs *regs)
 	
 	if (isr_value & DT_STOP)
 		tasklet_schedule(&port->oframe_tasklet);
-	
-	/*	
+
 	if (isr_value & DSRC) 
 		printk("DSRC %i\n", ++dsrc_count);
-	*/
+
+	if (isr_value & CTSS) 
+		printk("CTSS %i\n", ++ctss_count);
 		
 	return IRQ_HANDLED;
 }

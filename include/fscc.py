@@ -52,7 +52,7 @@ class Port(io.FileIO):
             self.disable_append_status()
 
     def reset_registers(self):
-        for register in self._register_names:
+        for register in self.register_names:
             setattr(self, register, -1)
 
     def get_registers(self):
@@ -89,7 +89,7 @@ class Port(io.FileIO):
         if num_bytes:
             return super(io.FileIO, self).read(num_bytes)
 
-    _register_names = ["FIFOT", "CMDR", "STAR", "CCR0", "CCR1", "CCR2", "BGR",
+    register_names = ["FIFOT", "CMDR", "STAR", "CCR0", "CCR1", "CCR2", "BGR",
                       "SSR", "SMR", "TSR", "TMR", "RAR", "RAMR", "PPR", "TCR",
                       "VSTR", "IMR", "FCR"]
 
@@ -106,6 +106,10 @@ class Port(io.FileIO):
 
         if index == 5:
             self.CMDR = value
+            return
+
+        if index == 6:
+            self.STAR = value
             return
 
         if index == 7:
@@ -154,6 +158,10 @@ class Port(io.FileIO):
 
         if index == 18:
             self.TCR = value
+            return
+
+        if index == 19:
+            self.VSTR = value
             return
 
         if index == 21:
