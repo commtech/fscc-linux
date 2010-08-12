@@ -229,9 +229,9 @@ static int __devinit fscc_probe(struct pci_dev *pdev,
 	case SFSCC_ID:
 	case SFSCC_4_ID:
 	case SFSCC_4_LVDS_ID:
-	case SFSCCe_4_ID:		
+	case SFSCCe_4_ID:
 		new_card = fscc_card_new(pdev, fscc_major_number, fscc_class,
-                                 &fscc_fops, id);
+                                 &fscc_fops);
 		
 		if (new_card)                         
 			list_add_tail(&new_card->list, &fscc_cards);
@@ -303,6 +303,7 @@ struct pci_driver fscc_pci_driver = {
 static int __init fscc_init(void)
 {
 	unsigned num_devices = 0;
+	int error_code = 0;
 	
 	fscc_class = class_create(THIS_MODULE, DEVICE_NAME);
 	
@@ -311,30 +312,60 @@ static int __init fscc_init(void)
 		return PTR_ERR(fscc_class);
 	}
 	
-	fscc_major_number = register_chrdev(0, "fscc", &fscc_fops);
+	fscc_major_number = error_code = register_chrdev(0, "fscc", &fscc_fops);
 	
 	if (fscc_major_number < 0) {
 		printk(KERN_ERR DEVICE_NAME " register_chrdev failed\n");
 		class_destroy(fscc_class);
-		return -1; /* TODO: Should probably return the err */
+		return error_code;
 	}
 	
-	num_devices = pci_register_driver(&fscc_pci_driver);
+	num_devices = error_code = pci_register_driver(&fscc_pci_driver);
 	
 	if (num_devices < 0) {
 		printk(KERN_ERR DEVICE_NAME " pci_register_driver failed\n");
 		unregister_chrdev(fscc_major_number, "fscc");
 		class_destroy(fscc_class);
-		return num_devices;
+		return error_code;
 	}
+
+	/*	
+	if (num_devices == 0) {	
+		struct pci_dev *pdev = NULL;	
+		
+		pdev = pci_get_device(COMMTECH_VENDOR_ID, PCI_ANY_ID, pdev);
+		
+		while (pdev != NULL) {
+			struct fscc_card *new_card = 0;
+			
+			if (pdev->device != FSCC_ID &&
+			    pdev->device != SFSCC_ID)
+			    continue;
+			    
+			printk("%x\n", pdev->device);
+			
+			if (pci_enable_device(pdev))
+				return -EIO;
+			
+			new_card = fscc_card_new(pdev, fscc_major_number, fscc_class,
+		                             &fscc_fops, id);
+		
+			if (new_card)                         
+				list_add_tail(&new_card->list, &fscc_cards);
+			
+			pdev = pci_get_device(COMMTECH_VENDOR_ID, SFSCC_ID, pdev);
+		}
+	}
+	*/
 	
+	/*
 	if (hot_plug == 0 && num_devices == 0) {
 		printk(KERN_ERR DEVICE_NAME " 0 devices found (is another driver present? or no card inserted?)\n");
 		pci_unregister_driver(&fscc_pci_driver);
 		unregister_chrdev(fscc_major_number, "fscc");
 		class_destroy(fscc_class);
 		return -ENODEV;
-	}
+	}*/
 	
 	if (memory_cap != DEFAULT_MEMORY_CAP_VALUE)
 		printk(KERN_INFO DEVICE_NAME " changing the memory cap from %u => %u (bytes)\n", 

@@ -36,14 +36,13 @@ struct pciserial_board pci_board = {
 struct fscc_card *fscc_card_new(struct pci_dev *pdev,
                                 unsigned major_number,
                                 struct class *class,
-                                struct file_operations *fops,
-                                const struct pci_device_id *id)
+                                struct file_operations *fops)
 {
 	struct fscc_card *card = 0;
 	struct fscc_port *port_iter = 0;
 	unsigned start_minor_number = 0;
 	unsigned i = 0;
-	printk("0\n");
+	
 	card = kmalloc(sizeof(*card), GFP_KERNEL);
 	
 	return_val_if_untrue(card != NULL, 0);
@@ -55,7 +54,7 @@ struct fscc_card *fscc_card_new(struct pci_dev *pdev,
 	card->dma = 0;
 	
 #ifdef EXPERIMENTAL_DMA
-	switch (id->device) {
+	switch (pdev->device) {
 		case SFSCC_ID:
 		case SFSCC_4_ID:
 		case SFSCC_4_LVDS_ID:
@@ -71,20 +70,22 @@ struct fscc_card *fscc_card_new(struct pci_dev *pdev,
 			break;
 	}
 #endif
+	
+	/*
 	if (pci_request_regions(card->pci_dev, DEVICE_NAME) != 0) {
-		printk("a\n");
 		dev_err(&card->pci_dev->dev, "pci_request_regions failed\n");
 		return 0;
 	}
-	printk("b\n");
+	*/
+	
 	/* This requests the pci regions for us. Doing so again will cause our
 	   uarts not to appear correctly. */
-	/*card->serial_priv = pciserial_init_ports(pdev, &pci_board);
+	card->serial_priv = pciserial_init_ports(pdev, &pci_board);
 	
 	if (IS_ERR(card->serial_priv)) {
 		dev_err(&card->pci_dev->dev, "pciserial_init_ports failed\n");
 		return 0;
-	}*/
+	}
 	
 	pci_set_drvdata(pdev, card->serial_priv);
 	

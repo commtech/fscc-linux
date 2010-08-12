@@ -314,7 +314,7 @@ struct fscc_port *fscc_port_new(struct fscc_card *card, unsigned channel,
 	
 	port->name = kmalloc(10, GFP_KERNEL);
 	sprintf(port->name, "%s%u", DEVICE_NAME, minor_number);
-		
+	
 	port->channel = channel;
 	port->card = card;
 	port->class = class;

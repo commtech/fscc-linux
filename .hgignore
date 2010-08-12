@@ -1,6 +1,7 @@
 syntax: glob
 
 *.o
+*.o.d
 *.order
 *.cmd
 *.symvers
