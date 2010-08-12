@@ -7,6 +7,7 @@ II.    Compiling the driver
       
 III.   Loading the driver
        1) Changing memory constraints
+       2) Enabling hot plugging support
       
 IV.    Installing the header files
 
@@ -91,6 +92,18 @@ the driver's kernel object file (fscc.ko) into the kernel.
    driver.
    
    > insmod fscc.ko memory_cap=40000
+   
+1) By default if there are no cards present when the driver is loaded the
+   insmod will fail with a 'No such device' error. To allow the driver to load
+   even if no cards are present turn on the 'hot_plug' option.
+   
+   > insmod fscc.ko hot_plug=1
+   
+   If no cards are present and the hot_plug option is not enabled (default) you
+   will see this.
+   
+   > insmod fscc.ko hot_plug=0
+   insmod: error inserting 'fscc.ko': -1 No such device
     
     
 IV. Installing the header files
