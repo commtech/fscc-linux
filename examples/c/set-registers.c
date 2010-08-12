@@ -19,8 +19,8 @@ int main(void)
 
 	FSCC_REGISTERS_INIT(regs);
 
-	regs.CCR0 = 0x00000000;
-	regs.CCR1 = 0x00000000;
+	regs.CCR0 = 0x0011201c;
+	regs.CCR1 = 0x00000018;
 	regs.CCR2 = 0x00000000;
 
 	ioctl(port_fd, FSCC_SET_REGISTERS, &regs);

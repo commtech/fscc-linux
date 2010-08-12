@@ -29,11 +29,6 @@ __u32 chars_to_u32(const char *data)
 	return *((__u32*)data);
 }
 
-__s32 offset_to_value(const struct fscc_registers *registers, unsigned offset)
-{
-	return ((__s32 *)registers)[offset / 4];
-}
-
 int str_to_offset(const char *str)
 {
 	if (strcmp(str, "fifo") == 0)

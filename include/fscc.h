@@ -28,36 +28,38 @@
 #define FSCC_REGISTERS_INIT(registers) memset(&registers, -1, sizeof(registers))
 #define FSCC_UPDATE_VALUE -2
 
+typedef int64_t fscc_register;
+
 struct fscc_registers {
 	/* BAR 0 */
-	int32_t reserved1[2];
+	fscc_register reserved1[2];
 
-	int32_t FIFOT;
+	fscc_register FIFOT;
 
-	int32_t reserved2[2];
+	fscc_register reserved2[2];
 
-	int32_t CMDR;
-	int32_t STAR; /* Read-only */
-	int32_t CCR0;
-	int32_t CCR1;
-	int32_t CCR2;
-	int32_t BGR;
-	int32_t SSR;
-	int32_t SMR;
-	int32_t TSR;
-	int32_t TMR;
-	int32_t RAR;
-	int32_t RAMR;
-	int32_t PPR;
-	int32_t TCR;
-	int32_t VSTR; /* Read-only */
+	fscc_register CMDR;
+	fscc_register STAR; /* Read-only */
+	fscc_register CCR0;
+	fscc_register CCR1;
+	fscc_register CCR2;
+	fscc_register BGR;
+	fscc_register SSR;
+	fscc_register SMR;
+	fscc_register TSR;
+	fscc_register TMR;
+	fscc_register RAR;
+	fscc_register RAMR;
+	fscc_register PPR;
+	fscc_register TCR;
+	fscc_register VSTR; /* Read-only */
 	
-	int32_t reserved3[1];
+	fscc_register reserved3[1];
 	
-	int32_t IMR;
+	fscc_register IMR;
 	
 	/* BAR 2 */
-	int32_t FCR;
+	fscc_register FCR;
 };
 
 

@@ -40,36 +40,38 @@
 
 #define FSCC_SET_CLOCK_BITS _IOW(FSCC_IOCTL_MAGIC, 8, const unsigned char[20])
 
+typedef __s64 fscc_register;
+
 struct fscc_registers {
 	/* BAR 0 */
-	__s32 reserved1[2];
+	fscc_register reserved1[2];
 
-	__s32 FIFOT;
+	fscc_register FIFOT;
 
-	__s32 reserved2[2];
+	fscc_register reserved2[2];
 
-	__s32 CMDR;
-	__s32 STAR; /* Read-only */
-	__s32 CCR0;
-	__s32 CCR1;
-	__s32 CCR2;
-	__s32 BGR;
-	__s32 SSR;
-	__s32 SMR;
-	__s32 TSR;
-	__s32 TMR;
-	__s32 RAR;
-	__s32 RAMR;
-	__s32 PPR;
-	__s32 TCR;
-	__s32 VSTR; /* Read-only */
+	fscc_register CMDR;
+	fscc_register STAR; /* Read-only */
+	fscc_register CCR0;
+	fscc_register CCR1;
+	fscc_register CCR2;
+	fscc_register BGR;
+	fscc_register SSR;
+	fscc_register SMR;
+	fscc_register TSR;
+	fscc_register TMR;
+	fscc_register RAR;
+	fscc_register RAMR;
+	fscc_register PPR;
+	fscc_register TCR;
+	fscc_register VSTR; /* Read-only */
 	
-	__s32 reserved3[1];
+	fscc_register reserved3[1];
 	
-	__s32 IMR;
+	fscc_register IMR;
 	
 	/* BAR 2 */
-	__s32 FCR;
+	fscc_register FCR;
 };
 
 extern unsigned memory_cap;

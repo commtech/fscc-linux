@@ -733,18 +733,21 @@ void fscc_port_set_registers(struct fscc_port *port,
 	
 	return_if_untrue(port);	
 	return_if_untrue(regs);
-			
-	for (i = 0; i < sizeof(*regs) / sizeof(regs->FIFOT); i++) {
+
+	for (i = 0; i < sizeof(*regs) / sizeof(fscc_register); i++) {
 		if (is_read_only_register(i * 4))
 			continue;
 			
-		if (((int32_t *)regs)[i] < 0)
+		if (((fscc_register *)regs)[i] < 0)
 			continue;
 		
-		if (i * 4 <= IMR_OFFSET)
-			fscc_port_set_register(port, 0, i * 4, ((uint32_t *)regs)[i]);
-		else
-			fscc_port_set_register(port, 2, FCR_OFFSET, ((uint32_t *)regs)[i]);
+		if (i * 4 <= IMR_OFFSET) {
+			fscc_port_set_register(port, 0, i * 4, ((fscc_register *)regs)[i]);
+		}
+		else {
+			fscc_port_set_register(port, 2, FCR_OFFSET, 
+			                       ((fscc_register *)regs)[i]);
+		}
 	}
 }
 
@@ -756,14 +759,17 @@ void fscc_port_get_registers(struct fscc_port *port,
 	return_if_untrue(port);	
 	return_if_untrue(regs);
 			
-	for (i = 0; i < sizeof(struct fscc_registers) / sizeof(int32_t); i++) {
-		if (((int32_t *)regs)[i] != FSCC_UPDATE_VALUE)
+	for (i = 0; i < sizeof(*regs) / sizeof(fscc_register); i++) {
+		if (((fscc_register *)regs)[i] != FSCC_UPDATE_VALUE)
 			continue;
-				
-		if (i * 4 <= IMR_OFFSET)
-			((uint32_t *)regs)[i] = fscc_port_get_register(port, 0, i * 4);
-		else
-			((uint32_t *)regs)[i] = fscc_port_get_register(port, 2, FCR_OFFSET);
+			
+		if (i * 4 <= IMR_OFFSET) {
+			((fscc_register *)regs)[i] = fscc_port_get_register(port, 0, i * 4);
+		}
+		else {
+			((fscc_register *)regs)[i] = fscc_port_get_register(port, 2, 
+			                                                    FCR_OFFSET);
+		}
 	}
 }
 

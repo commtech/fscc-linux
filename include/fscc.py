@@ -57,11 +57,11 @@ class Port(io.FileIO):
 
     def get_registers(self):
         regs = self._construct_full_registers_list()
-
+        
         buf = fcntl.ioctl(self, FSCC_GET_REGISTERS,
-                             struct.pack("i" * len(regs), *regs))
+                          struct.pack("q" * len(regs), *regs))
 
-        regs = struct.unpack("i" * len(regs), buf)
+        regs = struct.unpack("q" * len(regs), buf)
 
         for i in range(len(regs)):
             if regs[i] != -1:
@@ -71,7 +71,7 @@ class Port(io.FileIO):
         regs = self._construct_full_registers_list()
 
         fcntl.ioctl(self, FSCC_SET_REGISTERS,
-                    struct.pack("i" * len(regs), *regs))
+                    struct.pack("q" * len(regs), *regs))
 
     def flush_tx(self):
         fcntl.ioctl(self, FSCC_FLUSH_TX)
