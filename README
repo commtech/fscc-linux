@@ -34,6 +34,9 @@ IX.    Viewing frame status data
 X.     Flushing data out of driver
        1) Using sysfs from the command line
        2) Using the ioctl call from within your application code
+       
+XI.    FAQ
+       1) Ports are not created even though the driver has loaded
 
 
 I. Getting the latest driver
@@ -308,5 +311,26 @@ clear this data out and start out fresh there is a couple ways of doing this.
    
    ioctl(port_fd, FSCC_FLUSH_TX);
    ioctl(port_fd, FSCC_FLUSH_RX);
+      
    
-   
+XI. FAQ  
+-------------------------------------------------------------------------------
+
+1) Q: Why are the /dev/fscc* ports not created even though the driver has
+      loaded?
+
+   A: There are a couple of possibilities but you should first check 
+      /var/log/messages for any helpful information. If that doesn't help you
+      out then continue reading.
+      
+      One possibility is that there is another driver loaded that has claimed 
+      our cards. For example if your kernel is patched to use our card for 
+      asynchronous transmission the linux serial driver has more than likely
+      claimed the card and in turn we won't receive the appropriate 'probe'
+      notifications to load our card.
+      
+      Another possibility is that you have accidentally tried insmod'ing with
+      the 'hot_plug' option enabled and your cards are not actually present.
+      Double check that your card shows up in the output of 'lspci' and make
+      sure to use hot_plug=0.
+      
