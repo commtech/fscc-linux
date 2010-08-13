@@ -9,3 +9,5 @@ syntax: glob
 *.mod.c
 *.out
 *.pyc
+*.*~
+*.markers
