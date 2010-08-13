@@ -28,7 +28,9 @@ def write(args):
     for port_name in args.port:
         port = fscc.Port(port_name, "wb")
 
-        port.write(outgoing_data)
+        for i in range(args.iterations):
+            port.write(outgoing_data)
+        	
         port.close()
 
 
@@ -137,6 +139,7 @@ if __name__ == '__main__':
     parser_write.add_argument('port', type=str, nargs='+', help='the fscc node to send data out of')
     parser_write.add_argument('data', type=str, help='the data to send out of the port')
     parser_write.add_argument('--type', type=str, choices=["ascii", "hex"], default="ascii", help='the type of data to be transmitted')
+    parser_write.add_argument('--iterations', type=int, default=1, help='how many times to transmit the data')
     parser_write.set_defaults(func=write)
 
     parser_random = subparsers.add_parser('random', description="Sends a frame of random data out of an FSCC port.", help='sends a frame of random data out of an FSCC port.')
