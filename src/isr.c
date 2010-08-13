@@ -42,7 +42,7 @@ irqreturn_t fscc_isr(int irq, void *potential_port, struct pt_regs *regs)
 	
 	if (!isr_value)
 		return IRQ_NONE;
-	
+		
 	port->last_isr_value |= isr_value;
 	tasklet_schedule(&port->print_tasklet);	
 	
@@ -61,13 +61,19 @@ irqreturn_t fscc_isr(int irq, void *potential_port, struct pt_regs *regs)
 	if (isr_value & DT_STOP)
 		tasklet_schedule(&port->oframe_tasklet);
 
-	/*
+#ifdef DEUBG
+	if (isr_value & CTSA) 
+		port->ctsa_count++;
+		
+	if (isr_value & CDC) 
+		port->cdc_count++;
+		
 	if (isr_value & DSRC) 
 		port->dsrc_count++;
 
 	if (isr_value & CTSS) 
 		port->ctss_count++;
-	*/
+#endif
 	
 	return IRQ_HANDLED;
 }

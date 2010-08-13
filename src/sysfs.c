@@ -272,6 +272,48 @@ static ssize_t input_frames(struct kobject *kobj, struct kobj_attribute *attr,
 	return sprintf(buf, "%i\n", fscc_port_get_input_frames_qty(port));
 }
 
+#ifdef DEBUG
+static ssize_t ctsa_count(struct kobject *kobj, struct kobj_attribute *attr,
+                          char *buf)
+{
+	struct fscc_port *port = 0;
+	
+	port = (struct fscc_port *)dev_get_drvdata((struct device *)kobj);
+	
+	return sprintf(buf, "%i\n", fscc_port_get_ctsa_count(port));
+}
+
+static ssize_t cdc_count(struct kobject *kobj, struct kobj_attribute *attr,
+                          char *buf)
+{
+	struct fscc_port *port = 0;
+	
+	port = (struct fscc_port *)dev_get_drvdata((struct device *)kobj);
+	
+	return sprintf(buf, "%i\n", fscc_port_get_cdc_count(port));
+}
+
+static ssize_t dsrc_count(struct kobject *kobj, struct kobj_attribute *attr,
+                          char *buf)
+{
+	struct fscc_port *port = 0;
+	
+	port = (struct fscc_port *)dev_get_drvdata((struct device *)kobj);
+	
+	return sprintf(buf, "%i\n", fscc_port_get_dsrc_count(port));
+}
+
+static ssize_t ctss_count(struct kobject *kobj, struct kobj_attribute *attr,
+                          char *buf)
+{
+	struct fscc_port *port = 0;
+	
+	port = (struct fscc_port *)dev_get_drvdata((struct device *)kobj);
+	
+	return sprintf(buf, "%i\n", fscc_port_get_ctss_count(port));
+}
+#endif
+
 static struct kobj_attribute output_memory_attribute = 
 	__ATTR(output_memory, SYSFS_READ_ONLY_MODE, output_memory, 0);
 
@@ -284,11 +326,31 @@ static struct kobj_attribute output_frames_attribute =
 static struct kobj_attribute input_frames_attribute = 
 	__ATTR(input_frames, SYSFS_READ_ONLY_MODE, input_frames, 0);
 
+#ifdef DEBUG
+static struct kobj_attribute ctsa_count_attribute = 
+	__ATTR(ctsa_count, SYSFS_READ_ONLY_MODE, ctsa_count, 0);
+
+static struct kobj_attribute cdc_count_attribute = 
+	__ATTR(cdc_count, SYSFS_READ_ONLY_MODE, cdc_count, 0);
+
+static struct kobj_attribute dsrc_count_attribute = 
+	__ATTR(dsrc_count, SYSFS_READ_ONLY_MODE, dsrc_count, 0);
+
+static struct kobj_attribute ctss_count_attribute = 
+	__ATTR(ctss_count, SYSFS_READ_ONLY_MODE, ctss_count, 0);
+#endif
+
 static struct attribute *info_attrs[] = {
 	&output_memory_attribute.attr,
 	&input_memory_attribute.attr,
 	&output_frames_attribute.attr,
 	&input_frames_attribute.attr,
+#ifdef DEBUG
+	&ctsa_count_attribute.attr,
+	&cdc_count_attribute.attr,
+	&dsrc_count_attribute.attr,
+	&ctss_count_attribute.attr,
+#endif
 	NULL,
 };
 

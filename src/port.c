@@ -328,6 +328,13 @@ struct fscc_port *fscc_port_new(struct fscc_card *card, unsigned channel,
 	port->dev_t = MKDEV(major_number, minor_number);
 	port->append_status = DEFAULT_APPEND_STATUS_VALUE;
 	
+#ifdef DEBUG
+	port->ctsa_count = 0;
+	port->cdc_count = 0;
+	port->dsrc_count = 0;
+	port->ctss_count = 0;
+#endif
+	
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 18)
 	                             
 	#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 27)
@@ -1040,59 +1047,6 @@ void fscc_port_set_clock_bits(struct fscc_port *port, const unsigned char *clock
 	fscc_card_set_register(port->card, 2, FCR_OFFSET, orig_fcr_value); // Restore old values
 }
 
-/*
-void fscc_port_use_async(struct fscc_port *port)
-{
-	__u32 orig_fcr_value = 0;
-	__u32 new_fcr_value = 0;
-	
-	return_if_untrue(port);
-	
-	orig_fcr_value = fscc_card_get_register(port->card, 2, FCR_OFFSET);
-	
-	switch (port->channel) {
-	case 0:
-		new_fcr_value = orig_fcr_value | 0x01000000;
-		break;
-		
-	case 1:
-		new_fcr_value = orig_fcr_value | 0x02000000;
-		break;
-	}
-	
-	if (orig_fcr_value == new_fcr_value)
-		return;
-	
-	fscc_card_set_register(port->card, 2, FCR_OFFSET, new_fcr_value);
-}
-
-void fscc_port_use_sync(struct fscc_port *port)
-{
-	__u32 orig_fcr_value = 0;
-	__u32 new_fcr_value = 0;
-	
-	return_if_untrue(port);
-	
-	orig_fcr_value = fscc_card_get_register(port->card, 2, FCR_OFFSET);
-	
-	switch (port->channel) {
-	case 0:
-		new_fcr_value = orig_fcr_value & ~0x01000000;
-		break;
-		
-	case 1:
-		new_fcr_value = orig_fcr_value & ~0x02000000;
-		break;
-	}
-	
-	if (orig_fcr_value == new_fcr_value)
-		return;
-	
-	fscc_card_set_register(port->card, 2, FCR_OFFSET, new_fcr_value);
-}
-*/
-
-
 void fscc_port_set_append_status(struct fscc_port *port, unsigned value)
 {
 	return_if_untrue(port);
@@ -1163,4 +1117,26 @@ unsigned fscc_port_using_async(struct fscc_port *port)
 	
 	return 0;
 }
+
+#ifdef DEBUG
+unsigned fscc_port_get_ctsa_count(struct fscc_port *port)
+{
+	return port->ctsa_count;
+}
+
+unsigned fscc_port_get_cdc_count(struct fscc_port *port)
+{
+	return port->cdc_count;
+}
+
+unsigned fscc_port_get_dsrc_count(struct fscc_port *port)
+{
+	return port->dsrc_count;
+}
+
+unsigned fscc_port_get_ctss_count(struct fscc_port *port)
+{
+	return port->ctss_count;
+}
+#endif
 

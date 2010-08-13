@@ -74,6 +74,7 @@
 #define CTSS 0x01000000
 #define DSRC 0x02000000
 #define CDC 0x04000000
+#define CTSA 0x08000000
 #define DR_STOP 0x00004000
 #define DT_STOP 0x00008000
 #define DT_FE 0x00002000
@@ -116,11 +117,13 @@ struct fscc_port {
 	volatile unsigned handled_frames;
 	
 	unsigned append_status;
-	
-	/*
-	unsigned dsrc_count = 0;
-	unsigned ctss_count = 0;
-	*/
+
+#ifdef DEBUG	
+	unsigned ctsa_count;
+	unsigned cdc_count;
+	unsigned dsrc_count;
+	unsigned ctss_count;
+#endif
 };
 
 struct fscc_port *fscc_port_new(struct fscc_card *card, unsigned channel, 
@@ -192,5 +195,12 @@ struct fscc_frame *fscc_port_peek_front_frame(struct fscc_port *port,
                                               struct list_head *frames);
                                               
 unsigned fscc_port_using_async(struct fscc_port *port);
+
+#ifdef DEBUG
+unsigned fscc_port_get_ctsa_count(struct fscc_port *port);
+unsigned fscc_port_get_cdc_count(struct fscc_port *port);
+unsigned fscc_port_get_dsrc_count(struct fscc_port *port);
+unsigned fscc_port_get_ctss_count(struct fscc_port *port);
+#endif
                              
 #endif
