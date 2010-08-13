@@ -310,7 +310,8 @@ struct fscc_port *fscc_port_new(struct fscc_card *card, unsigned channel,
 {
 	struct fscc_port *port = 0;
 	unsigned irq_num = 0;
-	
+	char clock_bits[20] = DEFAULT_CLOCK_BITS;
+
 	port = kmalloc(sizeof(*port), GFP_KERNEL);
 	
 	port->started_frames = 0;
@@ -465,6 +466,8 @@ struct fscc_port *fscc_port_new(struct fscc_card *card, unsigned channel,
 	
 	dev_info(port->device, "%s (%x.%02x)\n", fscc_card_get_name(port->card), 
 	         fscc_port_get_PREV(port), fscc_port_get_FREV(port));
+	
+	fscc_port_set_clock_bits(port, clock_bits);
 	
 	return port;
 }
