@@ -24,9 +24,6 @@
 #include "utils.h" /* return_{val_}_if_untrue */
 #include "config.h" /* DEVICE_NAME */
 
-unsigned dsrc_count = 0;
-unsigned ctss_count = 0;
-
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 19)
 irqreturn_t fscc_isr(int irq, void *potential_port)
 #else
@@ -64,12 +61,14 @@ irqreturn_t fscc_isr(int irq, void *potential_port, struct pt_regs *regs)
 	if (isr_value & DT_STOP)
 		tasklet_schedule(&port->oframe_tasklet);
 
+	/*
 	if (isr_value & DSRC) 
-		printk("DSRC %i\n", ++dsrc_count);
+		port->dsrc_count++;
 
 	if (isr_value & CTSS) 
-		printk("CTSS %i\n", ++ctss_count);
-		
+		port->ctss_count++;
+	*/
+	
 	return IRQ_HANDLED;
 }
 

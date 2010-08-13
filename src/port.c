@@ -990,7 +990,7 @@ void fscc_port_set_clock_bits(struct fscc_port *port, const unsigned char *clock
 {
 	__u32 orig_fcr_value = 0;
 	__u32 new_fcr_value = 0;
-	unsigned j = 0;
+	int j = 0; // Must be signed because we are going backwards through the array
 	int i = 0; // Must be signed because we are going backwards through the array
 	unsigned strb_value = STRB_BASE;
 	unsigned dta_value = DTA_BASE;
@@ -999,52 +999,44 @@ void fscc_port_set_clock_bits(struct fscc_port *port, const unsigned char *clock
 	return_if_untrue(port);
 	
 	if (port->channel == 1) {
-		strb_value += 0x08;
-		dta_value += 0x08;
-		clk_value += 0x08;
+		strb_value <<= 0x08;
+		dta_value <<= 0x08;
+		clk_value <<= 0x08;
 	}
 
 	orig_fcr_value = fscc_card_get_register(port->card, 2, FCR_OFFSET);
-
 	new_fcr_value = orig_fcr_value & 0xfffff0f0;
 	
 	fscc_card_set_register(port->card, 2, FCR_OFFSET, new_fcr_value);
-
-	for (i = 19; i >= 0; i--) {
-	//for (i = 0; i < 20; i++) {
-
-		printk("byte value = 0x%02x\n", clock_data[i]);
+	
+	//for (i = 19; i >= 0; i--) {
+	for (i = 0; i < 20; i++) {
 		
-		for (j = 0; j < 8; j++) {
+		//for (j = 0; j < 8; j++) {
+		for (j = 7; j >= 0; j--) {
 			int bit = ((clock_data[i] >> j) & 1);
 			
-			if (bit) {
+			if (bit)
 				new_fcr_value |= dta_value; // Set data bit
-				new_fcr_value |= clk_value; // Set clock bit
-			}
-			else {
+			else
 				new_fcr_value &= ~dta_value; // Clear clock bit
-				new_fcr_value |= clk_value; // Set clock bit
-			}
+			
+			new_fcr_value |= clk_value; // Set clock bit
 			
 			fscc_card_set_register(port->card, 2, FCR_OFFSET, new_fcr_value);
-			//printk("clk high = 0x%08x\n", new_fcr_value);
 			
 			new_fcr_value &= ~clk_value; // Clear clock bit
+			
 			fscc_card_set_register(port->card, 2, FCR_OFFSET, new_fcr_value);
-			//printk("clk low = 0x%08x\n", new_fcr_value);
 		}
 	}
 	
 	new_fcr_value = orig_fcr_value & 0xfffff0f0;
 
-	new_fcr_value |= strb_value; // Set strobe bit
-	new_fcr_value |= clk_value; // Set clock bit		
-	fscc_card_set_register(port->card, 2, FCR_OFFSET, new_fcr_value); // Signal end of clock bits	
-				
+	new_fcr_value |= strb_value; // Set strobe bit				
 	new_fcr_value &= ~clk_value; // Clear clock bit		
+	
 	fscc_card_set_register(port->card, 2, FCR_OFFSET, new_fcr_value); // Signal end of clock bits
-					
 	fscc_card_set_register(port->card, 2, FCR_OFFSET, orig_fcr_value); // Restore old values
 }
 
