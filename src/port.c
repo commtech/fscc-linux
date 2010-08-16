@@ -29,7 +29,7 @@
 #include "utils.h" /* return_{val_}_if_untrue, chars_to_u32, ... */
 #include "config.h" /* DEVICE_NAME, DEFAULT_* */
 #include "isr.h" /* fscc_isr */
-#include "sysfs.h" /* port_*_attribute_group */
+#include "sysfs.h" /* port_*_attribute_group */																																																																																														
 
 #define STATUS_LENGTH 2
 #define TX_FIFO_SIZE 4096
@@ -48,6 +48,8 @@ void fscc_port_execute_STOP_R(struct fscc_port *port);
 void fscc_port_execute_STOP_T(struct fscc_port *port);
 void fscc_port_execute_RST_R(struct fscc_port *port);
 void fscc_port_execute_RST_T(struct fscc_port *port);
+
+int fscc_port_execute_XF(struct fscc_port *port);
 
 void print_worker(unsigned long data)
 {
@@ -330,12 +332,9 @@ struct fscc_port *fscc_port_new(struct fscc_card *card, unsigned channel,
 	port->append_status = DEFAULT_APPEND_STATUS_VALUE;
 	
 #ifdef DEBUG
-	port->ctsa_count = 0;
-	port->cdc_count = 0;
-	port->dsrc_count = 0;
-	port->ctss_count = 0;
+	port->interrupt_tracker = debug_interrupt_tracker_new();
 #endif
-	
+
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 18)
 	                             
 	#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 27)
@@ -456,7 +455,15 @@ struct fscc_port *fscc_port_new(struct fscc_card *card, unsigned channel,
 		dev_err(port->device, "sysfs_create_group\n");
 		return 0;
 	}
-#endif
+	
+#ifdef DEBUG	
+	if (sysfs_create_group(&port->device->kobj, &port_debug_attr_group)) {
+		dev_err(port->device, "sysfs_create_group\n");
+		return 0;
+	}
+#endif /* DEBUG */
+
+#endif /* LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25) */
 	
 	/* TODO When these were up above before setting the registers channel 1
 	   wouldn't work when scheduling the prink tasklet */
@@ -493,6 +500,10 @@ void fscc_port_delete(struct fscc_port *port)
 	
 	fscc_port_empty_frames(port, &port->iframes);
 	fscc_port_empty_frames(port, &port->oframes);
+
+#ifdef DEBUG
+	debug_interrupt_tracker_delete(port->interrupt_tracker);
+#endif	
 	
 	irq_num = fscc_card_get_irq(port->card);
 	free_irq(irq_num, port);
@@ -702,13 +713,41 @@ void fscc_port_get_register_rep(struct fscc_port *port, unsigned bar,
 	fscc_card_get_register_rep(port->card, bar, offset, buf, chunks);
 }
 
-void fscc_port_set_register(struct fscc_port *port, unsigned bar, 
+#define CE_BIT 0x00040000
+
+int fscc_port_set_register(struct fscc_port *port, unsigned bar, 
                             unsigned register_offset, __u32 value)
 {
 	unsigned offset = 0;
 	
-	return_if_untrue(port);
-	return_if_untrue(bar <= 2);	
+	return_val_if_untrue(port, 0);
+	return_val_if_untrue(bar <= 2, 0);
+	
+#ifdef TESTING
+	/* Checks to make sure there is a clock present. */
+	if (bar == 0 && register_offset == CMDR_OFFSET) {
+		__u32 star_value = 0;
+		unsigned i = 0;
+		unsigned stalled = 0;
+		
+		printk("a\n");
+		
+		for (i = 0; i < 5; i++) {			
+			star_value = fscc_port_get_register(port, 0, STAR_OFFSET);
+			
+			if (star_value & CE_BIT) {
+				stalled = 1;
+			}
+			else {
+				stalled = 0;
+				break;
+			}
+		}
+		printk("b %i\n", stalled);
+		if (stalled)
+			return -ENODEV;
+	}
+#endif
 
 	offset = port_offset(port, bar, register_offset);
 		
@@ -718,6 +757,8 @@ void fscc_port_set_register(struct fscc_port *port, unsigned bar,
 		((uint32_t *)&port->register_storage)[offset / 4] = value;
 	else if (offset == FCR_OFFSET)
 		port->register_storage.FCR = value;
+		
+	return 1;
 }
 
 void fscc_port_set_register_rep(struct fscc_port *port, unsigned bar,
@@ -863,11 +904,11 @@ void fscc_port_execute_RRES(struct fscc_port *port)
 	fscc_port_set_register(port, 0, CMDR_OFFSET, 0x00020000);
 }
 
-void fscc_port_execute_XF(struct fscc_port *port)
+int fscc_port_execute_XF(struct fscc_port *port)
 {	
-	return_if_untrue(port);
+	return_val_if_untrue(port, 0);
 	
-	fscc_port_set_register(port, 0, CMDR_OFFSET, 0x01000000);
+	return fscc_port_set_register(port, 0, CMDR_OFFSET, 0x01000000);
 }
 
 void fscc_port_suspend(struct fscc_port *port)
@@ -1122,24 +1163,11 @@ unsigned fscc_port_using_async(struct fscc_port *port)
 }
 
 #ifdef DEBUG
-unsigned fscc_port_get_ctsa_count(struct fscc_port *port)
+unsigned fscc_port_get_interrupt_count(struct fscc_port *port, __u32 isr_bit)
 {
-	return port->ctsa_count;
-}
-
-unsigned fscc_port_get_cdc_count(struct fscc_port *port)
-{
-	return port->cdc_count;
-}
-
-unsigned fscc_port_get_dsrc_count(struct fscc_port *port)
-{
-	return port->dsrc_count;
-}
-
-unsigned fscc_port_get_ctss_count(struct fscc_port *port)
-{
-	return port->ctss_count;
+	return_val_if_untrue(port, 0);
+	
+	return debug_interrupt_tracker_get_count(port->interrupt_tracker, isr_bit);
 }
 #endif
 

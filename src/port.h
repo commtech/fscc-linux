@@ -31,6 +31,7 @@
 
 #include "fscc.h" /* struct fscc_registers */
 #include "descriptor.h" /* struct fscc_descriptor */
+#include "debug.h" /* stuct debug_interrupt_tracker */
 
 #define FIFO_OFFSET 0x00
 #define BC_FIFO_L_OFFSET 0x04
@@ -119,10 +120,7 @@ struct fscc_port {
 	unsigned append_status;
 
 #ifdef DEBUG	
-	unsigned ctsa_count;
-	unsigned cdc_count;
-	unsigned dsrc_count;
-	unsigned ctss_count;
+	struct debug_interrupt_tracker *interrupt_tracker;
 #endif
 };
 
@@ -146,7 +144,7 @@ void fscc_port_get_register_rep(struct fscc_port *port, unsigned bar,
                                  unsigned register_offset, char *buf,
                                  unsigned long chunks);
                                  
-void fscc_port_set_register(struct fscc_port *port, unsigned bar, 
+int fscc_port_set_register(struct fscc_port *port, unsigned bar, 
                             unsigned register_offset, __u32 value);
                             
 void fscc_port_set_register_rep(struct fscc_port *port, unsigned bar,
@@ -165,7 +163,6 @@ __u8 fscc_port_get_PREV(struct fscc_port *port);
 
 void fscc_port_execute_TRES(struct fscc_port *port);
 void fscc_port_execute_RRES(struct fscc_port *port);
-void fscc_port_execute_XF(struct fscc_port *port);
 
 void fscc_port_suspend(struct fscc_port *port);
 void fscc_port_resume(struct fscc_port *port);
@@ -197,10 +194,7 @@ struct fscc_frame *fscc_port_peek_front_frame(struct fscc_port *port,
 unsigned fscc_port_using_async(struct fscc_port *port);
 
 #ifdef DEBUG
-unsigned fscc_port_get_ctsa_count(struct fscc_port *port);
-unsigned fscc_port_get_cdc_count(struct fscc_port *port);
-unsigned fscc_port_get_dsrc_count(struct fscc_port *port);
-unsigned fscc_port_get_ctss_count(struct fscc_port *port);
-#endif
-                             
+unsigned fscc_port_get_interrupt_count(struct fscc_port *port, __u32 isr_bit);
+#endif /* DEBUG */
+                 
 #endif
