@@ -12,8 +12,6 @@ struct debug_interrupt_tracker *debug_interrupt_tracker_new(void)
 	
 	memset(tracker, 0, sizeof(*tracker));
 	
-	printk("a %i\n", tracker->alls);
-	
 	return tracker;
 }
 
