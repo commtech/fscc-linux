@@ -22,9 +22,8 @@
 
 #include "frame.h"
 #include "utils.h" /* return_{val_}if_true */
-#include "config.h" /* DEVICE_NAME */
-#include "port.h"
-#include "card.h"
+#include "port.h" /* struct fscc_port */
+#include "card.h" /* struct fscc_card */
 
 static unsigned frame_counter = 1;
 

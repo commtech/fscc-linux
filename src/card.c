@@ -21,7 +21,6 @@
 #include <linux/version.h>
 #include "card.h"
 #include "port.h" /* struct fscc_port */
-#include "config.h" /* DEVICE_NAME */
 #include "utils.h" /* return_{val_}if_true */
 
 unsigned minor_number = 0;
@@ -70,13 +69,6 @@ struct fscc_card *fscc_card_new(struct pci_dev *pdev,
 			break;
 	}
 #endif
-	
-	/*
-	if (pci_request_regions(card->pci_dev, DEVICE_NAME) != 0) {
-		dev_err(&card->pci_dev->dev, "pci_request_regions failed\n");
-		return 0;
-	}
-	*/
 	
 	/* This requests the pci regions for us. Doing so again will cause our
 	   uarts not to appear correctly. */

@@ -20,13 +20,9 @@
 
 #include <linux/version.h>
 #include "sysfs.h"
+#include "utils.h" /* str_to_register_offset */
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25)
-
-#include "port.h"
-#include "card.h"
-#include "config.h"
-#include "utils.h"
 
 static ssize_t register_store(struct kobject *kobj, struct kobj_attribute *attr,
                               const char *buf, size_t count, 

@@ -1,8 +1,5 @@
 #include "debug.h"
-#include "port.h"
-#include "utils.h"
-#include "config.h"
-#include <linux/module.h>
+#include "utils.h" /* return_{val_}if_true */
 
 struct debug_interrupt_tracker *debug_interrupt_tracker_new(void)
 {

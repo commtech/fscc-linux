@@ -22,7 +22,7 @@
 #include "card.h" /* struct fscc_card */
 #include "port.h" /* struct fscc_port */
 #include "config.h" /* DEVICE_NAME, DEFAULT_* */
-#include "utils.h" /* DEVICE_NAME, DEFAULT_* */
+#include "utils.h" /* is_fscc_device */
 
 static int fscc_major_number;
 static struct class *fscc_class = 0;

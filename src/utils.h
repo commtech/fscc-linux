@@ -23,6 +23,7 @@
 
 #include "fscc.h" /* struct fscc_registers */
 #include "port.h" /* struct fscc_port */
+#include "config.h" /* DEVICE_NAME */
 
 #define warn_if_untrue(expr) \
 	if (expr) {} else \

@@ -21,8 +21,6 @@
 #include "utils.h"
 #include "port.h" /* *_OFFSET */
 #include "card.h" /* FCR_OFFSET */
-#include "config.h" /* DEVICE_NAME */
-#include <linux/module.h>
 
 __u32 chars_to_u32(const char *data)
 {

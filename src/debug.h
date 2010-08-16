@@ -21,7 +21,7 @@
 #ifndef FSCC_DEBUG_H
 #define FSCC_DEBUG_H
 
-#include <linux/module.h>
+#include <linux/module.h> /* __u32 */
 
 struct debug_interrupt_tracker {
 	unsigned rfs;

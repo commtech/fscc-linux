@@ -21,8 +21,7 @@
 #include "isr.h"
 #include "card.h" /* struct fscc_card */
 #include "port.h" /* struct fscc_port */
-#include "utils.h" /* return_{val_}_if_untrue */
-#include "config.h" /* DEVICE_NAME */
+#include "utils.h" /* port_exists */
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 19)
 irqreturn_t fscc_isr(int irq, void *potential_port)
