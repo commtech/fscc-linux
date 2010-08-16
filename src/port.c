@@ -661,8 +661,7 @@ struct fscc_frame *fscc_port_peek_front_frame(struct fscc_port *port,
 	
 	list_for_each_entry(current_frame, frames, list) {
 		return current_frame;
-	}
-	
+	}	
 
 	return 0;
 }
@@ -986,38 +985,40 @@ unsigned fscc_port_get_input_frames_qty(struct fscc_port *port)
     return fscc_port_get_frames_qty(port, &port->iframes);
 }
 
-unsigned fscc_port_get_output_memory_usage(struct fscc_port *port)
+/* Worker function */
+unsigned fscc_port_calculate_memory_usage(struct fscc_port *port, 
+                                          struct fscc_frame *pending_frame, 
+                                          struct list_head *frame_list)
 {
 	struct fscc_frame *current_frame = 0;	
 	unsigned memory = 0;
 	
 	return_val_if_untrue(port, 0);	
 	
-	list_for_each_entry(current_frame, &port->oframes, list) {
+	list_for_each_entry(current_frame, frame_list, list) {
 		memory += fscc_frame_get_current_length(current_frame);
 	}	
 	
-	if (port->pending_oframe)
-		memory += fscc_frame_get_current_length(port->pending_oframe);
+	if (pending_frame)
+		memory += fscc_frame_get_current_length(pending_frame);
 	
 	return memory;
 }
 
+unsigned fscc_port_get_output_memory_usage(struct fscc_port *port)
+{
+	return_val_if_untrue(port, 0);	
+	
+	return fscc_port_calculate_memory_usage(port, port->pending_oframe, 
+	                                        &port->oframes);
+}
+
 unsigned fscc_port_get_input_memory_usage(struct fscc_port *port)
 {
-	struct fscc_frame *current_frame = 0;	
-	unsigned memory = 0;
-	
 	return_val_if_untrue(port, 0);
 	
-	list_for_each_entry(current_frame, &port->iframes, list) {
-		memory += fscc_frame_get_current_length(current_frame);
-	}
-	
-	if (port->pending_iframe)
-		memory += fscc_frame_get_current_length(port->pending_iframe);
-	
-	return memory;
+	return fscc_port_calculate_memory_usage(port, port->pending_iframe, 
+	                                        &port->iframes);
 }
 
 unsigned fscc_port_get_memory_usage(struct fscc_port *port)

@@ -356,11 +356,8 @@ static ssize_t interrupt_count(struct kobject *kobj, struct kobj_attribute *attr
 
 	interrupt_offset = str_to_interrupt_offset(attr->attr.name);
 	
-	if (interrupt_offset >= 0) {
-		//dev_dbg(port->device, "reading register 0x%02x\n", register_offset);
-		       
+	if (interrupt_offset >= 0)
 		return sprintf(buf, "%i\n", fscc_port_get_interrupt_count(port, interrupt_offset));
-	}
 
 	return 0;
 }
