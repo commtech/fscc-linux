@@ -109,7 +109,6 @@ struct fscc_port {
 	
 	struct tasklet_struct oframe_tasklet;
 	struct tasklet_struct iframe_tasklet;
-	struct tasklet_struct print_tasklet;
 	
 	unsigned last_isr_value;
 	
@@ -121,6 +120,7 @@ struct fscc_port {
 
 #ifdef DEBUG	
 	struct debug_interrupt_tracker *interrupt_tracker;
+	struct tasklet_struct print_tasklet;
 #endif
 };
 

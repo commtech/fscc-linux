@@ -74,3 +74,82 @@ unsigned debug_interrupt_tracker_get_count(struct debug_interrupt_tracker *track
 	
 	return *((unsigned *)tracker + i);
 }
+
+
+
+void debug_interrupt_display(unsigned long data)
+{
+	struct fscc_port *port = 0;
+	unsigned isr_value = 0;
+	
+	port = (struct fscc_port *)data;
+	
+	//TODO: This may  not be needed
+	if (!port_exists(port))
+		return;
+	
+	isr_value = port->last_isr_value;
+	port->last_isr_value = 0;
+	
+	dev_dbg(port->device, "interrupt: 0x%08x\n", isr_value);
+	
+	if (isr_value & RFE)
+		dev_dbg(port->device, "RFE (Receive Frame End Interrupt)\n");
+		
+	if (isr_value & RFT)
+		dev_dbg(port->device, "RFT (Receive FIFO Trigger Interrupt)\n");
+		
+	if (isr_value & RFS)
+		dev_dbg(port->device, "RFS (Receive Frame Start Interrupt)\n");
+	
+	if (isr_value & RFO)
+		dev_dbg(port->device, "RFO (Receive Frame Overflow Interrupt)\n");
+	
+	if (isr_value & RDO)
+		dev_dbg(port->device, "RDO (Receive Data Overflow Interrupt)\n");
+	
+	if (isr_value & RFL)
+		dev_dbg(port->device, "RFL (Receive Frame Lost Interrupt)\n");
+	
+	if (isr_value & TIN)
+		dev_dbg(port->device, "TIN (Timer Expiration Interrupt)\n");
+	
+	if (isr_value & TFT)
+		dev_dbg(port->device, "TFT (Transmit FIFO Trigger Interrupt)\n");
+		
+	if (isr_value & TDU)
+		dev_dbg(port->device, "TDU (Transmit Data Underrun Interrupt)\n");
+	
+	if (isr_value & TDU)
+		dev_dbg(port->device, "TDU (Transmit Data Underrun Interrupt)\n");
+	
+	if (isr_value & ALLS)
+		dev_dbg(port->device, "ALLS (All Sent Interrupt)\n");
+	
+	if (isr_value & CTSS)
+		dev_dbg(port->device, "CTSS (CTS State Change Interrupt)\n");
+	
+	if (isr_value & DSRC)
+		dev_dbg(port->device, "DSRC (DSR Change Interrupt)\n");
+	
+	if (isr_value & CDC)
+		dev_dbg(port->device, "CDC (CD Change Interrupt)\n");
+		
+	if (isr_value & DT_STOP)
+		dev_dbg(port->device, "DT_STOP (DMA Transmitter Full Stop indication)\n");
+		
+	if (isr_value & DR_STOP)
+		dev_dbg(port->device, "DR_STOP (DMA Receiver Full Stop indication)\n");
+		
+	if (isr_value & DT_FE)
+		dev_dbg(port->device, "DT_FE (DMA Transmit Frame End indication)\n");
+		
+	if (isr_value & DR_FE)
+		dev_dbg(port->device, "DR_FE (DMA Receive Frame End indication)\n");
+		
+	if (isr_value & DT_HI)
+		dev_dbg(port->device, "DT_HI (DMA Transmit Host Interrupt indication)\n");
+		
+	if (isr_value & DR_HI)
+		dev_dbg(port->device, "DR_HI (DMA Receive Host Interrupt indication)\n");
+}

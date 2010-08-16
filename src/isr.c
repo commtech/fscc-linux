@@ -43,7 +43,6 @@ irqreturn_t fscc_isr(int irq, void *potential_port, struct pt_regs *regs)
 		return IRQ_NONE;
 		
 	port->last_isr_value |= isr_value;
-	tasklet_schedule(&port->print_tasklet);	
 	
 	if (isr_value & RFE)
 		port->ended_frames += 1;
@@ -61,6 +60,7 @@ irqreturn_t fscc_isr(int irq, void *potential_port, struct pt_regs *regs)
 		tasklet_schedule(&port->oframe_tasklet);
 
 #ifdef DEBUG
+	tasklet_schedule(&port->print_tasklet);
 	fscc_port_increment_interrupt_counts(port, isr_value);
 #endif
 	

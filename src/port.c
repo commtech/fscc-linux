@@ -51,83 +51,6 @@ void fscc_port_execute_RST_T(struct fscc_port *port);
 
 int fscc_port_execute_XF(struct fscc_port *port);
 
-void print_worker(unsigned long data)
-{
-	struct fscc_port *port = 0;
-	unsigned isr_value = 0;
-	
-	port = (struct fscc_port *)data;
-	
-	//TODO: This may  not be needed
-	if (!port_exists(port))
-		return;
-	
-	isr_value = port->last_isr_value;
-	port->last_isr_value = 0;
-	
-	dev_dbg(port->device, "interrupt: 0x%08x\n", isr_value);
-	
-	if (isr_value & RFE)
-		dev_dbg(port->device, "RFE (Receive Frame End Interrupt)\n");
-		
-	if (isr_value & RFT)
-		dev_dbg(port->device, "RFT (Receive FIFO Trigger Interrupt)\n");
-		
-	if (isr_value & RFS)
-		dev_dbg(port->device, "RFS (Receive Frame Start Interrupt)\n");
-	
-	if (isr_value & RFO)
-		dev_dbg(port->device, "RFO (Receive Frame Overflow Interrupt)\n");
-	
-	if (isr_value & RDO)
-		dev_dbg(port->device, "RDO (Receive Data Overflow Interrupt)\n");
-	
-	if (isr_value & RFL)
-		dev_dbg(port->device, "RFL (Receive Frame Lost Interrupt)\n");
-	
-	if (isr_value & TIN)
-		dev_dbg(port->device, "TIN (Timer Expiration Interrupt)\n");
-	
-	if (isr_value & TFT)
-		dev_dbg(port->device, "TFT (Transmit FIFO Trigger Interrupt)\n");
-		
-	if (isr_value & TDU)
-		dev_dbg(port->device, "TDU (Transmit Data Underrun Interrupt)\n");
-	
-	if (isr_value & TDU)
-		dev_dbg(port->device, "TDU (Transmit Data Underrun Interrupt)\n");
-	
-	if (isr_value & ALLS)
-		dev_dbg(port->device, "ALLS (All Sent Interrupt)\n");
-	
-	if (isr_value & CTSS)
-		dev_dbg(port->device, "CTSS (CTS State Change Interrupt)\n");
-	
-	if (isr_value & DSRC)
-		dev_dbg(port->device, "DSRC (DSR Change Interrupt)\n");
-	
-	if (isr_value & CDC)
-		dev_dbg(port->device, "CDC (CD Change Interrupt)\n");
-		
-	if (isr_value & DT_STOP)
-		dev_dbg(port->device, "DT_STOP (DMA Transmitter Full Stop indication)\n");
-		
-	if (isr_value & DR_STOP)
-		dev_dbg(port->device, "DR_STOP (DMA Receiver Full Stop indication)\n");
-		
-	if (isr_value & DT_FE)
-		dev_dbg(port->device, "DT_FE (DMA Transmit Frame End indication)\n");
-		
-	if (isr_value & DR_FE)
-		dev_dbg(port->device, "DR_FE (DMA Receive Frame End indication)\n");
-		
-	if (isr_value & DT_HI)
-		dev_dbg(port->device, "DT_HI (DMA Transmit Host Interrupt indication)\n");
-		
-	if (isr_value & DR_HI)
-		dev_dbg(port->device, "DR_HI (DMA Receive Host Interrupt indication)\n");
-}
-
 void iframe_worker(unsigned long data)
 {	
 	struct fscc_port *port = 0;
@@ -469,8 +392,11 @@ struct fscc_port *fscc_port_new(struct fscc_card *card, unsigned channel,
 	   wouldn't work when scheduling the prink tasklet */
 	tasklet_init(&port->oframe_tasklet, oframe_worker, (unsigned long)port);
 	tasklet_init(&port->iframe_tasklet, iframe_worker, (unsigned long)port);
-	tasklet_init(&port->print_tasklet, print_worker, (unsigned long)port);
 	
+#ifdef DEBUG
+	tasklet_init(&port->print_tasklet, debug_interrupt_display, (unsigned long)port);
+#endif
+		
 	dev_info(port->device, "%s (%x.%02x)\n", fscc_card_get_name(port->card), 
 	         fscc_port_get_PREV(port), fscc_port_get_FREV(port));
 	
@@ -889,34 +815,12 @@ unsigned fscc_port_get_CE(struct fscc_port *port)
 	return (unsigned)((star_value & 0x00040000) >> 18);
 }
 
-void fscc_port_execute_TRES(struct fscc_port *port)
-{	
-	return_if_untrue(port);
-	
-	fscc_port_set_register(port, 0, CMDR_OFFSET, 0x08000000);
-}
-
-void fscc_port_execute_RRES(struct fscc_port *port)
-{
-	return_if_untrue(port);
-	
-	fscc_port_set_register(port, 0, CMDR_OFFSET, 0x00020000);
-}
-
-int fscc_port_execute_XF(struct fscc_port *port)
-{	
-	return_val_if_untrue(port, 0);
-	
-	return fscc_port_set_register(port, 0, CMDR_OFFSET, 0x01000000);
-}
-
 void fscc_port_suspend(struct fscc_port *port)
 {
 	return_if_untrue(port);	
 	
 	fscc_port_get_registers(port, &port->register_storage);
 }
-
 
 void fscc_port_resume(struct fscc_port *port)
 {
@@ -976,7 +880,6 @@ unsigned fscc_port_get_output_frames_qty(struct fscc_port *port)
 	
     return fscc_port_get_frames_qty(port, &port->oframes);
 }
-
 
 unsigned fscc_port_get_input_frames_qty(struct fscc_port *port)
 {	
@@ -1104,6 +1007,28 @@ unsigned fscc_port_get_append_status(struct fscc_port *port)
 	return_val_if_untrue(port, 0);
 	
 	return port->append_status;
+}
+
+void fscc_port_execute_TRES(struct fscc_port *port)
+{	
+	return_if_untrue(port);
+	
+	fscc_port_set_register(port, 0, CMDR_OFFSET, 0x08000000);
+}
+
+void fscc_port_execute_RRES(struct fscc_port *port)
+{
+	return_if_untrue(port);
+	
+	fscc_port_set_register(port, 0, CMDR_OFFSET, 0x00020000);
+}
+
+int fscc_port_execute_XF(struct fscc_port *port)
+{	
+	return_val_if_untrue(port, 0);
+	
+	return fscc_port_set_register(port, 0, CMDR_OFFSET, 0x01000000);
+
 }
 
 void fscc_port_execute_GO_R(struct fscc_port *port)

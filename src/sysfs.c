@@ -344,7 +344,6 @@ struct attribute_group port_settings_attr_group = {
 
 
 #ifdef DEBUG
-
 static ssize_t interrupt_count(struct kobject *kobj, struct kobj_attribute *attr,
                                char *buf)
 
