@@ -25,6 +25,7 @@ extern struct attribute_group port_registers_attr_group;
 extern struct attribute_group port_commands_attr_group;
 extern struct attribute_group port_info_attr_group;
 extern struct attribute_group port_settings_attr_group;
+extern struct attribute_group port_debug_attr_group;
 
 #endif
 
