@@ -60,8 +60,10 @@ struct debug_interrupt_tracker {
 
 struct debug_interrupt_tracker *debug_interrupt_tracker_new(void);
 void debug_interrupt_tracker_delete(struct debug_interrupt_tracker *tracker);
-void debug_interrupt_tracker_increment(struct debug_interrupt_tracker *tracker,
+void debug_interrupt_tracker_increment_single(struct debug_interrupt_tracker *tracker,
                                        __u32 isr_bit);
+void debug_interrupt_tracker_increment_all(struct debug_interrupt_tracker *tracker,
+                                       __u32 isr_value);
 unsigned debug_interrupt_tracker_get_count(struct debug_interrupt_tracker *tracker,
                                            __u32 isr_bit);
 

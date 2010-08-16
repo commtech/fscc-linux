@@ -195,6 +195,7 @@ unsigned fscc_port_using_async(struct fscc_port *port);
 
 #ifdef DEBUG
 unsigned fscc_port_get_interrupt_count(struct fscc_port *port, __u32 isr_bit);
+void fscc_port_increment_interrupt_counts(struct fscc_port *port, __u32 isr_value);
 #endif /* DEBUG */
                  
 #endif

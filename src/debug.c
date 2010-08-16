@@ -12,6 +12,8 @@ struct debug_interrupt_tracker *debug_interrupt_tracker_new(void)
 	
 	memset(tracker, 0, sizeof(*tracker));
 	
+	printk("a %i\n", tracker->alls);
+	
 	return tracker;
 }
 
@@ -22,12 +24,15 @@ void debug_interrupt_tracker_delete(struct debug_interrupt_tracker *tracker)
 	kfree(tracker);
 }
 
-void debug_interrupt_tracker_increment(struct debug_interrupt_tracker *tracker,
+void debug_interrupt_tracker_increment_single(struct debug_interrupt_tracker *tracker,
                                        __u32 isr_bit)
 {
 	unsigned i = 0;
 	
 	return_if_untrue(tracker);
+	
+	if (isr_bit == 0)
+		return;
 	
 	isr_bit >>= 1;
 	
@@ -36,7 +41,25 @@ void debug_interrupt_tracker_increment(struct debug_interrupt_tracker *tracker,
 		i++;
 	}
 	
-	(*((unsigned *)tracker + sizeof(unsigned) * i))++;
+	(*((unsigned *)tracker + i))++;
+}
+
+void debug_interrupt_tracker_increment_all(struct debug_interrupt_tracker *tracker,
+                                       __u32 isr_value)
+{
+	unsigned i = 0;
+	
+	return_if_untrue(tracker);
+	
+	if (isr_value == 0)
+		return;
+	
+	for (i = 0; i < sizeof(*tracker) / sizeof(unsigned); i++) {
+		if (isr_value & 0x00000001)
+			(*((unsigned *)tracker + i))++;
+		
+		isr_value >>= 1;
+	}
 }
 
 unsigned debug_interrupt_tracker_get_count(struct debug_interrupt_tracker *tracker,
@@ -45,6 +68,7 @@ unsigned debug_interrupt_tracker_get_count(struct debug_interrupt_tracker *track
 	unsigned i = 0;
 	
 	return_val_if_untrue(tracker, 0);
+	return_val_if_untrue(isr_bit != 0, 0);
 	
 	isr_bit >>= 1;
 	
@@ -53,5 +77,5 @@ unsigned debug_interrupt_tracker_get_count(struct debug_interrupt_tracker *track
 		i++;
 	}
 	
-	return *((unsigned *)tracker + sizeof(unsigned) * i);
+	return *((unsigned *)tracker + i);
 }

@@ -61,18 +61,8 @@ irqreturn_t fscc_isr(int irq, void *potential_port, struct pt_regs *regs)
 	if (isr_value & DT_STOP)
 		tasklet_schedule(&port->oframe_tasklet);
 
-#ifdef DEUBG
-	if (isr_value & CTSA) 
-		port->ctsa_count++;
-		
-	if (isr_value & CDC) 
-		port->cdc_count++;
-		
-	if (isr_value & DSRC) 
-		port->dsrc_count++;
-
-	if (isr_value & CTSS) 
-		port->ctss_count++;
+#ifdef DEBUG
+	fscc_port_increment_interrupt_counts(port, isr_value);
 #endif
 	
 	return IRQ_HANDLED;

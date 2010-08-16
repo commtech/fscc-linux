@@ -1169,5 +1169,12 @@ unsigned fscc_port_get_interrupt_count(struct fscc_port *port, __u32 isr_bit)
 	
 	return debug_interrupt_tracker_get_count(port->interrupt_tracker, isr_bit);
 }
+
+void fscc_port_increment_interrupt_counts(struct fscc_port *port, __u32 isr_value)
+{
+	return_if_untrue(port);
+	
+	debug_interrupt_tracker_increment_all(port->interrupt_tracker, isr_value);
+}
 #endif
 
