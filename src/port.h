@@ -156,7 +156,6 @@ void fscc_port_flush_rx(struct fscc_port *port);
 
 __u32 fscc_port_get_TXCNT(struct fscc_port *port);
 __u32 fscc_port_get_RXCNT(struct fscc_port *port);
-__u32 fscc_port_get_RXTRG(struct fscc_port *port);
 
 __u8 fscc_port_get_FREV(struct fscc_port *port);
 __u8 fscc_port_get_PREV(struct fscc_port *port);
@@ -174,10 +173,8 @@ unsigned fscc_port_get_output_memory_usage(struct fscc_port *port);
 unsigned fscc_port_get_input_memory_usage(struct fscc_port *port);
 unsigned fscc_port_get_memory_usage(struct fscc_port *port);
 
-void fscc_port_set_clock_bits(struct fscc_port *port, const unsigned char *clock_data);
-
-void fscc_port_use_async(struct fscc_port *port);
-void fscc_port_use_sync(struct fscc_port *port);
+void fscc_port_set_clock_bits(struct fscc_port *port, 
+                              const unsigned char *clock_data);
 
 void fscc_port_set_append_status(struct fscc_port *port, unsigned value);
 unsigned fscc_port_get_append_status(struct fscc_port *port);

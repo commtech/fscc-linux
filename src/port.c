@@ -48,7 +48,6 @@ void fscc_port_execute_STOP_R(struct fscc_port *port);
 void fscc_port_execute_STOP_T(struct fscc_port *port);
 void fscc_port_execute_RST_R(struct fscc_port *port);
 void fscc_port_execute_RST_T(struct fscc_port *port);
-
 int fscc_port_execute_XF(struct fscc_port *port);
 
 void iframe_worker(unsigned long data)
@@ -473,7 +472,7 @@ void fscc_port_write(struct fscc_port *port, const char *data, unsigned length)
 	kfree(temp_storage);
 }
 
-//Returns ENOBUFS if count is smaller than pending frame size
+//Returns -ENOBUFS if count is smaller than pending frame size
 //Buf needs to be a user buffer
 ssize_t fscc_port_read(struct fscc_port *port, char *buf, size_t count)
 {
@@ -492,7 +491,7 @@ ssize_t fscc_port_read(struct fscc_port *port, char *buf, size_t count)
 	data_length += (port->append_status) ? STATUS_LENGTH : 0;
 	
 	if (count < data_length)
-		return ENOBUFS;
+		return -ENOBUFS;
 			
 	uncopied_bytes = copy_to_user(buf, fscc_frame_get_remaining_data(frame), 
 			                      fscc_frame_get_target_length(frame));
@@ -569,10 +568,11 @@ void fscc_port_empty_frames(struct fscc_port *port, struct list_head *frames)
 	
 	return_if_untrue(port);
 	return_if_untrue(frames);
-	
+
 	list_for_each_safe(current_node, temp_node, frames) {
 		struct fscc_frame *current_frame = 0;
 		current_frame = list_entry(current_node, struct fscc_frame, list);
+		list_del(current_node);
 		fscc_frame_delete(current_frame);
 	}
 }
@@ -770,18 +770,6 @@ __u32 fscc_port_get_RXCNT(struct fscc_port *port)
 	
 	return fifo_bc_value & 0x00003FFF;
 }
-
-__u32 fscc_port_get_RXTRG(struct fscc_port *port)
-{
-	__u32 fifot_value = 0;	
-	
-	return_val_if_untrue(port, 0);
-	
-	fifot_value = fscc_port_get_register(port, 0, FIFOT_OFFSET);
-	
-	return fifot_value & 0x00001FFF;
-}
-
 __u8 fscc_port_get_FREV(struct fscc_port *port)
 {
 	__u32 vstr_value = 0;	
@@ -837,9 +825,11 @@ void fscc_port_flush_tx(struct fscc_port *port)
 	
 	fscc_port_execute_TRES(port);
 		
-	if (port->pending_oframe)
+	if (port->pending_oframe) {
 		fscc_frame_delete(port->pending_oframe);
-	
+		port->pending_oframe = 0;
+	}
+
 	fscc_port_empty_frames(port, &port->oframes);
 }
 
@@ -851,8 +841,10 @@ void fscc_port_flush_rx(struct fscc_port *port)
 	
 	fscc_port_execute_RRES(port);
 		
-	if (port->pending_iframe)
+	if (port->pending_iframe) {
 		fscc_frame_delete(port->pending_iframe);
+		port->pending_iframe = 0;
+	}
 	
 	fscc_port_empty_frames(port, &port->iframes);
 }
