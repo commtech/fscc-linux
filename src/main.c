@@ -73,6 +73,9 @@ ssize_t fscc_read(struct file *file, char *buf, size_t count, loff_t *ppos)
 	ssize_t read_count = 0;
 	
 	port = file->private_data;
+	
+	if (count == 0)
+		return count;
 		
 	if (fscc_port_using_async(port)) {
 		dev_warn(port->device, "use /dev/ttySx nodes while in async mode\n");
@@ -109,6 +112,9 @@ ssize_t fscc_write(struct file *file, const char *buf, size_t count,
 	struct fscc_port *port = 0;
 	
 	port = file->private_data;
+	
+	if (count == 0)
+		return count;
 		
 	if (fscc_port_using_async(port)) {
 		dev_warn(port->device, "use /dev/ttySx nodes while in async mode\n");
