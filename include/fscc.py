@@ -100,74 +100,12 @@ class Port(io.FileIO):
                 -1, self.IMR, self.FCR]
 
     def _set_register_by_index(self, index, value):
-        if index == 2:
-            self.FIFOT = value
-            return
+    	data = [("FIFOT", 2), ("CMDR", 5), ("STAR", 6), ("CCR0", 7), 
+    	        ("CCR1", 8), ("CCR2", 9), ("BGR", 10), ("SSR", 11), 
+    	        ("SMR", 12), ("TSR", 13), ("TMR", 14), ("RAR", 15), 
+    	        ("RAMR", 16), ("PPR", 17), ("TCR", 18), ("VSTR", 19), 
+    	        ("IMR", 21), ("FCR", 22)]
 
-        if index == 5:
-            self.CMDR = value
-            return
-
-        if index == 6:
-            self.STAR = value
-            return
-
-        if index == 7:
-            self.CCR0 = value
-            return
-
-        if index == 8:
-            self.CCR1 = value
-            return
-
-        if index == 9:
-            self.CCR2 = value
-            return
-
-        if index == 10:
-            self.BGR = value
-            return
-
-        if index == 11:
-            self.SSR = value
-            return
-
-        if index == 12:
-            self.SMR = value
-            return
-
-        if index == 13:
-            self.TSR = value
-            return
-
-        if index == 14:
-            self.TMR = value
-            return
-
-        if index == 15:
-            self.RAR = value
-            return
-
-        if index == 16:
-            self.RAMR = value
-            return
-
-        if index == 17:
-            self.PPR = value
-            return
-
-        if index == 18:
-            self.TCR = value
-            return
-
-        if index == 19:
-            self.VSTR = value
-            return
-
-        if index == 21:
-            self.IMR = value
-            return
-
-        if index == 22:
-            self.FCR = value
-            return
+        for r, i in data:
+            if i == index:
+                setattr(self, r, value)
