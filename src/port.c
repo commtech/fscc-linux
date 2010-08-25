@@ -35,12 +35,6 @@
 #define TX_FIFO_SIZE 4096
                                               
 void fscc_port_empty_frames(struct fscc_port *port, struct list_head *frames);
-
-void fscc_port_fill_TxFIFO(struct fscc_port *port, const char *data, 
-                           unsigned byte_count);
-                           
-__u32 fscc_port_empty_RxFIFO(struct fscc_port *port, char *buffer, 
-                           unsigned byte_count);
                            
 void fscc_port_execute_GO_R(struct fscc_port *port);
 void fscc_port_execute_GO_T(struct fscc_port *port);
@@ -106,15 +100,14 @@ void iframe_worker(unsigned long data)
 					   
 			fscc_frame_delete(port->pending_iframe);
 			port->pending_iframe = 0;
-		
-			//TODO: Flush rx?
-			//fscc_port_flush_rx(port);
+			
 			return;
 		}
 	
-		last_data_chunk = fscc_port_empty_RxFIFO(port, buffer, receive_length);
+		fscc_port_get_register_rep(port, 0, FIFO_OFFSET, buffer, receive_length); //TODO: Missing last_data_chunk
+                                
 		fscc_frame_add_data(port->pending_iframe, buffer, receive_length);
-
+        
 		kfree(buffer);
 
 		dev_dbg(port->device, "F#%i %i byte%s <= FIFO\n", 
@@ -127,6 +120,7 @@ void iframe_worker(unsigned long data)
 	
 	leftover_count = receive_length % 4;
 	
+	//TODO: This needs to be changed for big endian
 	switch (leftover_count) {
 	case 0:
 		frame_status = fscc_port_get_register(port, 0, FIFO_OFFSET) & 0x0000FFFF;
@@ -147,9 +141,10 @@ void iframe_worker(unsigned long data)
 	
 	if (fscc_memory_usage() + receive_length > memory_cap) {
 		dev_dbg(port->device, "F#%i receive rejected (memory constraint)\n",
-		          port->pending_iframe->number);
+		        port->pending_iframe->number);
 		       
 		fscc_frame_delete(port->pending_iframe);
+		port->pending_iframe = 0;
 	} else {
 		fscc_frame_set_status(port->pending_iframe, frame_status);
 		fscc_frame_trim(port->pending_iframe);
@@ -157,7 +152,7 @@ void iframe_worker(unsigned long data)
 		list_add_tail(&port->pending_iframe->list, &port->iframes);
 		
 		dev_dbg(port->device, "F#%i receive successful\n", 
-				    port->pending_iframe->number);
+				port->pending_iframe->number);
 				   
 		wake_up_interruptible(&port->input_queue);
 	}
@@ -207,7 +202,7 @@ void oframe_worker(unsigned long data)
 	fifo_space = TX_FIFO_SIZE - fscc_port_get_TXCNT(port);		
 	
 	transmit_length = (current_length + padding_bytes > fifo_space) ? fifo_space : current_length;
-	fscc_port_fill_TxFIFO(port, port->pending_oframe->data, transmit_length);
+	fscc_port_set_register_rep(port, 0, FIFO_OFFSET, port->pending_oframe->data, transmit_length);
 	fscc_frame_remove_data(port->pending_oframe, transmit_length);
 		
 	dev_dbg(port->device, "F#%i %i byte%s => FIFO\n", 
@@ -307,8 +302,6 @@ struct fscc_port *fscc_port_new(struct fscc_card *card, unsigned channel,
 		dev_err(port->device, "cdev_add failed\n");
 		return 0;
 	}
-	
-	list_add_tail(&port->list, fscc_card_get_ports(card));
 	
 	port->last_isr_value = 0;
 	
@@ -438,7 +431,6 @@ void fscc_port_delete(struct fscc_port *port)
 #endif
 
 	cdev_del(&port->cdev);
-	list_del(&port->list);
 	
 	if (port->name)
 		kfree(port->name);
@@ -514,53 +506,6 @@ ssize_t fscc_port_read(struct fscc_port *port, char *buf, size_t count)
 	return data_length;
 }
 
-void fscc_port_fill_TxFIFO(struct fscc_port *port, const char *data, 
-                           unsigned byte_count)
-{
-	unsigned leftover_count = 0;
-	unsigned chunks = 0;
-	
-	return_if_untrue(port);
-	
-	leftover_count = byte_count % 4;
-	chunks = (byte_count - leftover_count) / 4;
-	
-	if (chunks)
-		fscc_port_set_register_rep(port, 0, FIFO_OFFSET, data, chunks);
-	
-	/* Writes the leftover bytes (non 4 byte chunk) */
-	if (leftover_count)
-		fscc_port_set_register(port, 0, FIFO_OFFSET, chars_to_u32(data + (byte_count - leftover_count)));
-}
-
-/* Returns the last data chunk retrieved */
-__u32 fscc_port_empty_RxFIFO(struct fscc_port *port, char *buffer,
-                             unsigned byte_count)
-{
-	unsigned leftover_count = 0;
-	__u32 incoming_data = 0;
-	unsigned chunks = 0;
-	
-	return_val_if_untrue(port, 0);
-	return_val_if_untrue(buffer, 0);
-	return_val_if_untrue(byte_count, 0);
-	
-	leftover_count = byte_count % 4;
-	chunks = (byte_count - leftover_count) / 4;
-	
-	if (chunks)
-		fscc_port_get_register_rep(port, 0, FIFO_OFFSET, buffer, chunks);
-	
-	if (leftover_count) {
-		incoming_data = fscc_port_get_register(port, 0, FIFO_OFFSET);
-		
-		memmove(buffer + (byte_count - leftover_count), 
-		        (char *)(&incoming_data), leftover_count);
-	}
-	
-	return incoming_data;
-}
-
 void fscc_port_empty_frames(struct fscc_port *port, struct list_head *frames)
 {	
 	struct list_head *current_node = 0;
@@ -610,32 +555,13 @@ __u32 fscc_port_get_register(struct fscc_port *port, unsigned bar,
                              unsigned register_offset)
 {
 	unsigned offset = 0;
-	__u32 value = 0;
 	
 	return_val_if_untrue(port, 0);
 	return_val_if_untrue(bar <= 2, 0);
 
 	offset = port_offset(port, bar, register_offset);
 		
-	value = fscc_card_get_register(port->card, bar, offset);
-	
-	return value;
-}
-
-void fscc_port_get_register_rep(struct fscc_port *port, unsigned bar, 
-                                unsigned register_offset, char *buf,
-                                unsigned long chunks)
-{
-	unsigned offset = 0;
-	
-	return_if_untrue(port);
-	return_if_untrue(bar <= 2);
-	return_if_untrue(buf);
-	return_if_untrue(chunks > 0);
-
-	offset = port_offset(port, bar, register_offset);
-		
-	fscc_card_get_register_rep(port->card, bar, offset, buf, chunks);
+	return fscc_card_get_register(port->card, bar, offset);
 }
 
 #define CE_BIT 0x00040000
@@ -686,20 +612,36 @@ int fscc_port_set_register(struct fscc_port *port, unsigned bar,
 	return 1;
 }
 
+void fscc_port_get_register_rep(struct fscc_port *port, unsigned bar, 
+                                unsigned register_offset, char *buf,
+                                unsigned byte_count)
+{
+	unsigned offset = 0;
+	
+	return_if_untrue(port);
+	return_if_untrue(bar <= 2);
+	return_if_untrue(buf);
+	return_if_untrue(byte_count > 0);
+
+	offset = port_offset(port, bar, register_offset);
+		
+	fscc_card_get_register_rep(port->card, bar, offset, buf, byte_count);
+}
+
 void fscc_port_set_register_rep(struct fscc_port *port, unsigned bar,
                                 unsigned register_offset, const char *data,
-                                unsigned long chunks) 
+                                unsigned byte_count) 
 {
 	unsigned offset = 0;
 	
 	return_if_untrue(port);
 	return_if_untrue(bar <= 2);
 	return_if_untrue(data);
-	return_if_untrue(chunks > 0);
+	return_if_untrue(byte_count > 0);
 
 	offset = port_offset(port, bar, register_offset);
 		
-	fscc_card_set_register_rep(port->card, bar, offset, data, chunks);
+	fscc_card_set_register_rep(port->card, bar, offset, data, byte_count);
 }
 
 void fscc_port_set_registers(struct fscc_port *port, 

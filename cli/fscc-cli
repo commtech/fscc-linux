@@ -24,7 +24,7 @@ def write(args):
 
     if args.type == "hex":
         outgoing_data = outgoing_data.decode("hex")
-
+    
     for port_name in args.port:
         port = fscc.Port(port_name, "wb")
 
@@ -36,11 +36,11 @@ def write(args):
 
 def read(args):
     port = fscc.Port(args.port, "rb")
-    incoming_data = port.read(40)
-
+    incoming_data = port.read(4096)
+    
     if args.type == "hex":
         incoming_data = incoming_data.encode("hex")
-
+    
     print(incoming_data)
 
     port.close()

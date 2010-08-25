@@ -24,6 +24,14 @@
 #include "config.h" /* DEVICE_NAME, DEFAULT_* */
 #include "utils.h" /* is_fscc_device */
 
+#if defined(__BIG_ENDIAN) && defined(__LITTLE_ENDIAN)
+    #error Both __BIG_ENDIAN and __LITTLE_ENDIAN are defined
+#endif
+
+#if !defined(__BIG_ENDIAN) && !defined(__LITTLE_ENDIAN)
+    #error Neither __BIG_ENDIAN or __LITTLE_ENDIAN are defined
+#endif
+
 static int fscc_major_number;
 static struct class *fscc_class = 0;
 unsigned memory_cap = DEFAULT_MEMORY_CAP_VALUE;
@@ -101,6 +109,7 @@ ssize_t fscc_read(struct file *file, char *buf, size_t count, loff_t *ppos)
 	}
 	
 	read_count = fscc_port_read(port, buf, count);
+	
 	up(&port->read_semaphore);
 	
 	return read_count;

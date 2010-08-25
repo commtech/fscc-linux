@@ -209,4 +209,3 @@ unsigned is_fscc_device(struct pci_dev *pdev)
 	}
 }
 
-

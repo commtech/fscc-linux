@@ -19,6 +19,7 @@
 */
 
 #include <linux/version.h>
+#include <asm/byteorder.h> /* __BIG_ENDIAN */
 #include "card.h"
 #include "port.h" /* struct fscc_port */
 #include "utils.h" /* return_{val_}if_true */
@@ -100,7 +101,10 @@ struct fscc_card *fscc_card_new(struct pci_dev *pdev,
 	for (i = 0; i < 2; i++) {
 		port_iter = fscc_port_new(card, i, major_number, minor_number, 
 		                          &card->pci_dev->dev, class, fops);
-		                                              
+		
+		if (port_iter)               
+	        list_add_tail(&port_iter->list, &card->ports); 
+	                           
 		minor_number += 1;        
 	}
 	
@@ -117,9 +121,10 @@ void fscc_card_delete(struct fscc_card *card)
 	list_for_each_safe(current_node, temp_node, &card->ports) {
 		struct fscc_port *current_port = 0;
 		current_port = list_entry(current_node, struct fscc_port, list);
+		list_del(current_node);
 		fscc_port_delete(current_port);
 	}
-
+	
 	pciserial_remove_ports(card->serial_priv);
 	pci_set_drvdata(card->pci_dev, NULL);
 	
@@ -205,25 +210,11 @@ __u32 fscc_card_get_register(struct fscc_card *card, unsigned bar,
 	return_val_if_untrue(bar <= 2, 0);
 	
 	address = fscc_card_get_BAR(card, bar);	
-	value = ioread32(address + offset);
+	
+	value = ioread32(address + offset);	
+	value = le32_to_cpu(value);
 	
 	return value;
-}
-
-void fscc_card_get_register_rep(struct fscc_card *card, unsigned bar, 
-                                unsigned offset, char *buf,
-                                unsigned long chunks)
-{
-	void __iomem *address = 0;
-	
-	return_if_untrue(card);
-	return_if_untrue(bar <= 2);
-	return_if_untrue(buf);
-	return_if_untrue(chunks > 0);
-	
-	address = fscc_card_get_BAR(card, bar);
-	
-	ioread32_rep(address + offset, buf, chunks);
 }
 
 void fscc_card_set_register(struct fscc_card *card, unsigned bar, 
@@ -235,24 +226,97 @@ void fscc_card_set_register(struct fscc_card *card, unsigned bar,
 	return_if_untrue(bar <= 2);
 	
 	address = fscc_card_get_BAR(card, bar);
+	
+	value = cpu_to_le32(value);
 
 	iowrite32(value, address + offset);
 }
 
+void fscc_card_get_register_rep(struct fscc_card *card, unsigned bar, 
+                                unsigned offset, char *buf,
+                                unsigned byte_count)
+{
+	void __iomem *address = 0;	
+	unsigned leftover_count = 0;
+	__u32 incoming_data = 0;
+	unsigned chunks = 0;
+	
+	return_if_untrue(card);
+	return_if_untrue(bar <= 2);
+	return_if_untrue(buf);
+	return_if_untrue(byte_count > 0);
+	
+	address = fscc_card_get_BAR(card, bar);	
+	leftover_count = byte_count % 4;
+	chunks = (byte_count - leftover_count) / 4;
+	
+	ioread32_rep(address + offset, buf, chunks);
+	
+	if (leftover_count) {
+		incoming_data = ioread32(address + offset);
+		
+		memmove(buf + (byte_count - leftover_count), 
+		        (char *)(&incoming_data), leftover_count);
+	}
+
+#ifdef __BIG_ENDIAN
+    {
+        unsigned i = 0;
+        
+        for (i = 0; i < (int)(byte_count / 2); i++) {
+            char first, last;
+            
+            first = buf[i];
+            last = buf[byte_count - i - 1];
+            
+            buf[i] = last;
+            buf[byte_count - i - 1] = first;
+        }
+    }
+#endif 
+}
+
 void fscc_card_set_register_rep(struct fscc_card *card, unsigned bar,
                                 unsigned offset, const char *data,
-                                unsigned long chunks) 
+                                unsigned byte_count) 
 {
 	void __iomem *address = 0;
+	unsigned leftover_count = 0;
+	unsigned chunks = 0;
+    char *reversed_data = 0;
+    const char *outgoing_data = 0;
 	
 	return_if_untrue(card);
 	return_if_untrue(bar <= 2);
 	return_if_untrue(data);
-	return_if_untrue(chunks > 0);
+	return_if_untrue(byte_count > 0);
 	
-	address = fscc_card_get_BAR(card, bar);
+	address = fscc_card_get_BAR(card, bar);	
+	leftover_count = byte_count % 4;
+	chunks = (byte_count - leftover_count) / 4;
 	
-	iowrite32_rep(address + offset, data, chunks);
+	outgoing_data = data;
+
+#ifdef __BIG_ENDIAN
+    {
+        unsigned i = 0;
+        
+        reversed_data = kmalloc(byte_count, GFP_KERNEL);
+        
+        for (i = 0; i < byte_count; i++)
+            reversed_data[i] = data[byte_count - i - 1];
+            
+        outgoing_data = reversed_data;
+    }
+#endif 
+    
+    iowrite32_rep(address + offset, outgoing_data, chunks);
+	
+    if (leftover_count)
+	    iowrite32(chars_to_u32(outgoing_data + (byte_count - leftover_count)), address + offset);
+    
+    if (reversed_data)
+        kfree(reversed_data);
 }
 
 struct list_head *fscc_card_get_ports(struct fscc_card *card)

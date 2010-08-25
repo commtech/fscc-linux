@@ -141,15 +141,15 @@ __u32 fscc_port_get_register(struct fscc_port *port, unsigned bar,
                              unsigned register_offset);
                              
 void fscc_port_get_register_rep(struct fscc_port *port, unsigned bar, 
-                                 unsigned register_offset, char *buf,
-                                 unsigned long chunks);
+                                unsigned register_offset, char *buf,
+                                unsigned byte_count);
                                  
 int fscc_port_set_register(struct fscc_port *port, unsigned bar, 
                             unsigned register_offset, __u32 value);
                             
 void fscc_port_set_register_rep(struct fscc_port *port, unsigned bar,
                                 unsigned register_offset, const char *data,
-                                unsigned long chunks);
+                                unsigned byte_count);
                                 
 void fscc_port_flush_tx(struct fscc_port *port);
 void fscc_port_flush_rx(struct fscc_port *port);

@@ -1,6 +1,8 @@
 import struct
 import fcntl
 import io
+import os
+import errno
 
 IOCPARM_MASK = 0x7f
 #IOC_NONE = 0x20000000
@@ -39,10 +41,12 @@ FSCC_DISABLE_APPEND_STATUS = _IO(FSCC_IOCTL_MAGIC, 5)
 
 FSCC_UPDATE_VALUE = -2
 
-
 class Port(io.FileIO):
 
     def __init__(self, file, mode, append_status=False):
+        if not os.path.exists(file):            
+            raise IOError(errno.ENOENT, os.strerror(errno.ENOENT), file)
+            
         io.FileIO.__init__(self, file, mode)
         self.reset_registers()
 
