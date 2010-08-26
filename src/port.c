@@ -394,6 +394,8 @@ struct fscc_port *fscc_port_new(struct fscc_card *card, unsigned channel,
 	
 	fscc_port_set_clock_bits(port, clock_bits);
 	
+	//fscc_port_set_register(port, 0, CCR0_OFFSET, 0x0011201d);
+	
 	return port;
 }
 
@@ -885,7 +887,12 @@ void fscc_port_set_clock_bits(struct fscc_port *port, const unsigned char *clock
 	unsigned dta_value = DTA_BASE;
 	unsigned clk_value = CLK_BASE;
 	
+	__u32 *data = 0;
+	unsigned data_index = 0;
+	
 	return_if_untrue(port);
+	
+	data = kmalloc(sizeof(__u32) * 323, GFP_KERNEL);
 	
 	if (port->channel == 1) {
 		strb_value <<= 0x08;
@@ -894,39 +901,33 @@ void fscc_port_set_clock_bits(struct fscc_port *port, const unsigned char *clock
 	}
 
 	orig_fcr_value = fscc_card_get_register(port->card, 2, FCR_OFFSET);
-	new_fcr_value = orig_fcr_value & 0xfffff0f0;
+	data[data_index++] = new_fcr_value = orig_fcr_value & 0xfffff0f0;
 	
-	fscc_card_set_register(port->card, 2, FCR_OFFSET, new_fcr_value);
-	
-	//for (i = 19; i >= 0; i--) {
 	for (i = 0; i < 20; i++) {
-		
-		//for (j = 0; j < 8; j++) {
 		for (j = 7; j >= 0; j--) {
 			int bit = ((clock_data[i] >> j) & 1);
 			
 			if (bit)
-				new_fcr_value |= dta_value; // Set data bit
+				new_fcr_value |= dta_value; /* Set data bit */
 			else
-				new_fcr_value &= ~dta_value; // Clear clock bit
-			
-			new_fcr_value |= clk_value; // Set clock bit
-			
-			fscc_card_set_register(port->card, 2, FCR_OFFSET, new_fcr_value);
-			
-			new_fcr_value &= ~clk_value; // Clear clock bit
-			
-			fscc_card_set_register(port->card, 2, FCR_OFFSET, new_fcr_value);
+				new_fcr_value &= ~dta_value; /* Clear clock bit */
+				
+	        data[data_index++] = new_fcr_value |= clk_value; /* Set clock bit */
+	        data[data_index++] = new_fcr_value &= ~clk_value; /* Clear clock bit */
 		}
 	}
 	
 	new_fcr_value = orig_fcr_value & 0xfffff0f0;
 
-	new_fcr_value |= strb_value; // Set strobe bit				
-	new_fcr_value &= ~clk_value; // Clear clock bit		
+	new_fcr_value |= strb_value; /* Set strobe bit */			
+	new_fcr_value &= ~clk_value; /* Clear clock bit	*/	
 	
-	fscc_card_set_register(port->card, 2, FCR_OFFSET, new_fcr_value); // Signal end of clock bits
-	fscc_card_set_register(port->card, 2, FCR_OFFSET, orig_fcr_value); // Restore old values
+	data[data_index++] = new_fcr_value;
+	data[data_index++] = orig_fcr_value;
+	
+	fscc_card_set_register_rep(port->card, 2, FCR_OFFSET, (char *)data, data_index * 4);
+	
+	kfree(data);
 }
 
 void fscc_port_set_append_status(struct fscc_port *port, unsigned value)

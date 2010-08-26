@@ -228,7 +228,7 @@ void fscc_card_set_register(struct fscc_card *card, unsigned bar,
 	address = fscc_card_get_BAR(card, bar);
 	
 	value = cpu_to_le32(value);
-
+	
 	iowrite32(value, address + offset);
 }
 
