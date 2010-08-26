@@ -52,7 +52,6 @@ void iframe_worker(unsigned long data)
 	unsigned finished_frame = 0;
 	__u32 last_data_chunk = 0;
 	__u32 frame_status = 0;
-	char *buffer = 0;
 
 	port = (struct fscc_port *)data;
 	
@@ -92,31 +91,47 @@ void iframe_worker(unsigned long data)
 	}
 	
 	if (receive_length > 0) {
+	    char *buffer = 0;
+	    
+	    if (fscc_memory_usage() + receive_length > memory_cap) {
+		    dev_dbg(port->device, "F#%i receive rejected (memory constraint)\n",
+		            port->pending_iframe->number);
+		           
+		    fscc_frame_delete(port->pending_iframe);
+		    port->pending_iframe = 0;
+		    
+	        port->handled_frames += 1;
+		    
+		    return;
+	    }
+	        
 		buffer = kmalloc(receive_length, GFP_ATOMIC);
 		
 		if (buffer == NULL) {
-			dev_dbg(port->device, "F#%i receive rejected (kmalloc of %i bytes)\n",
-				   port->pending_iframe->number, receive_length);
-					   
+		    dev_dbg(port->device, "F#%i receive rejected (kmalloc of %i bytes)\n",
+				    port->pending_iframe->number, receive_length);
+					       
 			fscc_frame_delete(port->pending_iframe);
 			port->pending_iframe = 0;
+	
+	        port->handled_frames += 1;
 			
 			return;
 		}
-	
+		    
 		fscc_port_get_register_rep(port, 0, FIFO_OFFSET, buffer, receive_length); //TODO: Missing last_data_chunk
-                                
+                                    
 		fscc_frame_add_data(port->pending_iframe, buffer, receive_length);
-        
+            
 		kfree(buffer);
 
 		dev_dbg(port->device, "F#%i %i byte%s <= FIFO\n", 
 				port->pending_iframe->number, receive_length,
 				(receive_length == 1) ? "" : "s");
 	}
-		       
+	
 	if (!finished_frame)
-		return;
+	    return;
 	
 	leftover_count = receive_length % 4;
 	
@@ -139,23 +154,15 @@ void iframe_worker(unsigned long data)
 		break;
 	}
 	
-	if (fscc_memory_usage() + receive_length > memory_cap) {
-		dev_dbg(port->device, "F#%i receive rejected (memory constraint)\n",
-		        port->pending_iframe->number);
-		       
-		fscc_frame_delete(port->pending_iframe);
-		port->pending_iframe = 0;
-	} else {
-		fscc_frame_set_status(port->pending_iframe, frame_status);
-		fscc_frame_trim(port->pending_iframe);
+	fscc_frame_set_status(port->pending_iframe, frame_status);
+	fscc_frame_trim(port->pending_iframe);
 		
-		list_add_tail(&port->pending_iframe->list, &port->iframes);
+	list_add_tail(&port->pending_iframe->list, &port->iframes);
 		
-		dev_dbg(port->device, "F#%i receive successful\n", 
-				port->pending_iframe->number);
+	dev_dbg(port->device, "F#%i receive successful\n", 
+			port->pending_iframe->number);
 				   
-		wake_up_interruptible(&port->input_queue);
-	}
+	wake_up_interruptible(&port->input_queue);
 
 	port->handled_frames += 1;	       
 	port->pending_iframe = 0;	

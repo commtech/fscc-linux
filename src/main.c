@@ -133,21 +133,6 @@ ssize_t fscc_write(struct file *file, const char *buf, size_t count,
 	if (down_interruptible(&port->write_semaphore))
 		return -ERESTARTSYS;
 		
-	while (fscc_memory_usage() + count > memory_cap) {
-		up(&port->write_semaphore);
-		
-		if (file->f_flags & O_NONBLOCK)
-			return -EAGAIN;
-			
-		if (wait_event_interruptible(output_queue, 
-		                          fscc_memory_usage() + count <= memory_cap)) {
-			return -ERESTARTSYS;
-		}
-			
-		if (down_interruptible(&port->write_semaphore))
-			return -ERESTARTSYS;
-	}
-		
 	fscc_port_write(port, buf, count);
 	
 	up(&port->write_semaphore);
@@ -170,8 +155,7 @@ unsigned fscc_poll(struct file *file, struct poll_table_struct *wait)
 	if (fscc_port_has_iframes(port))
 		mask |= POLLIN | POLLRDNORM;
 		
-	if (fscc_memory_usage() < memory_cap)
-		mask |= POLLOUT | POLLWRNORM;
+	mask |= POLLOUT | POLLWRNORM;
 	
 	up(&port->poll_semaphore);
 	
