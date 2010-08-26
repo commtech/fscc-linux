@@ -44,9 +44,9 @@ FSCC_UPDATE_VALUE = -2
 class Port(io.FileIO):
 
     def __init__(self, file, mode, append_status=False):
-        if not os.path.exists(file):            
+        if not os.path.exists(file):
             raise IOError(errno.ENOENT, os.strerror(errno.ENOENT), file)
-            
+
         io.FileIO.__init__(self, file, mode)
         self.reset_registers()
 
@@ -61,7 +61,7 @@ class Port(io.FileIO):
 
     def get_registers(self):
         regs = self._construct_full_registers_list()
-        
+
         buf = fcntl.ioctl(self, FSCC_GET_REGISTERS,
                           struct.pack("q" * len(regs), *regs))
 
@@ -104,11 +104,11 @@ class Port(io.FileIO):
                 -1, self.IMR, self.FCR]
 
     def _set_register_by_index(self, index, value):
-    	data = [("FIFOT", 2), ("CMDR", 5), ("STAR", 6), ("CCR0", 7), 
-    	        ("CCR1", 8), ("CCR2", 9), ("BGR", 10), ("SSR", 11), 
-    	        ("SMR", 12), ("TSR", 13), ("TMR", 14), ("RAR", 15), 
-    	        ("RAMR", 16), ("PPR", 17), ("TCR", 18), ("VSTR", 19), 
-    	        ("IMR", 21), ("FCR", 22)]
+        data = [("FIFOT", 2), ("CMDR", 5), ("STAR", 6), ("CCR0", 7),
+                ("CCR1", 8), ("CCR2", 9), ("BGR", 10), ("SSR", 11),
+                ("SMR", 12), ("TSR", 13), ("TMR", 14), ("RAR", 15),
+                ("RAMR", 16), ("PPR", 17), ("TCR", 18), ("VSTR", 19),
+                ("IMR", 21), ("FCR", 22)]
 
         for r, i in data:
             if i == index:
