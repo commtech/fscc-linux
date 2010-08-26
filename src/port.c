@@ -330,14 +330,6 @@ struct fscc_port *fscc_port_new(struct fscc_card *card, unsigned channel,
 	
 	fscc_port_set_registers(port, &port->register_storage);
 	
-	fscc_port_set_register(port, 2, DMACCR_OFFSET, 0x02000000);
-	
-	fscc_port_execute_RST_R(port);
-	fscc_port_execute_RST_T(port);
-	
-	fscc_port_execute_RRES(port);
-	fscc_port_execute_TRES(port);
-	
 	irq_num = fscc_card_get_irq(card);	
 	
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 18)
@@ -394,7 +386,13 @@ struct fscc_port *fscc_port_new(struct fscc_card *card, unsigned channel,
 	
 	fscc_port_set_clock_bits(port, clock_bits);
 	
-	//fscc_port_set_register(port, 0, CCR0_OFFSET, 0x0011201d);
+	if (port->card->dma) {
+	    fscc_port_execute_RST_R(port);
+	    fscc_port_execute_RST_T(port);
+	}
+	
+	fscc_port_execute_RRES(port);
+	fscc_port_execute_TRES(port);
 	
 	return port;
 }
@@ -405,12 +403,14 @@ void fscc_port_delete(struct fscc_port *port)
 	
 	return_if_untrue(port);
 	
-	fscc_port_execute_STOP_T(port);
-	fscc_port_execute_STOP_R(port);
-	fscc_port_execute_RST_T(port);
-	fscc_port_execute_RST_R(port);
+	if (port->card->dma) {
+	    fscc_port_execute_STOP_T(port);
+	    fscc_port_execute_STOP_R(port);
+	    fscc_port_execute_RST_T(port);
+	    fscc_port_execute_RST_R(port);
 	
-	fscc_port_set_register(port, 2, DMACCR_OFFSET, 0x00000000);
+	    fscc_port_set_register(port, 2, DMACCR_OFFSET, 0x00000000);
+	}
 		
 	if (port->pending_iframe)
 		fscc_frame_delete(port->pending_iframe);
@@ -575,40 +575,14 @@ int fscc_port_set_register(struct fscc_port *port, unsigned bar,
 	
 	return_val_if_untrue(port, 0);
 	return_val_if_untrue(bar <= 2, 0);
-	
-#ifdef TESTING
-	/* Checks to make sure there is a clock present. */
-	if (bar == 0 && register_offset == CMDR_OFFSET) {
-		__u32 star_value = 0;
-		unsigned i = 0;
-		unsigned stalled = 0;
-		
-		printk("a\n");
-		
-		for (i = 0; i < 5; i++) {			
-			star_value = fscc_port_get_register(port, 0, STAR_OFFSET);
-			
-			if (star_value & CE_BIT) {
-				stalled = 1;
-			}
-			else {
-				stalled = 0;
-				break;
-			}
-		}
-		printk("b %i\n", stalled);
-		if (stalled)
-			return -ENODEV;
-	}
-#endif
 
 	offset = port_offset(port, bar, register_offset);
 		
 	fscc_card_set_register(port->card, bar, offset, value);
 	
 	if (bar == 0)
-		((uint32_t *)&port->register_storage)[offset / 4] = value;
-	else if (offset == FCR_OFFSET)
+		((fscc_register *)&port->register_storage)[register_offset / 4] = value;
+	else if (register_offset == FCR_OFFSET)
 		port->register_storage.FCR = value;
 		
 	return 1;
@@ -653,14 +627,14 @@ void fscc_port_set_registers(struct fscc_port *port,
 	
 	return_if_untrue(port);	
 	return_if_untrue(regs);
-
+    
 	for (i = 0; i < sizeof(*regs) / sizeof(fscc_register); i++) {
 		if (is_read_only_register(i * 4))
 			continue;
 			
 		if (((fscc_register *)regs)[i] < 0)
 			continue;
-		
+			
 		if (i * 4 <= IMR_OFFSET) {
 			fscc_port_set_register(port, 0, i * 4, ((fscc_register *)regs)[i]);
 		}
@@ -899,8 +873,9 @@ void fscc_port_set_clock_bits(struct fscc_port *port, const unsigned char *clock
 		dta_value <<= 0x08;
 		clk_value <<= 0x08;
 	}
-
+    
 	orig_fcr_value = fscc_card_get_register(port->card, 2, FCR_OFFSET);
+    
 	data[data_index++] = new_fcr_value = orig_fcr_value & 0xfffff0f0;
 	
 	for (i = 0; i < 20; i++) {
@@ -925,7 +900,7 @@ void fscc_port_set_clock_bits(struct fscc_port *port, const unsigned char *clock
 	data[data_index++] = new_fcr_value;
 	data[data_index++] = orig_fcr_value;
 	
-	fscc_card_set_register_rep(port->card, 2, FCR_OFFSET, (char *)data, data_index * 4);
+	fscc_port_set_register_rep(port, 2, FCR_OFFSET, (char *)data, data_index * 4);
 	
 	kfree(data);
 }
@@ -963,12 +938,12 @@ int fscc_port_execute_XF(struct fscc_port *port)
 	return_val_if_untrue(port, 0);
 	
 	return fscc_port_set_register(port, 0, CMDR_OFFSET, 0x01000000);
-
 }
 
 void fscc_port_execute_GO_R(struct fscc_port *port)
 {	
 	return_if_untrue(port);	
+	return_if_untrue(port->card->dma == 1);
 	
 	fscc_port_set_register(port, 2, DMACCR_OFFSET, 0x00000001);
 }
@@ -976,6 +951,7 @@ void fscc_port_execute_GO_R(struct fscc_port *port)
 void fscc_port_execute_GO_T(struct fscc_port *port)
 {
 	return_if_untrue(port);	
+	return_if_untrue(port->card->dma == 1);
 	
 	fscc_port_set_register(port, 2, DMACCR_OFFSET, 0x00000002);
 }
@@ -983,6 +959,7 @@ void fscc_port_execute_GO_T(struct fscc_port *port)
 void fscc_port_execute_RST_R(struct fscc_port *port)
 {
 	return_if_untrue(port);	
+	return_if_untrue(port->card->dma == 1);
 	
 	fscc_port_set_register(port, 2, DMACCR_OFFSET, 0x00000010);
 }
@@ -990,6 +967,7 @@ void fscc_port_execute_RST_R(struct fscc_port *port)
 void fscc_port_execute_RST_T(struct fscc_port *port)
 {
 	return_if_untrue(port);	
+	return_if_untrue(port->card->dma == 1);
 	
 	fscc_port_set_register(port, 2, DMACCR_OFFSET, 0x00000020);
 }
@@ -997,6 +975,7 @@ void fscc_port_execute_RST_T(struct fscc_port *port)
 void fscc_port_execute_STOP_R(struct fscc_port *port)
 {
 	return_if_untrue(port);	
+	return_if_untrue(port->card->dma == 1);
 	
 	fscc_port_set_register(port, 2, DMACCR_OFFSET, 0x00000100);
 }
@@ -1004,13 +983,14 @@ void fscc_port_execute_STOP_R(struct fscc_port *port)
 void fscc_port_execute_STOP_T(struct fscc_port *port)
 {
 	return_if_untrue(port);	
+	return_if_untrue(port->card->dma == 1);
 	
 	fscc_port_set_register(port, 2, DMACCR_OFFSET, 0x00000200);
 }
  
 unsigned fscc_port_using_async(struct fscc_port *port)
 {
-	return_val_if_untrue(port, 0);	
+	return_val_if_untrue(port, 0);
 	
 	switch (port->channel) {
 	case 0:

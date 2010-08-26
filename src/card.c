@@ -70,9 +70,17 @@ struct fscc_card *fscc_card_new(struct pci_dev *pdev,
 			break;
 	}
 #endif
-	
-	/* This requests the pci regions for us. Doing so again will cause our
-	   uarts not to appear correctly. */
+
+    if (pci_request_region(card->pci_dev, 0, DEVICE_NAME) != 0) {
+        dev_err(&card->pci_dev->dev, "pci_request_regions failed\n");
+        return 0;
+    }
+
+    if (pci_request_region(card->pci_dev, 2, DEVICE_NAME) != 0) {
+        dev_err(&card->pci_dev->dev, "pci_request_regions failed\n");
+        return 0;
+    }
+
 	card->serial_priv = pciserial_init_ports(pdev, &pci_board);
 	
 	if (IS_ERR(card->serial_priv)) {
@@ -124,6 +132,9 @@ void fscc_card_delete(struct fscc_card *card)
 		list_del(current_node);
 		fscc_port_delete(current_port);
 	}
+	
+	pci_release_region(card->pci_dev, 0);
+	pci_release_region(card->pci_dev, 2);
 	
 	pciserial_remove_ports(card->serial_priv);
 	pci_set_drvdata(card->pci_dev, NULL);
