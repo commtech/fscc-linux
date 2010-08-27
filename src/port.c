@@ -131,7 +131,7 @@ void iframe_worker(unsigned long data)
             
 		kfree(buffer);
 
-		dev_dbg(port->device, "F#%i %i byte%s <= FIFO\n", 
+		dev_dbg(port->device, "F#%i <= %i byte%s\n", 
 				port->pending_iframe->number, receive_length,
 				(receive_length == 1) ? "" : "s");
 	}
@@ -196,7 +196,7 @@ void oframe_worker(unsigned long data)
 	fscc_port_set_register_rep(port, 0, FIFO_OFFSET, port->pending_oframe->data, transmit_length);
 	fscc_frame_remove_data(port->pending_oframe, transmit_length);
 		
-	dev_dbg(port->device, "F#%i %i byte%s => FIFO\n", 
+	dev_dbg(port->device, "F#%i => %i byte%s\n", 
 		    port->pending_oframe->number, transmit_length,
 		    (transmit_length == 1) ? "" : "s");
 		       
