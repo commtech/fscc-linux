@@ -75,6 +75,7 @@ struct fscc_registers {
 };
 
 extern unsigned memory_cap;
+extern unsigned ignore_timeout;
 extern struct list_head fscc_cards;
 extern wait_queue_head_t output_queue;
 

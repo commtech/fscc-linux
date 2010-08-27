@@ -42,7 +42,7 @@ void fscc_port_execute_STOP_R(struct fscc_port *port);
 void fscc_port_execute_STOP_T(struct fscc_port *port);
 void fscc_port_execute_RST_R(struct fscc_port *port);
 void fscc_port_execute_RST_T(struct fscc_port *port);
-int fscc_port_execute_XF(struct fscc_port *port);
+void fscc_port_execute_XF(struct fscc_port *port);
 
 void iframe_worker(unsigned long data)
 {	
@@ -94,7 +94,7 @@ void iframe_worker(unsigned long data)
 	    char *buffer = 0;
 	    
 	    if (fscc_memory_usage() + receive_length > memory_cap) {
-		    dev_dbg(port->device, "F#%i receive rejected (memory constraint)\n",
+		    dev_warn(port->device, "F#%i receive rejected (memory constraint)\n",
 		            port->pending_iframe->number);
 		           
 		    fscc_frame_delete(port->pending_iframe);
@@ -108,7 +108,7 @@ void iframe_worker(unsigned long data)
 		buffer = kmalloc(receive_length, GFP_ATOMIC);
 		
 		if (buffer == NULL) {
-		    dev_dbg(port->device, "F#%i receive rejected (kmalloc of %i bytes)\n",
+		    dev_warn(port->device, "F#%i receive rejected (kmalloc of %i bytes)\n",
 				    port->pending_iframe->number, receive_length);
 					       
 			fscc_frame_delete(port->pending_iframe);
@@ -447,19 +447,43 @@ void fscc_port_delete(struct fscc_port *port)
 	kfree(port);
 }
 
-void fscc_port_write(struct fscc_port *port, const char *data, unsigned length)
+int fscc_port_write(struct fscc_port *port, const char *data, unsigned length)
 {
 	struct fscc_frame *frame = 0;
 	char *temp_storage = 0;
 	unsigned uncopied_bytes = 0;
 	
-	return_if_untrue(port);
+	return_val_if_untrue(port, 0);
+
+	/* Checks to make sure there is a clock present. */
+    if (ignore_timeout == 0) {
+        __u32 star_value = 0;
+        unsigned i = 0;
+        unsigned stalled = 0;
+
+        for (i = 0; i < 5; i++) {			
+            star_value = fscc_port_get_register(port, 0, STAR_OFFSET);
+
+            if (star_value & CE_BIT) {
+                stalled = 1;
+            }
+            else {
+                stalled = 0;
+                break;
+            }
+        }
+        
+        if (stalled) {
+	        dev_dbg(port->device, "device stalled (wrong clock mode?)\n");
+	        return -ETIMEDOUT;
+	    }
+    }
 	
 	temp_storage = kmalloc(length, GFP_KERNEL);	
-	return_if_untrue(temp_storage != NULL);
+	return_val_if_untrue(temp_storage != NULL, 0);
 	
 	uncopied_bytes = copy_from_user(temp_storage, data, length);
-	return_if_untrue(!uncopied_bytes);
+	return_val_if_untrue(!uncopied_bytes, 0);
 	
 	if (port->card->dma)
 		frame = fscc_frame_new(length, 1, port);
@@ -467,10 +491,14 @@ void fscc_port_write(struct fscc_port *port, const char *data, unsigned length)
 		frame = fscc_frame_new(length, 0, port);
 	
 	fscc_frame_add_data(frame, temp_storage, length);
-	list_add_tail(&frame->list, &port->oframes);	
-	tasklet_schedule(&port->oframe_tasklet);
 	
 	kfree(temp_storage);
+	
+	list_add_tail(&frame->list, &port->oframes);
+    
+	tasklet_schedule(&port->oframe_tasklet);	
+	
+	return 0;
 }
 
 //Returns -ENOBUFS if count is smaller than pending frame size
@@ -573,15 +601,13 @@ __u32 fscc_port_get_register(struct fscc_port *port, unsigned bar,
 	return fscc_card_get_register(port->card, bar, offset);
 }
 
-#define CE_BIT 0x00040000
-
-int fscc_port_set_register(struct fscc_port *port, unsigned bar, 
+void fscc_port_set_register(struct fscc_port *port, unsigned bar, 
                             unsigned register_offset, __u32 value)
 {
 	unsigned offset = 0;
 	
-	return_val_if_untrue(port, 0);
-	return_val_if_untrue(bar <= 2, 0);
+	return_if_untrue(port);
+	return_if_untrue(bar <= 2);
 
 	offset = port_offset(port, bar, register_offset);
 		
@@ -591,8 +617,6 @@ int fscc_port_set_register(struct fscc_port *port, unsigned bar,
 		((fscc_register *)&port->register_storage)[register_offset / 4] = value;
 	else if (register_offset == FCR_OFFSET)
 		port->register_storage.FCR = value;
-		
-	return 1;
 }
 
 void fscc_port_get_register_rep(struct fscc_port *port, unsigned bar, 
@@ -940,11 +964,11 @@ void fscc_port_execute_RRES(struct fscc_port *port)
 	fscc_port_set_register(port, 0, CMDR_OFFSET, 0x00020000);
 }
 
-int fscc_port_execute_XF(struct fscc_port *port)
+void fscc_port_execute_XF(struct fscc_port *port)
 {	
-	return_val_if_untrue(port, 0);
+	return_if_untrue(port);
 	
-	return fscc_port_set_register(port, 0, CMDR_OFFSET, 0x01000000);
+	fscc_port_set_register(port, 0, CMDR_OFFSET, 0x01000000);
 }
 
 void fscc_port_execute_GO_R(struct fscc_port *port)

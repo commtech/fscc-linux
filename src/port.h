@@ -83,6 +83,8 @@
 #define DT_HI 0x00000800
 #define DR_HI 0x00000400
 
+#define CE_BIT 0x00040000
+
 struct fscc_port {
 	struct list_head list;
 	dev_t dev_t;
@@ -131,7 +133,7 @@ struct fscc_port *fscc_port_new(struct fscc_card *card, unsigned channel,
                                 
 void fscc_port_delete(struct fscc_port *port);
 
-void fscc_port_write(struct fscc_port *port, const char *data, unsigned length);                     
+int fscc_port_write(struct fscc_port *port, const char *data, unsigned length);                     
 ssize_t fscc_port_read(struct fscc_port *port, char *buf, size_t count);
                            
 unsigned fscc_port_has_iframes(struct fscc_port *port);
@@ -144,7 +146,7 @@ void fscc_port_get_register_rep(struct fscc_port *port, unsigned bar,
                                 unsigned register_offset, char *buf,
                                 unsigned byte_count);
                                  
-int fscc_port_set_register(struct fscc_port *port, unsigned bar, 
+void fscc_port_set_register(struct fscc_port *port, unsigned bar, 
                             unsigned register_offset, __u32 value);
                             
 void fscc_port_set_register_rep(struct fscc_port *port, unsigned bar,

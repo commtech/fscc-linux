@@ -36,6 +36,7 @@ static int fscc_major_number;
 static struct class *fscc_class = 0;
 unsigned memory_cap = DEFAULT_MEMORY_CAP_VALUE;
 unsigned hot_plug = DEFAULT_HOT_PLUG_VALUE;
+unsigned ignore_timeout = DEFAULT_IGNORE_TIMEOUT_VALUE;
 
 wait_queue_head_t output_queue;
 LIST_HEAD(fscc_cards);
@@ -119,6 +120,7 @@ ssize_t fscc_write(struct file *file, const char *buf, size_t count,
                    loff_t *ppos)
 {
 	struct fscc_port *port = 0;
+	int error_code = 0;
 	
 	port = file->private_data;
 	
@@ -133,11 +135,11 @@ ssize_t fscc_write(struct file *file, const char *buf, size_t count,
 	if (down_interruptible(&port->write_semaphore))
 		return -ERESTARTSYS;
 		
-	fscc_port_write(port, buf, count);
+	error_code = fscc_port_write(port, buf, count);
 	
 	up(&port->write_semaphore);
 	
-	return count;
+	return (error_code < 0) ? error_code : count;
 }
 
 unsigned fscc_poll(struct file *file, struct poll_table_struct *wait)
@@ -366,6 +368,9 @@ MODULE_PARM_DESC(memory_cap, "The maximum user data (in bytes) the driver will a
 
 module_param(hot_plug, int, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
 MODULE_PARM_DESC(hot_plug, "Let's the driver load even if no devices exist.");
+
+module_param(ignore_timeout, int, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
+MODULE_PARM_DESC(ignore_timeout, "Allow the driver to continue partial operation even if no clock is present.");
 
 module_init(fscc_init);
 module_exit(fscc_exit); 

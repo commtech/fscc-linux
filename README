@@ -224,9 +224,13 @@ are only a couple ways.
    In in addition to the standard errors that the write() function returns
    there is a error specific to the FSCC you might run into.
    
-   -EOPNOTSUPP: If trying to using a FSCC port using the /dev/fscc nodes while
+   -EOPNOTSUPP: If trying to use a FSCC port with the /dev/fscc nodes while
                 in asyncronous communication mode (should be using /dev/ttyS
                 nodes).
+                
+   -ETIMEDOUT: If trying to use a FSCC port without a transmit clock present.
+               This check can be turned off with the 'ignore_timeout' command
+               line parameter.
    
 2) A simpler but not nearly as useful way of sending data out of a FSCC port is
    by using the built-in linux program echo. This is mainly useful while
