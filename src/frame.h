@@ -30,7 +30,6 @@ struct fscc_frame {
 	unsigned target_length;
 	unsigned current_length;
 	unsigned number;
-	__u16 status;
 		
 	unsigned dma;
 	struct fscc_descriptor descriptor;
@@ -56,6 +55,5 @@ unsigned fscc_frame_is_full(struct fscc_frame *frame);
 char *fscc_frame_get_remaining_data(struct fscc_frame *frame);
 void fscc_frame_trim(struct fscc_frame *frame);
 __u16 fscc_frame_get_status(struct fscc_frame *frame);
-void fscc_frame_set_status(struct fscc_frame *frame, __u16 status);
 
 #endif

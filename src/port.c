@@ -31,7 +31,6 @@
 #include "isr.h" /* fscc_isr */
 #include "sysfs.h" /* port_*_attribute_group */																																																																																														
 
-#define STATUS_LENGTH 2
 #define TX_FIFO_SIZE 4096
                                               
 void fscc_port_empty_frames(struct fscc_port *port, struct list_head *frames);
@@ -48,10 +47,7 @@ void iframe_worker(unsigned long data)
 {	
 	struct fscc_port *port = 0;
 	int receive_length = 0; //need to be signed
-	unsigned leftover_count = 0;
 	unsigned finished_frame = 0;
-	__u32 last_data_chunk = 0;
-	__u32 frame_status = 0;
 
 	port = (struct fscc_port *)data;
 	
@@ -75,7 +71,7 @@ void iframe_worker(unsigned long data)
 		unsigned bc_fifo_l = 0;
 		
 		bc_fifo_l = fscc_port_get_register(port, 0, BC_FIFO_L_OFFSET);
-		receive_length = bc_fifo_l - STATUS_LENGTH - fscc_frame_get_current_length(port->pending_iframe);
+		receive_length = bc_fifo_l - fscc_frame_get_current_length(port->pending_iframe);
 	} else {
 		unsigned rxcnt = 0;
 		
@@ -105,9 +101,9 @@ void iframe_worker(unsigned long data)
 		    return;
 	    }
 	        
-		buffer = kmalloc(receive_length, GFP_ATOMIC);
+	   buffer = kmalloc(receive_length, GFP_ATOMIC);
 		
-		if (buffer == NULL) {
+        if (buffer == NULL) {
 		    dev_warn(port->device, "F#%i receive rejected (kmalloc of %i bytes)\n",
 				    port->pending_iframe->number, receive_length);
 					       
@@ -118,9 +114,8 @@ void iframe_worker(unsigned long data)
 			
 			return;
 		}
-		    
-		fscc_port_get_register_rep(port, 0, FIFO_OFFSET, buffer, receive_length); //TODO: Missing last_data_chunk
-                                    
+		
+		fscc_port_get_register_rep(port, 0, FIFO_OFFSET, buffer, receive_length);
 		fscc_frame_add_data(port->pending_iframe, buffer, receive_length);
             
 		kfree(buffer);
@@ -133,28 +128,6 @@ void iframe_worker(unsigned long data)
 	if (!finished_frame)
 	    return;
 	
-	leftover_count = receive_length % 4;
-	
-	//TODO: This needs to be changed for big endian
-	switch (leftover_count) {
-	case 0:
-		frame_status = fscc_port_get_register(port, 0, FIFO_OFFSET) & 0x0000FFFF;
-		break;
-		
-	case 1:
-		frame_status = (last_data_chunk & 0x00FFFF00) >> 8;
-		break;
-		
-	case 2:
-		frame_status = last_data_chunk >> 16;
-		break;
-		
-	case 3:
-		frame_status = (last_data_chunk >> 24) + ((fscc_port_get_register(port, 0, FIFO_OFFSET) & 0x000000FF) << 8);
-		break;
-	}
-	
-	fscc_frame_set_status(port->pending_iframe, frame_status);
 	fscc_frame_trim(port->pending_iframe);
 		
 	list_add_tail(&port->pending_iframe->list, &port->iframes);
@@ -517,25 +490,15 @@ ssize_t fscc_port_read(struct fscc_port *port, char *buf, size_t count)
 		return 0;
 		
 	data_length = fscc_frame_get_target_length(frame);	
-	data_length += (port->append_status) ? STATUS_LENGTH : 0;
+	data_length -= (port->append_status) ? 0 : STATUS_LENGTH;
 	
 	if (count < data_length)
 		return -ENOBUFS;
 			
 	uncopied_bytes = copy_to_user(buf, fscc_frame_get_remaining_data(frame), 
-			                      fscc_frame_get_target_length(frame));
+			                      data_length);
 			
-	return_val_if_untrue(!uncopied_bytes, 0);	
-		
-	if (port->append_status) {
-		__u16 status = 0;
-		
-		status = fscc_frame_get_status(frame);
-			
-		uncopied_bytes = copy_to_user(buf + fscc_frame_get_target_length(frame), 
-		                              (void *)(&status), STATUS_LENGTH);
-					
-	}
+	return_val_if_untrue(!uncopied_bytes, 0);
 		
 	list_del(&frame->list); 
 	fscc_frame_delete(frame);

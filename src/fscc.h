@@ -91,5 +91,7 @@ unsigned fscc_memory_usage(void);
 #define SFSCC_4_LVDS_ID 0x001c
 #define SFSCCe_4_ID 0x001e
 
+#define STATUS_LENGTH 2
+
 #endif
 
