@@ -22,7 +22,7 @@ def random_write(args):
 def write(args):
     outgoing_data = args.data
 
-    if args.type == "hex":
+    if args.hex:
         outgoing_data = outgoing_data.decode("hex")
     
     for port_name in args.port:
@@ -36,9 +36,15 @@ def write(args):
 
 def read(args):
     port = fscc.Port(args.port, "rb")
+        
+    if args.append_status:
+        port.enable_append_status()
+    else:
+        port.disable_append_status()
+        
     incoming_data = port.read(4096)
     
-    if args.type == "hex":
+    if args.hex:
         incoming_data = incoming_data.encode("hex")
     
     print(incoming_data)
@@ -138,7 +144,7 @@ if __name__ == '__main__':
     parser_write = subparsers.add_parser('write', description="Sends a frame of data out of an FSCC port.", help='sends a frame of data out of an FSCC port.')
     parser_write.add_argument('port', type=str, nargs='+', help='the fscc node to send data out of')
     parser_write.add_argument('data', type=str, help='the data to send out of the port')
-    parser_write.add_argument('--type', type=str, choices=["ascii", "hex"], default="ascii", help='the type of data to be transmitted')
+    parser_write.add_argument('--hex', type=bool, default=False, help='whether or not the data is hexidecimal')
     parser_write.add_argument('--iterations', type=int, default=1, help='how many times to transmit the data')
     parser_write.set_defaults(func=write)
 
@@ -149,7 +155,8 @@ if __name__ == '__main__':
 
     parser_read = subparsers.add_parser('read', help='receives a frame of data from an FSCC port')
     parser_read.add_argument('port', type=str, help='the fscc node to receive data out of')
-    parser_read.add_argument('--type', type=str, choices=["ascii", "hex"], default="ascii", help='the type of data to be transmitted')
+    parser_read.add_argument('--append_status', type=bool, default=False, help='whether or not to append the status bytes to the data')
+    parser_read.add_argument('--hex', type=bool, default=False, help='whether or not the data is hexidecimal')
     parser_read.set_defaults(func=read)
 
     parser_loop = subparsers.add_parser('loop', help='sends data back and forth between FSCC ports')

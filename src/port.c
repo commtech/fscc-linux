@@ -114,9 +114,20 @@ void iframe_worker(unsigned long data)
 			
 			return;
 		}
-		
+
 		fscc_port_get_register_rep(port, 0, FIFO_OFFSET, buffer, receive_length);
 		fscc_frame_add_data(port->pending_iframe, buffer, receive_length);
+		
+#ifdef __BIG_ENDIAN
+        {
+            char status[STATUS_LENGTH];
+            
+            /* Moves the status bytes to the end. */
+            memmove(&status, port->pending_iframe->data, STATUS_LENGTH);
+            memmove(port->pending_iframe->data, port->pending_iframe->data + STATUS_LENGTH, port->pending_iframe->current_length - STATUS_LENGTH);
+            memmove(port->pending_iframe->data + port->pending_iframe->current_length - STATUS_LENGTH, &status, STATUS_LENGTH);
+        }
+#endif		
             
 		kfree(buffer);
 
