@@ -22,12 +22,12 @@ int main(void)
 		perror("write");
 
 		close(port_fd);
-			
+
 		return EXIT_FAILURE;
 	}
-	
+
 	close(port_fd);
-	
+
 	return EXIT_SUCCESS;
 }
 

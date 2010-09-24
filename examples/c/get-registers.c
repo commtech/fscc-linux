@@ -24,13 +24,13 @@ int main(void)
 	regs.CCR2 = FSCC_UPDATE_VALUE;
 
 	ioctl(port_fd, FSCC_GET_REGISTERS, &regs);
-	
+
 	fprintf(stdout, "CCR0 = 0x%08x\n", (unsigned)regs.CCR0);
 	fprintf(stdout, "CCR1 = 0x%08x\n", (unsigned)regs.CCR1);
 	fprintf(stdout, "CCR2 = 0x%08x\n", (unsigned)regs.CCR2);
 
-	close(port_fd);	
-	
+	close(port_fd);
+
 	return EXIT_SUCCESS;
 }
 

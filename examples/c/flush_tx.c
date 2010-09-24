@@ -19,7 +19,7 @@ int main(void)
 	ioctl(port_fd, FSCC_FLUSH_TX);
 
 	close(port_fd);
-	
+
 	return EXIT_SUCCESS;
 }
 

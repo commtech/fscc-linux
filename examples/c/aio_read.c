@@ -9,7 +9,7 @@
 /*
    NOTE: You may need to link against the retail time library to use the aio_*
          functions e.g. gcc -lrt aio_read.c
-         
+
 */
 
 int main(void)
@@ -42,7 +42,7 @@ int main(void)
 	fprintf(stdout, "%s\n", data);
 
 	close(port_fd);
-	
+
 	return EXIT_SUCCESS;
 }
 

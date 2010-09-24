@@ -21,13 +21,13 @@ int main(void)
 		perror("open");
 		return EXIT_FAILURE;
 	}
-	
+
 	ioctl(port_fd, FSCC_DISABLE_APPEND_STATUS);
 	bytes_written = write(port_fd, data, sizeof(data));
-	
-	memset(&buffer, 0, sizeof(buffer));	
-	bytes_read = read(port_fd, buffer, sizeof(buffer));	
-	
+
+	memset(&buffer, 0, sizeof(buffer));
+	bytes_read = read(port_fd, buffer, sizeof(buffer));
+
 	fprintf(stdout, "append_status = off\n");
 	fprintf(stdout, "bytes_read = %i\n", bytes_read);
 	fprintf(stdout, "data = %s\n", buffer);
@@ -35,18 +35,18 @@ int main(void)
 
 	ioctl(port_fd, FSCC_ENABLE_APPEND_STATUS);
 	bytes_written = write(port_fd, data, sizeof(data));
-	
-	memset(&buffer, 0, sizeof(buffer));	
+
+	memset(&buffer, 0, sizeof(buffer));
 	bytes_read = read(port_fd, buffer, sizeof(buffer));
 	status = buffer[bytes_read - 2];
-	
+
 	fprintf(stdout, "append_status = on\n");
 	fprintf(stdout, "bytes_read = %i\n", bytes_read);
 	fprintf(stdout, "data = %s\n", buffer);
 	fprintf(stdout, "status = 0x%04x\n", status);
 
 	close(port_fd);
-	
+
 	return EXIT_SUCCESS;
 }
 

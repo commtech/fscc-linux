@@ -11,7 +11,7 @@ int main(void)
 	char clock_bits[20] = {0xff, 0xff, 0xff, 0x01, 0x84, 0x01, 0x41, 0x4a,
 	                       0x9a, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 	                       0x00, 0x04, 0xa0, 0x01}; /* 10 MHz */
-	                                       
+
 	port_fd = open("/dev/fscc0", O_WRONLY);
 
 	if (port_fd == -1) {
@@ -22,7 +22,7 @@ int main(void)
 	ioctl(port_fd, FSCC_SET_CLOCK_BITS, &clock_bits);
 
 	close(port_fd);
-	
+
 	return EXIT_SUCCESS;
 }
 

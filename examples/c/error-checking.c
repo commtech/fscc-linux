@@ -26,7 +26,7 @@ int main(void)
 
 		if (close(port_fd) == -1)
 			perror("close");
-			
+
 		return EXIT_FAILURE;
 	}
 
@@ -35,7 +35,7 @@ int main(void)
 
 		if (close(port_fd) == -1)
 			perror("close");
-			
+
 		return EXIT_FAILURE;
 	}
 
@@ -46,7 +46,7 @@ int main(void)
 
 		if (close(port_fd) == -1)
 			perror("close");
-			
+
 		return EXIT_FAILURE;
 	}
 
@@ -59,15 +59,15 @@ int main(void)
 
 		if (close(port_fd) == -1)
 			perror("close");
-			
+
 		return EXIT_FAILURE;
 	}
 
 	if (close(port_fd) == -1) {
 		perror("close");
 		return EXIT_FAILURE;
-	}	
-	
+	}
+
 	return EXIT_SUCCESS;
 }
 

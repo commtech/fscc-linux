@@ -26,7 +26,7 @@ int main(void)
 	ioctl(port_fd, FSCC_SET_REGISTERS, &regs);
 
 	close(port_fd);
-	
+
 	return EXIT_SUCCESS;
 }
 

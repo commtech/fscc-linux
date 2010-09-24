@@ -25,14 +25,14 @@ int main(void)
 		perror("read");
 
 		close(port_fd);
-			
+
 		return EXIT_FAILURE;
 	}
 
 	fprintf(stdout, "%s\n", data);
 
 	close(port_fd);
-	
+
 	return EXIT_SUCCESS;
 }
 
