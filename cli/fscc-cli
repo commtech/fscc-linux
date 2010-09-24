@@ -3,13 +3,11 @@
 import argparse
 import random
 import string
-import threading
-import readline
 import sys
 import fscc
 
 
-def random_write(args):
+def 2random_write(args):
     outgoing_data = "".join([random.choice(string.letters + string.digits) for x in range(0, args.length)])
 
     for port_name in args.port:
@@ -24,29 +22,29 @@ def write(args):
 
     if args.hex:
         outgoing_data = outgoing_data.decode("hex")
-    
+
     for port_name in args.port:
         port = fscc.Port(port_name, "wb")
 
         for i in range(args.iterations):
             port.write(outgoing_data)
-        	
+
         port.close()
 
 
 def read(args):
     port = fscc.Port(args.port, "rb")
-    
+
     if args.append_status == 0:
         port.disable_append_status()
     else:
         port.enable_append_status()
-        
+
     incoming_data = port.read(4096)
-    
+
     if args.hex:
         incoming_data = incoming_data.encode("hex")
-    
+
     print(incoming_data)
 
     port.close()
@@ -89,12 +87,12 @@ def loop(args):
 
 def set_registers(args):
     ports = []
-    
+
     for port in args.port:
         ports.append(fscc.Port(port, "wb"))
 
     reg_list = args.data.split("\n")
-	
+
     for reg_string in reg_list:
         d = reg_string.split("=")
         reg_name, reg_val = d[0].strip().upper(), d[1].strip()
@@ -102,40 +100,40 @@ def set_registers(args):
         if reg_val[0] == "0" and (reg_val[1] == "x" or reg_val[1] == "X"):
             reg_val = int(reg_val, 16)
         else:
-            rev_val = int(reg_val)
-            
+            reg_val = int(reg_val)
+
         for port in ports:
             setattr(port, reg_name, reg_val)
-            
+
     for port in ports:
-    	port.set_registers()
+        port.set_registers()
 
 
 def get_registers(args):
     port = fscc.Port(args.port, "rb")
-            
+
     for reg in port.register_names:
-    	setattr(port, reg, fscc.FSCC_UPDATE_VALUE)
-    	
+        setattr(port, reg, fscc.FSCC_UPDATE_VALUE)
+
     port.get_registers()
-    	
+
     for reg in port.register_names:
-    	print("%s = 0x%08x" % (reg, getattr(port, reg)))
-    	
+        print("%s = 0x%08x" % (reg, getattr(port, reg)))
+
 def flush_tx(args):
     for port_name in args.port:
         port = fscc.Port(port_name, "wb")
 
         port.flush_tx()
         port.close()
-        
+
 def flush_rx(args):
     for port_name in args.port:
         port = fscc.Port(port_name, "wb")
 
         port.flush_rx()
         port.close()
-        
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Tools for using the Commtech FSCC line of cards.')

@@ -1,6 +1,6 @@
 /*
 	Copyright (C) 2010  Commtech, Inc.
-	
+
 	This file is part of fscc-linux.
 
 	fscc-linux is free software: you can redistribute it and/or modify
@@ -15,7 +15,7 @@
 
 	You should have received a copy of the GNU General Public License
 	along with fscc-linux.  If not, see <http://www.gnu.org/licenses/>.
-	
+
 */
 
 #ifndef FSCC_DEBUG_H
@@ -30,31 +30,31 @@ struct debug_interrupt_tracker {
 	unsigned rfo;
 	unsigned rdo;
 	unsigned rfl;
-	
+
 	unsigned reserved1[2];
-	
+
 	unsigned tin;
-	
+
 	unsigned reserved2[1];
-	
+
 	unsigned dr_hi;
 	unsigned dt_hi;
 	unsigned dr_fe;
 	unsigned dt_fe;
 	unsigned dr_stop;
 	unsigned dt_stop;
-	
+
 	unsigned tft;
 	unsigned alls;
 	unsigned tdu;
-	
+
 	unsigned reserved3[5];
-	
+
 	unsigned ctss;
 	unsigned dsrc;
 	unsigned cdc;
 	unsigned ctsa;
-	
+
 	unsigned reserved4[4];
 };
 
@@ -66,7 +66,7 @@ void debug_interrupt_tracker_increment_all(struct debug_interrupt_tracker *track
                                        __u32 isr_value);
 unsigned debug_interrupt_tracker_get_count(struct debug_interrupt_tracker *tracker,
                                            __u32 isr_bit);
-                                           
+
 void debug_interrupt_display(unsigned long data);
 
 #endif

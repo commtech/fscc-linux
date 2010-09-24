@@ -1,6 +1,6 @@
 /*
 	Copyright (C) 2010  Commtech, Inc.
-	
+
 	This file is part of fscc-linux.
 
 	fscc-linux is free software: you can redistribute it and/or modify
@@ -15,7 +15,7 @@
 
 	You should have received a copy of the GNU General Public License
 	along with fscc-linux.  If not, see <http://www.gnu.org/licenses/>.
-	
+
 */
 
 #include <linux/version.h>
@@ -42,23 +42,23 @@ struct fscc_card *fscc_card_new(struct pci_dev *pdev,
 	struct fscc_port *port_iter = 0;
 	unsigned start_minor_number = 0;
 	unsigned i = 0;
-	
+
 	card = kmalloc(sizeof(*card), GFP_KERNEL);
-	
+
 	return_val_if_untrue(card != NULL, 0);
-	
+
 	INIT_LIST_HEAD(&card->list);
 	INIT_LIST_HEAD(&card->ports);
-	
+
 	card->pci_dev = pdev;
 	card->dma = 0;
-	
+
 #ifdef EXPERIMENTAL_DMA
 	switch (pdev->device) {
 		case SFSCC_ID:
 		case SFSCC_4_ID:
 		case SFSCC_4_LVDS_ID:
-		case SFSCCe_4_ID:	
+		case SFSCCe_4_ID:
 			if (pci_set_dma_mask(pdev, 0xffffffff)) {
 				dev_warn(&card->pci_dev->dev, "no suitable DMA available\n");
 			}
@@ -66,7 +66,7 @@ struct fscc_card *fscc_card_new(struct pci_dev *pdev,
 				card->dma = 1;
 				pci_set_master(card->pci_dev);
 			}
-				
+
 			break;
 	}
 #endif
@@ -82,40 +82,40 @@ struct fscc_card *fscc_card_new(struct pci_dev *pdev,
     }
 
 	card->serial_priv = pciserial_init_ports(pdev, &pci_board);
-	
+
 	if (IS_ERR(card->serial_priv)) {
 		dev_err(&card->pci_dev->dev, "pciserial_init_ports failed\n");
 		return 0;
 	}
-	
+
 	pci_set_drvdata(pdev, card->serial_priv);
-	
+
 	if (pci_set_dma_mask(pdev, 0xffffffff)) {
 		dev_warn(&card->pci_dev->dev, "no suitable DMA available\n");
 		return 0;
 	}
-	
+
 	start_minor_number = minor_number;
-	
+
 	for (i = 0; i < 3; i++) {
 		card->bar[i] = pci_iomap(card->pci_dev, i, 0);
 
 		if (card->bar[i] == NULL) {
-			dev_err(&card->pci_dev->dev, "pci_iomap failed on bar #%i\n", i);			       
+			dev_err(&card->pci_dev->dev, "pci_iomap failed on bar #%i\n", i);
 			return 0;
 		}
 	}
-	
+
 	for (i = 0; i < 2; i++) {
-		port_iter = fscc_port_new(card, i, major_number, minor_number, 
+		port_iter = fscc_port_new(card, i, major_number, minor_number,
 		                          &card->pci_dev->dev, class, fops);
-		
-		if (port_iter)               
-	        list_add_tail(&port_iter->list, &card->ports); 
-	                           
-		minor_number += 1;        
+
+		if (port_iter)
+	        list_add_tail(&port_iter->list, &card->ports);
+
+		minor_number += 1;
 	}
-	
+
 	return card;
 }
 
@@ -123,22 +123,22 @@ void fscc_card_delete(struct fscc_card *card)
 {
 	struct list_head *current_node = 0;
 	struct list_head *temp_node = 0;
-		
+
 	return_if_untrue(card);
-	
+
 	list_for_each_safe(current_node, temp_node, &card->ports) {
 		struct fscc_port *current_port = 0;
 		current_port = list_entry(current_node, struct fscc_port, list);
 		list_del(current_node);
 		fscc_port_delete(current_port);
 	}
-	
+
 	pci_release_region(card->pci_dev, 0);
 	pci_release_region(card->pci_dev, 2);
-	
+
 	pciserial_remove_ports(card->serial_priv);
 	pci_set_drvdata(card->pci_dev, NULL);
-	
+
 	kfree(card);
 }
 
@@ -147,27 +147,27 @@ unsigned fscc_card_get_memory_usage(struct fscc_card *card)
 	struct list_head *current_node = 0;
 	struct list_head *temp_node = 0;
 	unsigned memory = 0;
-		
+
 	return_val_if_untrue(card, 0);
-	
+
 	list_for_each_safe(current_node, temp_node, &card->ports) {
 		struct fscc_port *current_port = 0;
 		current_port = list_entry(current_node, struct fscc_port, list);
 		memory += fscc_port_get_memory_usage(current_port);
 	}
-	
+
 	return memory;
 }
 
 void fscc_card_suspend(struct fscc_card *card)
 {
 	struct fscc_port *current_port = 0;
-		
+
 	return_if_untrue(card);
-	
+
 	pciserial_suspend_ports(card->serial_priv);
-			
-	list_for_each_entry(current_port, &card->ports, list) {	
+
+	list_for_each_entry(current_port, &card->ports, list) {
 		fscc_port_suspend(current_port);
 	}
 }
@@ -175,157 +175,157 @@ void fscc_card_suspend(struct fscc_card *card)
 void fscc_card_resume(struct fscc_card *card)
 {
 	struct fscc_port *current_port = 0;
-		
+
 	return_if_untrue(card);
-	
+
 	pciserial_resume_ports(card->serial_priv);
-			
-	list_for_each_entry(current_port, &card->ports, list) {	
+
+	list_for_each_entry(current_port, &card->ports, list) {
 		fscc_port_resume(current_port);
 	}
 }
 
-struct fscc_card *fscc_card_find(struct pci_dev *pdev, 
+struct fscc_card *fscc_card_find(struct pci_dev *pdev,
                                  struct list_head *card_list)
 {
 	struct fscc_card *current_card = 0;
-	
+
 	return_val_if_untrue(pdev, 0);
 	return_val_if_untrue(card_list, 0);
-	
+
 	list_for_each_entry(current_card, card_list, list) {
 		if (current_card->pci_dev == pdev)
 			return current_card;
 	}
-	
+
 	return 0;
 }
 
 void __iomem *fscc_card_get_BAR(struct fscc_card *card, unsigned number)
-{		
+{
 	return_val_if_untrue(card, 0);
-	
+
 	if (number > 2)
 		return 0;
 
 	return card->bar[number];
 }
 
-__u32 fscc_card_get_register(struct fscc_card *card, unsigned bar, 
+__u32 fscc_card_get_register(struct fscc_card *card, unsigned bar,
                              unsigned offset)
 {
 	void __iomem *address = 0;
 	__u32 value = 0;
-	
+
 	return_val_if_untrue(card, 0);
 	return_val_if_untrue(bar <= 2, 0);
-	
-	address = fscc_card_get_BAR(card, bar);	
-	
-	value = ioread32(address + offset);	
+
+	address = fscc_card_get_BAR(card, bar);
+
+	value = ioread32(address + offset);
 	value = le32_to_cpu(value);
-	
+
 	return value;
 }
 
-void fscc_card_set_register(struct fscc_card *card, unsigned bar, 
+void fscc_card_set_register(struct fscc_card *card, unsigned bar,
                             unsigned offset, __u32 value)
 {
 	void __iomem *address = 0;
-	
+
 	return_if_untrue(card);
 	return_if_untrue(bar <= 2);
-	
+
 	address = fscc_card_get_BAR(card, bar);
-	
+
 	value = cpu_to_le32(value);
-	
+
 	iowrite32(value, address + offset);
 }
 
-void fscc_card_get_register_rep(struct fscc_card *card, unsigned bar, 
+void fscc_card_get_register_rep(struct fscc_card *card, unsigned bar,
                                 unsigned offset, char *buf,
                                 unsigned byte_count)
 {
-	void __iomem *address = 0;	
+	void __iomem *address = 0;
 	unsigned leftover_count = 0;
 	__u32 incoming_data = 0;
 	unsigned chunks = 0;
-	
+
 	return_if_untrue(card);
 	return_if_untrue(bar <= 2);
 	return_if_untrue(buf);
 	return_if_untrue(byte_count > 0);
-	
-	address = fscc_card_get_BAR(card, bar);	
+
+	address = fscc_card_get_BAR(card, bar);
 	leftover_count = byte_count % 4;
 	chunks = (byte_count - leftover_count) / 4;
-	
+
 	ioread32_rep(address + offset, buf, chunks);
-	
+
 	if (leftover_count) {
 		incoming_data = ioread32(address + offset);
-		
-		memmove(buf + (byte_count - leftover_count), 
+
+		memmove(buf + (byte_count - leftover_count),
 		        (char *)(&incoming_data), leftover_count);
 	}
 
 #ifdef __BIG_ENDIAN
     {
         unsigned i = 0;
-        
+
         for (i = 0; i < (int)(byte_count / 2); i++) {
             char first, last;
-            
+
             first = buf[i];
             last = buf[byte_count - i - 1];
-            
+
             buf[i] = last;
             buf[byte_count - i - 1] = first;
         }
     }
-#endif 
+#endif
 }
 
 void fscc_card_set_register_rep(struct fscc_card *card, unsigned bar,
                                 unsigned offset, const char *data,
-                                unsigned byte_count) 
+                                unsigned byte_count)
 {
 	void __iomem *address = 0;
 	unsigned leftover_count = 0;
 	unsigned chunks = 0;
     char *reversed_data = 0;
     const char *outgoing_data = 0;
-	
+
 	return_if_untrue(card);
 	return_if_untrue(bar <= 2);
 	return_if_untrue(data);
 	return_if_untrue(byte_count > 0);
-	
-	address = fscc_card_get_BAR(card, bar);	
+
+	address = fscc_card_get_BAR(card, bar);
 	leftover_count = byte_count % 4;
 	chunks = (byte_count - leftover_count) / 4;
-	
+
 	outgoing_data = data;
 
 #ifdef __BIG_ENDIAN
     {
         unsigned i = 0;
-        
+
         reversed_data = kmalloc(byte_count, GFP_KERNEL);
-        
+
         for (i = 0; i < byte_count; i++)
             reversed_data[i] = data[byte_count - i - 1];
-            
+
         outgoing_data = reversed_data;
     }
-#endif 
-    
+#endif
+
     iowrite32_rep(address + offset, outgoing_data, chunks);
-	
+
     if (leftover_count)
 	    iowrite32(chars_to_u32(outgoing_data + (byte_count - leftover_count)), address + offset);
-    
+
     if (reversed_data)
         kfree(reversed_data);
 }
@@ -333,21 +333,21 @@ void fscc_card_set_register_rep(struct fscc_card *card, unsigned bar,
 struct list_head *fscc_card_get_ports(struct fscc_card *card)
 {
 	return_val_if_untrue(card, 0);
-	
+
 	return &card->ports;
 }
 
 unsigned fscc_card_get_irq(struct fscc_card *card)
 {
 	return_val_if_untrue(card, 0);
-	
+
 	return card->pci_dev->irq;
 }
 
 struct device *fscc_card_get_device(struct fscc_card *card)
 {
 	return_val_if_untrue(card, 0);
-	
+
 	return &card->pci_dev->dev;
 }
 
@@ -369,7 +369,7 @@ char *fscc_card_get_name(struct fscc_card *card)
 	case SFSCCe_4_ID:
 		return "SuperFSCC/4 PCIe";
 	}
-	
+
 	return "Unknown Device";
 }
 

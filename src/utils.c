@@ -1,6 +1,6 @@
 /*
 	Copyright (C) 2010  Commtech, Inc.
-	
+
 	This file is part of fscc-linux.
 
 	fscc-linux is free software: you can redistribute it and/or modify
@@ -15,7 +15,7 @@
 
 	You should have received a copy of the GNU General Public License
 	along with fscc-linux.  If not, see <http://www.gnu.org/licenses/>.
-	
+
 */
 
 #include "utils.h"
@@ -95,10 +95,10 @@ int str_to_interrupt_offset(const char *str)
 		return RDO;
 	else if (strcmp(str, "rfl") == 0)
 		return RFL;
-		
+
 	else if (strcmp(str, "tin") == 0)
 		return TIN;
-		
+
 	else if (strcmp(str, "dr_hi") == 0)
 		return DR_HI;
 	else if (strcmp(str, "dt_hi") == 0)
@@ -111,14 +111,14 @@ int str_to_interrupt_offset(const char *str)
 		return DR_STOP;
 	else if (strcmp(str, "dt_stop") == 0)
 		return DT_STOP;
-		
+
 	else if (strcmp(str, "tft") == 0)
 		return TFT;
 	else if (strcmp(str, "alls") == 0)
 		return ALLS;
 	else if (strcmp(str, "tdu") == 0)
 		return TDU;
-		
+
 	else if (strcmp(str, "ctss") == 0)
 		return CTSS;
 	else if (strcmp(str, "dsrc") == 0)
@@ -127,7 +127,7 @@ int str_to_interrupt_offset(const char *str)
 		return CDC;
 	else if (strcmp(str, "ctsa") == 0)
 		return CTSA;
-		
+
 	else
 		printk(KERN_NOTICE DEVICE_NAME " invalid str passed into str_to_interrupt_offset\n");
 
@@ -141,7 +141,7 @@ unsigned is_read_only_register(unsigned offset)
 	case VSTR_OFFSET:
 			return 1;
 	}
-	
+
 	return 0;
 }
 
@@ -150,47 +150,47 @@ unsigned port_offset(struct fscc_port *port, unsigned bar, unsigned offset)
 	switch (bar) {
 		case 0:
 			return (port->channel == 0) ? offset : offset + 0x80;
-			
+
 		case 2:
 			switch (offset) {
 				case DMACCR_OFFSET:
 					return (port->channel == 0) ? offset : offset + 0x04;
-					
+
 				case DMA_RX_BASE_OFFSET:
 				case DMA_TX_BASE_OFFSET:
 				case DMA_CURRENT_RX_BASE_OFFSET:
 				case DMA_CURRENT_TX_BASE_OFFSET:
 					return (port->channel == 0) ? offset : offset + 0x08;
-					
+
 				default:
 					break;
-			}				
-			
+			}
+
 			break;
-			
+
 		default:
 			break;
 	}
-	
+
 	return offset;
 }
 
 unsigned port_exists(void *port)
-{	
+{
 	struct fscc_card *current_card = 0;
 	struct fscc_port *current_port = 0;
-	
+
 	return_val_if_untrue(port, 0);
-	
-	list_for_each_entry(current_card, &fscc_cards, list) {	
+
+	list_for_each_entry(current_card, &fscc_cards, list) {
 		struct list_head *ports = fscc_card_get_ports(current_card);
-			
+
 		list_for_each_entry(current_port, ports, list) {
 			if (port == current_port)
 				return 1;
 		}
 	}
-	
+
 	return 0;
 }
 
