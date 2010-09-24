@@ -7,7 +7,7 @@ import sys
 import fscc
 
 
-def 2random_write(args):
+def random_write(args):
     outgoing_data = "".join([random.choice(string.letters + string.digits) for x in range(0, args.length)])
 
     for port_name in args.port:
