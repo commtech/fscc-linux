@@ -883,7 +883,7 @@ void fscc_port_set_clock_bits(struct fscc_port *port, const unsigned char *clock
 
 	data[data_index++] = new_fcr_value = orig_fcr_value & 0xfffff0f0;
 
-	for (i = 0; i < 20; i++) {
+	for (i = 19; i >= 0; i--) {
 		for (j = 7; j >= 0; j--) {
 			int bit = ((clock_data[i] >> j) & 1);
 

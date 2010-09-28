@@ -7,10 +7,12 @@
 
 int main(void)
 {
+	/* 10 MHz */
+	unsigned char clock_bits[20] = {0x01, 0xa0, 0x04, 0x00, 0x00, 0x00, 0x00,
+	                                0x00, 0x00, 0x00, 0x00, 0x9a, 0x4a, 0x41,
+	                                0x01, 0x84, 0x01, 0xff, 0xff, 0xff};
 	int port_fd = 0;
-	char clock_bits[20] = {0xff, 0xff, 0xff, 0x01, 0x84, 0x01, 0x41, 0x4a,
-	                       0x9a, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-	                       0x00, 0x04, 0xa0, 0x01}; /* 10 MHz */
+
 
 	port_fd = open("/dev/fscc0", O_WRONLY);
 
@@ -18,6 +20,18 @@ int main(void)
 		perror("open");
 		return EXIT_FAILURE;
 	}
+
+	/* To calculate the clock bits for your desired frequency call this
+	   external function in the include/calculate-clock-bits/ directory.
+
+	   > gcc -c calculate-clock-bits.c
+	   > gcc -lm set-clock-bits.c calculate-clock-bits.o
+
+	if (calculate_clock_bits(10000000, 10, &clock_bits) != 0) {
+	    fprintf(stderr, "Error calculating clock bits.\n");
+	    return EXIT_FAILURE;
+	}
+	*/
 
 	ioctl(port_fd, FSCC_SET_CLOCK_BITS, &clock_bits);
 
