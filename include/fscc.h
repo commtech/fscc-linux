@@ -57,6 +57,7 @@ struct fscc_registers {
 	fscc_register reserved3[1];
 
 	fscc_register IMR;
+	fscc_register DPLLR;
 
 	/* BAR 2 */
 	fscc_register FCR;

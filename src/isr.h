@@ -31,4 +31,7 @@ irqreturn_t fscc_isr(int irq, void *dev_id);
 irqreturn_t fscc_isr(int irq, void *dev_id, struct pt_regs *regs);
 #endif
 
+void iframe_worker(unsigned long data);
+void oframe_worker(unsigned long data);
+
 #endif

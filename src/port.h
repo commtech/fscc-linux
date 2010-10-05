@@ -55,6 +55,7 @@
 #define VSTR_OFFSET 0x4C
 #define ISR_OFFSET 0x50
 #define IMR_OFFSET 0x54
+#define DPLLR_OFFSET 0x58
 
 #define DMACCR_OFFSET 0x04
 #define DMA_RX_BASE_OFFSET 0x0c
@@ -191,6 +192,10 @@ struct fscc_frame *fscc_port_peek_front_frame(struct fscc_port *port,
                                               struct list_head *frames);
 
 unsigned fscc_port_using_async(struct fscc_port *port);
+void fscc_port_execute_XF(struct fscc_port *port);
+void fscc_port_execute_GO_T(struct fscc_port *port);
+
+unsigned fscc_port_has_dma(struct fscc_port *port);
 
 #ifdef DEBUG
 unsigned fscc_port_get_interrupt_count(struct fscc_port *port, __u32 isr_bit);

@@ -73,6 +73,8 @@ int str_to_register_offset(const char *str)
 		return ISR_OFFSET;
 	else if (strcmp(str, "imr") == 0)
 		return IMR_OFFSET;
+	else if (strcmp(str, "dpllr") == 0)
+		return DPLLR_OFFSET;
 	else if (strcmp(str, "fcr") == 0)
 		return FCR_OFFSET;
 	else

@@ -31,187 +31,13 @@
 #include "isr.h" /* fscc_isr */
 #include "sysfs.h" /* port_*_attribute_group */
 
-#define TX_FIFO_SIZE 4096
-
 void fscc_port_empty_frames(struct fscc_port *port, struct list_head *frames);
 
 void fscc_port_execute_GO_R(struct fscc_port *port);
-void fscc_port_execute_GO_T(struct fscc_port *port);
 void fscc_port_execute_STOP_R(struct fscc_port *port);
 void fscc_port_execute_STOP_T(struct fscc_port *port);
 void fscc_port_execute_RST_R(struct fscc_port *port);
 void fscc_port_execute_RST_T(struct fscc_port *port);
-void fscc_port_execute_XF(struct fscc_port *port);
-
-void iframe_worker(unsigned long data)
-{
-	struct fscc_port *port = 0;
-	int receive_length = 0; //need to be signed
-	unsigned finished_frame = 0;
-
-	port = (struct fscc_port *)data;
-
-	return_if_untrue(port);
-
-	if (port->handled_frames == port->started_frames)
-		return;
-
-	if (!port->pending_iframe) {
-		port->pending_iframe = fscc_frame_new(0, 0, port);
-
-		return_if_untrue(port->pending_iframe);
-
-		dev_dbg(port->device, "F#%i receive started\n",
-		        port->pending_iframe->number);
-	}
-
-	finished_frame = (port->handled_frames < port->ended_frames);
-
-	if (finished_frame) {
-		unsigned bc_fifo_l = 0;
-
-		bc_fifo_l = fscc_port_get_register(port, 0, BC_FIFO_L_OFFSET);
-		receive_length = bc_fifo_l - fscc_frame_get_current_length(port->pending_iframe);
-	} else {
-		unsigned rxcnt = 0;
-
-		//We take off 2 bytes from the amount we can read just in case all the
-		//data got transfered in between the time we determined all of the data
-		//wasn't in the FIFO and now. In this case, we let the next pass take
-		//care of that data.
-
-		//3 is the maximum amount of leftover bytes
-		rxcnt = fscc_port_get_RXCNT(port);
-		receive_length = rxcnt - STATUS_LENGTH - 3;
-		receive_length -= receive_length % 4;
-	}
-
-	if (receive_length > 0) {
-	    char *buffer = 0;
-
-	    if (fscc_memory_usage() + receive_length > memory_cap) {
-		    dev_warn(port->device, "F#%i receive rejected (memory constraint)\n",
-		            port->pending_iframe->number);
-
-		    fscc_frame_delete(port->pending_iframe);
-		    port->pending_iframe = 0;
-
-	        port->handled_frames += 1;
-
-		    return;
-	    }
-
-	   buffer = kmalloc(receive_length, GFP_ATOMIC);
-
-        if (buffer == NULL) {
-		    dev_warn(port->device, "F#%i receive rejected (kmalloc of %i bytes)\n",
-				    port->pending_iframe->number, receive_length);
-
-			fscc_frame_delete(port->pending_iframe);
-			port->pending_iframe = 0;
-
-	        port->handled_frames += 1;
-
-			return;
-		}
-
-		fscc_port_get_register_rep(port, 0, FIFO_OFFSET, buffer, receive_length);
-		fscc_frame_add_data(port->pending_iframe, buffer, receive_length);
-
-#ifdef __BIG_ENDIAN
-        {
-            char status[STATUS_LENGTH];
-
-            /* Moves the status bytes to the end. */
-            memmove(&status, port->pending_iframe->data, STATUS_LENGTH);
-            memmove(port->pending_iframe->data, port->pending_iframe->data + STATUS_LENGTH, port->pending_iframe->current_length - STATUS_LENGTH);
-            memmove(port->pending_iframe->data + port->pending_iframe->current_length - STATUS_LENGTH, &status, STATUS_LENGTH);
-        }
-#endif
-
-		kfree(buffer);
-
-		dev_dbg(port->device, "F#%i <= %i byte%s\n",
-				port->pending_iframe->number, receive_length,
-				(receive_length == 1) ? "" : "s");
-	}
-
-	if (!finished_frame)
-	    return;
-
-	fscc_frame_trim(port->pending_iframe);
-
-	list_add_tail(&port->pending_iframe->list, &port->iframes);
-
-	dev_dbg(port->device, "F#%i receive successful\n",
-			port->pending_iframe->number);
-
-	wake_up_interruptible(&port->input_queue);
-
-	port->handled_frames += 1;
-	port->pending_iframe = 0;
-}
-
-void oframe_worker(unsigned long data)
-{
-	struct fscc_port *port = 0;
-
-	unsigned fifo_space = 0;
-	unsigned padding_bytes = 0;
-	unsigned current_length = 0;
-	unsigned target_length = 0;
-	unsigned transmit_length = 0;
-
-	port = (struct fscc_port *)data;
-
-	return_if_untrue(port);
-
-	if (!port->pending_oframe) {
-		if (fscc_port_has_oframes(port)) {
-			port->pending_oframe = fscc_port_peek_front_frame(port, &port->oframes);
-			list_del(&port->pending_oframe->list);
-		} else {
-			return;
-		}
-	}
-
-	if (port->card->dma) {
-		fscc_port_set_register(port, 2, DMA_TX_BASE_OFFSET,
-		                       cpu_to_le32(port->pending_oframe->descriptor_handle));
-
-		dev_dbg(port->device, "F#%i sending\n", port->pending_oframe->number);
-		fscc_port_execute_GO_T(port);
-		//TODO: Memory leak because DMA needs to access the memory. What to do?
-		//fscc_frame_delete(port->pending_oframe);
-		port->pending_oframe = 0;
-		return;
-	}
-
-	current_length = fscc_frame_get_current_length(port->pending_oframe);
-	target_length = fscc_frame_get_target_length(port->pending_oframe);
-	padding_bytes = target_length % 4 ? 4 - target_length % 4 : 0;
-	fifo_space = TX_FIFO_SIZE - fscc_port_get_TXCNT(port);
-
-	transmit_length = (current_length + padding_bytes > fifo_space) ? fifo_space : current_length;
-	fscc_port_set_register_rep(port, 0, FIFO_OFFSET, port->pending_oframe->data, transmit_length);
-	fscc_frame_remove_data(port->pending_oframe, transmit_length);
-
-	dev_dbg(port->device, "F#%i => %i byte%s\n",
-		    port->pending_oframe->number, transmit_length,
-		    (transmit_length == 1) ? "" : "s");
-
-	/* If this is the first time we add data to the FIFO for this frame */
-	if (current_length == target_length)
-		fscc_port_set_register(port, 0, BC_FIFO_L_OFFSET, target_length);
-
-	if (fscc_frame_is_empty(port->pending_oframe)) {
-		dev_dbg(port->device, "F#%i sending\n", port->pending_oframe->number);
-		fscc_frame_delete(port->pending_oframe);
-		port->pending_oframe = 0;
-	}
-
-	fscc_port_execute_XF(port);
-}
 
 struct fscc_port *fscc_port_new(struct fscc_card *card, unsigned channel,
                                 unsigned major_number, unsigned minor_number,
@@ -317,6 +143,7 @@ struct fscc_port *fscc_port_new(struct fscc_card *card, unsigned channel,
 	else
 		port->register_storage.IMR = DEFAULT_IMR_VALUE_WITHOUT_DMA;
 
+	port->register_storage.DPLLR = DEFAULT_DPLLR_VALUE;
 	port->register_storage.FCR = DEFAULT_FCR_VALUE;
 
 	fscc_port_set_registers(port, &port->register_storage);
@@ -1006,6 +833,13 @@ unsigned fscc_port_using_async(struct fscc_port *port)
 	}
 
 	return 0;
+}
+
+unsigned fscc_port_has_dma(struct fscc_port *port)
+{
+	return_val_if_untrue(port, 0);
+
+    return port->card->dma;
 }
 
 #ifdef DEBUG
