@@ -12,37 +12,49 @@ III.   Loading the driver
 IV.    Installing the header files
 
 V.     Changing a port's register values
-       1) Using syfs from the command line
+       1) Using sysfs from the command line
        2) Using the ioctl call from within your application code
        3) Using the config.h file for modifying the boot defaults
+
+VI.    Reading a port's register values
+       1) Using sysfs from the command line
+       2) Using the ioctl call from within your application code
       
-VI.    Asynchronous communication
+VII.   Asynchronous communication
 
-VII.   Viewing debug information (TODO)
+VIII.  Setting the clock frequency
+       1) Using the ioctl call from within your application code
 
-VIII.  Operating the driver
+IX.    Operating the driver
        1) Writing data in C code
        2) Writing data from the command line
        3) Reading data in C code
        4) Reading data from the command line
        
-IX.    Viewing frame status data
+X.     Viewing frame status data
        1) Using sysfs from the command line
        2) Using the ioctl call from within your application code
        3) Using the config.h file for modifying the boot defaults
 
-X.     Flushing data out of driver
+XI.    Flushing data out of driver
        1) Using sysfs from the command line
        2) Using the ioctl call from within your application code
        
-XI.    FAQ
+XII.   Migrating from the 1.x driver to the 2.x driver
+       1) Setting register values
+       2) Getting register values
+       3) Flushing transmit and receive data
+       4) Getting the frame status
+       5) Changing the clock frequency
+       
+XIII.  FAQ
        1) Ports are not created even though the driver has loaded
 
 
 I. Getting the latest driver
 -------------------------------------------------------------------------------
 The source code for the FSCC driver is hosted on google code hosting. To check 
-out the lastest code you will need Mercurial and to run the following in a 
+out the latest code you will need Mercurial and to run the following in a 
 terminal.
 
    > hg clone https://fscc-linux.googlecode.com/hg/ fscc-linux
@@ -129,30 +141,37 @@ your C program.
 
 V. Changing a port's register values
 -------------------------------------------------------------------------------
-The FSCC driver is a swiss army knife of sorts when communication. It can
+The FSCC driver is a swiss army knife of sorts with communication. It can
 handle many different situations if configured correctly. Typically to 
 configure it to handle your specific situation you need to modify the card's
 register values.
 
 There are multiple ways of modifying the card's registers varying from simply
-modifing a sysfs file to ioctl's calls within code. Here are a few ways of
+modifying a sysfs file to an ioctl call within code. Here are a few ways of
 doing this.
 
 NOTE: For a listing of all of the configuration options please see the manual.
 
-1) Echo the register value in hexidecimal form to the sysfs file with the same
+1) Echo the register value in hexadecimal form to the sysfs file with the same
    name of the register you would like to modify.
 
    > echo 030000ff > /sys/class/fscc/fscc0/registers/bgr
    
 2) Use the FSCC_SET_REGISTERS ioctl to set the values of any registers you
    need to modify from within code. This ioctl can be found within 
-   <fscc/fscc.h> after you install the header files.
+   <fscc/fscc.h> after you install the header files (see section IV).
    
    struct fscc_registers regs;
+   
    FSCC_REGISTERS_INIT(regs);
+   
    regs.BGR = 0x030000ff;
+   regs.FCR = 0x00000000;
+   
    ioctl(port_fd, FSCC_SET_REGISTERS, &regs);
+   
+   NOTE: A complete example of how to do this can be found in the file 
+         set-registers.c.
    
 3) Modify the '#define DEFAULT_[BGR|CCR0|...]_VALUE 0x030000ff' lines within 
    the config.h file to be whatever you would like the card to boot up as. You 
@@ -162,7 +181,39 @@ NOTE: For a listing of all of the configuration options please see the manual.
          setting.
    
 
-VI. Asynchronous communication
+VI. Reading a port's register values
+-------------------------------------------------------------------------------
+There are multiple ways of reading the card's registers varying from simply
+modifying a sysfs file to an ioctl call within code. Here are a few ways of
+doing this.
+
+1) Cat the register value in hexadecimal form from the sysfs file with the same
+   name of the register you would like to view.
+   
+   > cat /sys/class/fscc/fscc0/registers/bgr
+   00000001
+   
+2) Use the FSCC_GET_REGISTERS ioctl to get the values of any registers you
+   need to read from within code. This ioctl can be found within 
+   <fscc/fscc.h> after you install the header files (see section IV).
+   
+   struct fscc_registers regs;
+   
+   FSCC_REGISTERS_INIT(regs);
+   
+   regs.BGR = FSCC_UPDATE_VALUE;
+   regs.FCR = FSCC_UPDATE_VALUE;
+   
+   ioctl(port_fd, FSCC_GET_REGISTERS, &regs);
+   
+   At this point 'regs.BGR' and 'regs.FCR' would be set to their respective 
+   values.
+   
+   NOTE: A complete example of how to do this can be found in the file 
+         get-registers.c.
+
+
+VII. Asynchronous communication
 -------------------------------------------------------------------------------
 The FSCC driver lets the built in Linux serial driver handle asynchronous
 communication for our UARTs. The Linux serial driver is highly tested and 
@@ -182,7 +233,7 @@ a) Most distributions have the default number of serial ports that Linux allows
    kernel /boot/vmlinuz-2.6.20-15-generic ro quiet splash 8250.nr_uarts=16
    
    This can be done temporarily by pressing 'e' at the grub menu during boot or 
-   by permenately modifying this value which is grub version specific. To do
+   by permanently modifying this value which is grub version specific. To do
    this please check google for one of it's numerous guides on the subject.
    
    Another method is by editing the .config file of you kernel before compiling
@@ -194,8 +245,8 @@ b) Load the FSCC driver. This will handle registering our UARTs with the serial
    driver (see section III). Our UART's will now appear as ttyS nodes in the 
    /dev/ directory.
 
-c) By default the FSCC driver boots up in a synchronous communication mode. To
-   switch to the asynchonous mode you must modify the FSCC card's FCR register 
+c) By default the FSCC driver boots up in synchronous communication mode. To
+   switch to the asynchronous mode you must modify the FSCC card's FCR register 
    to allow for asynchronous communication. There are multiple ways of doing 
    this (see section V). Possibly the simplest method is using sysfs and the
    command line.
@@ -203,7 +254,29 @@ c) By default the FSCC driver boots up in a synchronous communication mode. To
    > echo 030000ff > /sys/class/fscc/fscc0/registers/bgr
 
 
-VIII.  Operating the driver
+VIII. Setting the clock frequency
+-------------------------------------------------------------------------------
+The FSCC device has a programmable clock that can be set anywhere from
+20 kbit to 200 Mbit. However, this is not a fully operational range. 
+
+Using a synchronous mode you can only receive data consistently up to 30 Mbit 
+(when you are using a external clock). If you are transmitting data using an 
+internal clock you can safely go up 50 Mbit.
+
+1) Use the FSCC_SET_CLOCK_BITS ioctl to set the frequency from within code.
+   
+   /* 10 MHz */
+   unsigned char clock_bits[20] = {0x01, 0xa0, 0x04, 0x00, 0x00, 0x00, 0x00,
+	                               0x00, 0x00, 0x00, 0x00, 0x9a, 0x4a, 0x41,
+	                               0x01, 0x84, 0x01, 0xff, 0xff, 0xff};
+	                                
+   ioctl(port_fd, FSCC_SET_CLOCK_BITS, &clock_bits);
+   
+   NOTE: A complete example of how to do this along with how to calculate
+         these clock bits can be found in the file set-clock-bits.c.
+
+
+IX.  Operating the driver
 -------------------------------------------------------------------------------
 The FSCC driver typically but not always works in "frames". This means that 
 data typically is packaged together in permanent chunks. If the card received
@@ -214,9 +287,9 @@ There are multiple ways of reading/writing data to/from the card. Listed below
 are only a couple ways.
 
 1) Writing data will typically be done within C code using the write()
-   function found within the <unistd.h> file. You can find a more indepth
+   function found within the <unistd.h> file. You can find a more in depth
    example named "sync-write.c within the examples directory. You will need
-   to look online for a more indepth explation of the parameters and return
+   to look online for a more in depth explanation of the parameters and return
    value.
    
    bytes_written = write(port_fd, data, sizeof(data));
@@ -225,12 +298,15 @@ are only a couple ways.
    there is a error specific to the FSCC you might run into.
    
    -EOPNOTSUPP: If trying to use a FSCC port with the /dev/fscc nodes while
-                in asyncronous communication mode (should be using /dev/ttyS
+                in asynchronous communication mode (should be using /dev/ttyS
                 nodes).
                 
    -ETIMEDOUT: If trying to use a FSCC port without a transmit clock present.
                This check can be turned off with the 'ignore_timeout' command
                line parameter.
+   
+   NOTE: A complete example of how to do this can be found in the file 
+         sync-write.c.
    
 2) A simpler but not nearly as useful way of sending data out of a FSCC port is
    by using the built-in linux program echo. This is mainly useful while
@@ -239,9 +315,9 @@ are only a couple ways.
    echo "Hello world!" > /dev/fscc0
    
 3) Reading data will typically be done within C code using the read() function
-   found within the <unistd.h> file. You can find a more indepth example named
+   found within the <unistd.h> file. You can find a more in depth example named
    "sync-read.c" within the examples directory. You will need to look online
-   for a more indepth explanation of the parameters and return value.
+   for a more in depth explanation of the parameters and return value.
       
    bytes_read = read(port_fd, data, sizeof(data));
    
@@ -252,8 +328,11 @@ are only a couple ways.
              than the next frame.
    
    -EOPNOTSUPP: If trying to using a FSCC port using the /dev/fscc nodes while
-                in asyncronous communication mode (should be using /dev/ttyS
+                in asynchronous communication mode (should be using /dev/ttyS
                 nodes).
+   
+   NOTE: A complete example of how to do this can be found in the file 
+         sync-read.c.
    
 4) A simpler but not nearly as useful way of reading data out of a FSCC port is
    by using the built-in linux program cat. This is mainly useful while
@@ -268,11 +347,11 @@ NOTE: fread/fwrite are not allowable ways of interfacing with the card. They
       You will instead need to use file streams which act more like read/write.
       
         
-IX. Viewing frame status data
+X. Viewing frame status data
 -------------------------------------------------------------------------------
 More than likely when you are receiving frames of data from the card which
 you trust the data coming in was correctly formatted to whatever protocol
-you are expecting but occasionaly that isn't the case. In this situation you
+you are expecting but occasionally that isn't the case. In this situation you
 might want to view the status of each frame. For example if you want to see
 if the frame's CRC check succeeded or failed. 
    
@@ -290,6 +369,9 @@ this data. There are a couple of ways of enabling this additional data.
    
    ioctl(port_fd, FSCC_ENABLE_APPEND_STATUS);
    
+   NOTE: A complete example of how to do this can be found in the file 
+         append-status.c.
+   
 3) Modify the '#define DEFAULT_APPEND_STATUS_VALUE 1' lines within the config.h 
    file to be whatever you would like the card to boot up as. You will need to 
    recompile the driver after doing this.
@@ -298,11 +380,11 @@ this data. There are a couple of ways of enabling this additional data.
          setting.
    
 
-X. Flushing data out of driver
+XI. Flushing data out of driver
 -------------------------------------------------------------------------------
-Between the hardware FIFO and the driver's software buffers there is multiple
+Between the hardware FIFO and the driver's software buffers there are multiple
 places data could be at excluding your application code. If you ever need to 
-clear this data out and start out fresh there is a couple ways of doing this.
+clear this data out and start out fresh there are a couple ways of doing this.
    
 1) The simplest method of doing this is by writing a value of 1 to the
    flush_tx and flush_rx file in sysfs from the command line.
@@ -315,9 +397,68 @@ clear this data out and start out fresh there is a couple ways of doing this.
    
    ioctl(port_fd, FSCC_FLUSH_TX);
    ioctl(port_fd, FSCC_FLUSH_RX);
-      
    
-XI. FAQ  
+   NOTE: A complete example of how to do this can be found in the files 
+         flush_tx.c and flush_rx.c.
+   
+   
+XII. Migrating from the 1.x driver to the 2.x driver
+-------------------------------------------------------------------------------
+There are multiple benefits of using the 2.x driver: accurate posix error
+codes, intuitive ioctl calls, backend support for multiple languages (python,
+c#) and dynamic memory management are some.
+
+The 1.x driver and the 2.x driver are very similar so porting from one to the
+other should be rather painless.
+
+NOTE: All ioctl values have changed even if their new names match their old
+      names. This means even if you use an ioctl with an identical name, it
+      will not work correctly.
+
+1) Setting register values was split into two different ioctl's in the 1.x
+   driver, setting all the registers at once and one at a time. In the 2.x 
+   driver these two scenarios have been combined into one ioctl.
+   
+   Change the following ioctl's to the current ioctl FSCC_SET_REGISTERS (see 
+   section V).
+   
+   FSCC_WRITE_REGISTER (setting a single register at a time)
+   FSCC_INIT (setting all registers at a time)
+   
+2) Getting register values was limited to one at a time in the 1.x driver. In
+   the 2.x driver it has been made more convenient to read multiple register
+   values.
+   
+   Change the following ioctl to the current ioctl FSCC_GET_REGISTERS (see
+   section VI).
+   
+   FSCC_READ_REGISTER (reading a single register at a time)
+   
+3) Flushing transmit and receive data has not changed. Continue using
+   FSCC_FLUSH_TX and FSCC_FLUSH_RX. 
+   
+   For more information on these ioctl's see section XI.
+   
+4) Getting the frame status has now been designed to be configurable. In the 
+   1.x driver you would always have the frame status appended to your data on a
+   read. In the 2.x driver this can be toggled, and defaults to not appending
+   the status to the data. 
+   
+   For more information on the ioctl's to toggle this feature see section X.
+   
+5) Changing the clock frequency is basically the same but the data structure 
+   and ioctl name are different.
+   
+   Change the following ioctl to the current ioctl FSCC_SET_CLOCK_BITS (see
+   section VIII).
+   
+   FSCC_SET_FREQ (setting the clock frequency)
+   
+   In the 1.x driver you passed in a structure composed of both the desired
+   frequency and the clock bits that represent the frequency. In the 2.x driver
+   this has been simplified down to just the clock bits.
+   
+XIII. FAQ  
 -------------------------------------------------------------------------------
 
 1) Q: Why are the /dev/fscc* ports not created even though the driver has
