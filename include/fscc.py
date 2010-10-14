@@ -60,15 +60,15 @@ class Port(io.FileIO):
             setattr(self, register, -1)
 
     def get_registers(self):
-        regs = self._construct_full_registers_list()
+        registers = self._construct_full_registers_list()
 
         buf = fcntl.ioctl(self, FSCC_GET_REGISTERS,
-                          struct.pack("q" * len(regs), *regs))
+                          struct.pack("q" * len(registers), *registers))
 
-        regs = struct.unpack("q" * len(regs), buf)
+        regs = struct.unpack("q" * len(registers), buf)
 
-        for i in range(len(regs)):
-            if regs[i] != -1:
+        for i, register in enumerate(registers):
+            if register != -1:
                 self._set_register_by_index(i, regs[i])
 
     def set_registers(self):
@@ -95,20 +95,20 @@ class Port(io.FileIO):
 
     register_names = ["FIFOT", "CMDR", "STAR", "CCR0", "CCR1", "CCR2", "BGR",
                       "SSR", "SMR", "TSR", "TMR", "RAR", "RAMR", "PPR", "TCR",
-                      "VSTR", "IMR", "FCR"]
+                      "VSTR", "IMR", "DPLLR", "FCR"]
 
     def _construct_full_registers_list(self):
         return [-1, -1, self.FIFOT, -1, -1, self.CMDR, self.STAR, self.CCR0,
                 self.CCR1, self.CCR2, self.BGR, self.SSR, self.SMR, self.TSR,
                 self.TMR, self.RAR, self.RAMR, self.PPR, self.TCR, self.VSTR,
-                -1, self.IMR, self.FCR]
+                -1, self.IMR, self.DPLLR, self.FCR]
 
     def _set_register_by_index(self, index, value):
         data = [("FIFOT", 2), ("CMDR", 5), ("STAR", 6), ("CCR0", 7),
                 ("CCR1", 8), ("CCR2", 9), ("BGR", 10), ("SSR", 11),
                 ("SMR", 12), ("TSR", 13), ("TMR", 14), ("RAR", 15),
                 ("RAMR", 16), ("PPR", 17), ("TCR", 18), ("VSTR", 19),
-                ("IMR", 21), ("FCR", 22)]
+                ("IMR", 21), ("DPLLR", 22), ("FCR", 23)]
 
         for r, i in data:
             if i == index:
