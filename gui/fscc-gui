@@ -1,0 +1,377 @@
+#!/usr/bin/python
+
+import gtk
+import gobject
+
+import fscc
+
+from widgets import generic, registers
+
+VERSION = "1.0"
+NAME = "FSCC Settings Manager"
+PROGRAM_NAME = "fscc-gui"
+
+
+class AboutDialog(gtk.AboutDialog):
+    def __init__(self):
+        super(AboutDialog, self).__init__()
+
+        self.set_name(NAME)
+        self.set_program_name(PROGRAM_NAME)
+        self.set_version(VERSION)
+        self.set_website("www.commtech-fastcom.com")
+        self.set_website_label("Commtech Website")
+        self.set_authors(["William Fagan <willf@commtech-fastcom.com>"])
+
+
+class MenuBar(gtk.MenuBar):
+    def __init__(self, accel_group):
+        super(MenuBar, self).__init__()
+
+        file_menu = gtk.Menu()
+        file_menu.show()
+
+        file_menu_item = gtk.MenuItem("_File")
+        file_menu_item.set_submenu(file_menu)
+        file_menu_item.show()
+
+        open_menu_item = gtk.ImageMenuItem(gtk.STOCK_OPEN, accel_group)
+        key, mod = gtk.accelerator_parse("O")
+        open_menu_item.add_accelerator("activate", accel_group, key, mod, gtk.ACCEL_VISIBLE)
+        open_menu_item.connect("activate", self.open_activate)
+        file_menu.append(open_menu_item)
+        open_menu_item.show()
+
+        seperator = gtk.SeparatorMenuItem()
+        file_menu.append(seperator)
+        seperator.show()
+
+        exit_menu_item = gtk.ImageMenuItem(gtk.STOCK_QUIT, accel_group)
+        key, mod = gtk.accelerator_parse("Q")
+        exit_menu_item.add_accelerator("activate", accel_group, key, mod, gtk.ACCEL_VISIBLE)
+        exit_menu_item.connect("activate", gtk.main_quit)
+        file_menu.append(exit_menu_item)
+        exit_menu_item.show()
+
+        help_menu = gtk.Menu()
+        help_menu.show()
+
+        help_menu_item = gtk.MenuItem("Help")
+        help_menu_item.set_submenu(help_menu)
+        help_menu_item.show()
+
+        about_menu_item = gtk.ImageMenuItem(gtk.STOCK_ABOUT, accel_group)
+        about_menu_item.connect("activate", self.about_activate)
+        help_menu.append(about_menu_item)
+        about_menu_item.show()
+
+        self.append(file_menu_item)
+        self.append(help_menu_item)
+
+    def open_activate(self, widget, data=None):
+        port_name = PortChooserDialog().get_port_name()
+
+        if port_name:
+            self.emit("port-selected", port_name)
+
+    def about_activate(self, widget, data=None):
+        about_dialog = AboutDialog()
+        about_dialog.run()
+        about_dialog.destroy()
+
+
+gobject.type_register(MenuBar)
+
+gobject.signal_new("port-selected", MenuBar, gobject.SIGNAL_RUN_FIRST,
+                   gobject.TYPE_NONE, (gobject.TYPE_STRING,))
+
+class ExportFileChooserDialog(gtk.FileChooserDialog):
+    def __init__(self):
+        buttons = (
+            gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL,
+            gtk.STOCK_SAVE, gtk.RESPONSE_OK,
+        )
+
+        super(ExportFileChooserDialog, self).__init__(title="",
+                                                      action=gtk.FILE_CHOOSER_ACTION_SAVE,
+                                                      buttons=buttons)
+
+    def get_export_filename(self):
+        if self.run() == gtk.RESPONSE_OK:
+            filename = self.get_filename()
+        else:
+            filename = None
+
+        self.destroy()
+
+        return filename
+
+
+class PortChooserDialog(gtk.FileChooserDialog):
+    def __init__(self):
+        buttons = (
+            gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL,
+            gtk.STOCK_OPEN, gtk.RESPONSE_OK,
+        )
+
+        super(PortChooserDialog, self).__init__(title="Select FSCC Port",
+                                                buttons=buttons)
+
+        self.set_current_folder("/dev/")
+        self.set_filename("/dev/fscc0")
+
+    def get_port_name(self):
+        if self.run() == gtk.RESPONSE_OK:
+            port_name = self.get_filename()
+        else:
+            port_name = None
+
+        self.destroy()
+
+        return port_name
+
+
+class Toolbar(gtk.Toolbar):
+    def __init__(self, window):
+        super(Toolbar, self).__init__()
+
+        button_data = (
+            (gtk.STOCK_OPEN, self.open_clicked),
+            (gtk.STOCK_SAVE, self.save_clicked),
+            (gtk.STOCK_REFRESH, self.refresh_clicked),
+            (gtk.STOCK_GO_FORWARD, self.export_clicked),
+        )
+
+        for stock_id, callback in button_data:
+            setattr(self, stock_id, gtk.ToolButton(stock_id))
+            getattr(self, stock_id).connect("clicked", callback)
+            getattr(self, stock_id).show()
+
+            self.insert(getattr(self, stock_id), -1)
+
+        separator = gtk.SeparatorToolItem()
+        separator.show()
+
+        getattr(self, gtk.STOCK_GO_FORWARD).set_label("Export Settings")
+
+        self.insert(separator, 2)
+
+        window.connect("port-changed", self.port_changed)
+
+        for stock_id in [gtk.STOCK_REFRESH, gtk.STOCK_GO_FORWARD]:
+            getattr(self, stock_id).set_sensitive(False)
+
+    def open_clicked(self, widget, data=None):
+        port_name = PortChooserDialog().get_port_name()
+
+        if port_name:
+            self.emit("port-selected", port_name)
+
+    def save_clicked(self, widget, data=None):
+        self.emit("save-clicked")
+
+    def refresh_clicked(self, widget, data=None):
+        self.emit("refresh-clicked")
+
+    def export_clicked(self, widget, data=None):
+        filename = ExportFileChooserDialog().get_export_filename()
+
+        if filename:
+            self.emit("export-clicked", filename)
+
+    def port_changed(self, widget, data=None):
+        for stock_id in [gtk.STOCK_REFRESH, gtk.STOCK_GO_FORWARD]:
+            getattr(self, stock_id).set_sensitive(True)
+
+
+
+gobject.type_register(Toolbar)
+
+gobject.signal_new("port-selected", Toolbar, gobject.SIGNAL_RUN_FIRST,
+                   gobject.TYPE_NONE, (gobject.TYPE_STRING,))
+
+gobject.signal_new("save-clicked", Toolbar, gobject.SIGNAL_RUN_FIRST,
+                   gobject.TYPE_NONE, ())
+
+gobject.signal_new("refresh-clicked", Toolbar, gobject.SIGNAL_RUN_FIRST,
+                   gobject.TYPE_NONE, ())
+
+gobject.signal_new("export-clicked", Toolbar, gobject.SIGNAL_RUN_FIRST,
+                   gobject.TYPE_NONE, (gobject.TYPE_STRING,))
+
+
+class InvalidPortMessageDialog(gtk.MessageDialog):
+    def __init__(self):
+        message = "That doesn't appear to be a valid FSCC port."
+
+        super(InvalidPortMessageDialog, self).__init__(type=gtk.MESSAGE_ERROR,
+                                                      buttons=gtk.BUTTONS_CLOSE,
+                                                      message_format=message)
+
+
+class SettingsExportedMessageDialog(gtk.MessageDialog):
+    def __init__(self):
+        message = "Your settings have been exported."
+
+        super(SettingsExportedMessageDialog, self).__init__(buttons=gtk.BUTTONS_CLOSE,
+                                                            message_format=message)
+
+
+class InvalidValuesMessageDialog(gtk.MessageDialog):
+    def __init__(self, values):
+        if len(values) == 1:
+            message = "The following register contains an invalid " \
+                      "hexadecimal value. It must be fixed before " \
+                      "continuing.\n"
+        else:
+            message = "The following registers contain an invalid " \
+                      "hexadecimal value. They must be fixed before " \
+                      "continuing.\n"
+
+        for register_name, value in values:
+            message += "\n%s - 0x%s" % (register_name, value)
+
+        super(InvalidValuesMessageDialog, self).__init__(type=gtk.MESSAGE_ERROR,
+                                                         buttons=gtk.BUTTONS_CLOSE,
+                                                         message_format=message)
+
+
+class Window(gtk.Window):
+    editable_registers = [r for r in fscc.Port.register_names if r not in ["STAR", "VSTR", "CMDR"]]
+
+    def __init__(self):
+        super(Window, self).__init__(gtk.WINDOW_TOPLEVEL)
+
+        self.set_title(NAME)
+        self.set_position(gtk.WIN_POS_CENTER)
+        self.set_default_size(400, 0)
+
+        self.connect("destroy", gtk.main_quit)
+
+        accel_group = gtk.AccelGroup()
+        self.add_accel_group(accel_group)
+
+        main_vbox = gtk.VBox(False, 0)
+
+        menu_bar = MenuBar(accel_group)
+        menu_bar.connect("port-selected", self.change_port)
+        menu_bar.show()
+
+        toolbar = Toolbar(self)
+        toolbar.connect("port-selected", self.change_port)
+        toolbar.connect("save-clicked", self.save_registers)
+        toolbar.connect("refresh-clicked", self.update_registers)
+        toolbar.connect("export-clicked", self.export_settings)
+        toolbar.show()
+
+        registers_hbox = gtk.HBox(False, 3)
+        registers_hbox.show()
+
+        register_entries_vbox = gtk.VBox(False, 3)
+        register_entries_vbox.set_border_width(10)
+        register_entries_vbox.show()
+
+        separator = gtk.VSeparator()
+        separator.show()
+
+        register_guis_vbox = gtk.VBox(False, 3)
+        register_guis_vbox.set_border_width(10)
+        register_guis_vbox.show()
+
+        for i, register_name in enumerate(Window.editable_registers):
+            register = generic.Register(register_name)
+            setattr(self, register_name.lower(), register)
+            register.entry.connect("focus-in-event", self.entry_selected)
+            register.show()
+
+            try:
+                gui = getattr(registers, register_name)(register.entry)
+            except AttributeError:
+                pass
+            else:
+                register.set_verbose_widget(gui)
+                register_guis_vbox.pack_start(gui, False, False, 3)
+
+            register_entries_vbox.pack_start(register, False, False, 0)
+
+        registers_hbox.pack_start(register_entries_vbox, False, False, 0)
+        registers_hbox.pack_start(separator, False, False, 0)
+        registers_hbox.pack_start(register_guis_vbox, False, False, 0)
+
+        main_vbox.pack_start(menu_bar, False, False, 0)
+        main_vbox.pack_start(toolbar, False, False, 0)
+        main_vbox.pack_start(registers_hbox, False, False, 0)
+
+        main_vbox.show()
+
+        self.add(main_vbox)
+
+    def entry_selected(self, widget, data=None):
+        for register_name in Window.editable_registers:
+            getattr(self, register_name.lower()).hide_gui()
+
+        getattr(self, widget.register_name.lower()).show_gui()
+
+    def change_port(self, widget, port_name):
+        try:
+            port = fscc.Port(port_name, 'wb')
+        except IOError:
+            message_dialog = InvalidPortMessageDialog()
+            message_dialog.run()
+            message_dialog.destroy()
+            return
+
+        for i, register_name in enumerate(Window.editable_registers):
+            getattr(self, register_name.lower()).update_value(port)
+
+        self.emit("port-changed", port_name)
+
+    def save_registers(self, widget=None):
+        invalid_values = []
+
+        for i, register_name in enumerate(Window.editable_registers):
+            value = getattr(self, register_name.lower()).get_value()
+
+            try:
+                value = int(value, 16)
+            except ValueError:
+                invalid_values.append((register_name, value))
+
+        if invalid_values:
+            message_dialog = InvalidValuesMessageDialog(invalid_values)
+            message_dialog.run()
+            message_dialog.destroy()
+            return
+
+        for i, register_name in enumerate(Window.editable_registers):
+            getattr(self, register_name.lower()).save_value()
+
+    def update_registers(self, widget=None):
+        for i, register_name in enumerate(Window.editable_registers):
+            getattr(self, register_name.lower()).update_value()
+
+    def export_settings(self, widget, filename):
+        export_file = open(filename, 'w')
+
+        for i, register_name in enumerate(Window.editable_registers):
+            value = getattr(self, register_name.lower()).get_value()
+            export_file.write("%s: 0x%08x\n" % (register_name, int(value, 16)))
+
+        export_file.close()
+
+        message_dialog = SettingsExportedMessageDialog()
+        message_dialog.run()
+        message_dialog.destroy()
+
+
+gobject.type_register(Window)
+
+gobject.signal_new("port-changed", Window, gobject.SIGNAL_RUN_FIRST,
+                   gobject.TYPE_NONE, (gobject.TYPE_STRING,))
+
+
+if __name__ == "__main__":
+    fscc_window = Window()
+    fscc_window.show()
+
+    gtk.main()
