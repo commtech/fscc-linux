@@ -244,7 +244,7 @@ class Window(gtk.Window):
 
         self.set_title(NAME)
         self.set_position(gtk.WIN_POS_CENTER)
-        self.set_default_size(400, 0)
+        self.set_default_size(600, 0)
 
         self.connect("destroy", gtk.main_quit)
 
