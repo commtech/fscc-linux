@@ -41,6 +41,7 @@ FSCC_DISABLE_APPEND_STATUS = _IO(FSCC_IOCTL_MAGIC, 5)
 
 FSCC_UPDATE_VALUE = -2
 
+
 class Port(io.FileIO):
 
     def __init__(self, file, mode, append_status=False):

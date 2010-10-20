@@ -5,10 +5,11 @@ from generic import RegisterSequence
 
 
 class FIFOT(gtk.VBox):
+
     def __init__(self, entry):
         super(FIFOT, self).__init__(False, 10)
 
-        register_sections  = [
+        register_sections = [
             ("Transmit FIFO Trigger Level", "TXTRG", 4095),
             ("Receive FIFO Trigger Level", "RXTRG", 8191),
         ]
@@ -257,7 +258,9 @@ class CCR0(gtk.VBox):
 
         self.entry.set_text("%08x" % ((entry_value & 0xfff8ffff) | (ntb_value << 16)))
 
+
 class BGR(gtk.VBox):
+
     def __init__(self, entry):
         super(BGR, self).__init__(False, 10)
 
@@ -288,6 +291,7 @@ class BGR(gtk.VBox):
 
 
 class SSR(RegisterSequence):
+
     def __init__(self, entry):
         labels = ["Sync Byte %i" % i for i in range(1, 5)]
 
@@ -295,6 +299,7 @@ class SSR(RegisterSequence):
 
 
 class TSR(RegisterSequence):
+
     def __init__(self, entry):
         labels = ["Term Byte %i" % i for i in range(1, 5)]
 
@@ -302,6 +307,7 @@ class TSR(RegisterSequence):
 
 
 class RAR(RegisterSequence):
+
     def __init__(self, entry):
         labels = [
             "Group Addr-L",
@@ -314,6 +320,7 @@ class RAR(RegisterSequence):
 
 
 class RAMR(RegisterSequence):
+
     def __init__(self, entry):
         labels = [
             "Group Addr-L Mask",
@@ -326,6 +333,7 @@ class RAMR(RegisterSequence):
 
 
 class PPR(gtk.VBox):
+
     def __init__(self, entry):
         super(PPR, self).__init__(False, 10)
 

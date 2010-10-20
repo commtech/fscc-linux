@@ -5,6 +5,7 @@ import fscc
 
 
 class Register(gtk.HBox):
+
     def __init__(self, register_name, port=None):
         super(Register, self).__init__(False, 0)
 
@@ -47,6 +48,7 @@ class Register(gtk.HBox):
 
 
 class RegisterEntry(gtk.Entry):
+
     def __init__(self, register_name, port=None):
         super(RegisterEntry, self).__init__()
 
@@ -84,6 +86,7 @@ class RegisterEntry(gtk.Entry):
 
 
 class RegisterSequence(gtk.VBox):
+
     def __init__(self, entry, labels):
         super(RegisterSequence, self).__init__(False, 10)
 

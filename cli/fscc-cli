@@ -120,12 +120,14 @@ def get_registers(args):
     for reg in port.register_names:
         print("%s = 0x%08x" % (reg, getattr(port, reg)))
 
+
 def flush_tx(args):
     for port_name in args.port:
         port = fscc.Port(port_name, "wb")
 
         port.flush_tx()
         port.close()
+
 
 def flush_rx(args):
     for port_name in args.port:
