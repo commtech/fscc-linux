@@ -200,6 +200,15 @@ gobject.signal_new("export-clicked", Toolbar, gobject.SIGNAL_RUN_FIRST,
                    gobject.TYPE_NONE, (gobject.TYPE_STRING,))
 
 
+class InsufficientPermissionsMessageDialog(gtk.MessageDialog):
+    def __init__(self):
+        message = "You don't have sufficient permissions to open that port."
+
+        super(InsufficientPermissionsMessageDialog, self).__init__(type=gtk.MESSAGE_ERROR,
+                                                      buttons=gtk.BUTTONS_CLOSE,
+                                                      message_format=message)
+
+
 class InvalidPortMessageDialog(gtk.MessageDialog):
     def __init__(self):
         message = "That doesn't appear to be a valid FSCC port."
@@ -326,10 +335,15 @@ class Window(gtk.Window):
     def change_port_selected(self, widget, port_name):
         try:
             fscc.Port(port_name, 'wb')
-        except IOError:
-            message_dialog = InvalidPortMessageDialog()
-            message_dialog.run()
-            message_dialog.destroy()
+        except IOError as e:
+            if e.errno == 13:
+                message_dialog = InsufficientPermissionsMessageDialog()
+                message_dialog.run()
+                message_dialog.destroy()
+            elif e.errno == 25:
+                message_dialog = InvalidPortMessageDialog()
+                message_dialog.run()
+                message_dialog.destroy()
         else:
             self.change_port(port_name)
 
@@ -342,7 +356,14 @@ class Window(gtk.Window):
             for i, register_name in enumerate(Window.editable_registers):
                 getattr(self, register_name.lower()).update_value(port)
 
-            self.port_name.set_markup("<b>%s</b>" % port_name)
+            port.reset_registers()
+            port.VSTR = fscc.FSCC_UPDATE_VALUE
+            port.get_registers()
+
+            prev = (port.VSTR & 0x0000FF00) >> 8
+            frev = port.VSTR & 0x000000FF
+
+            self.port_name.set_markup("<b>%s</b> (<i>%x.%02x</i>)" % (port_name, prev, frev))
             self.port_name.show()
             self.emit("port-changed", port_name)
 
