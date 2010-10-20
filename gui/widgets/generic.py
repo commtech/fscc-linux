@@ -77,3 +77,46 @@ class RegisterEntry(gtk.Entry):
 
     def get_value(self):
         return self.get_text()
+
+
+class RegisterSequence(gtk.VBox):
+    def __init__(self, entry, labels):
+        super(RegisterSequence, self).__init__(False, 10)
+
+        self.labels = labels
+
+        for i, label in enumerate(self.labels):
+            byte_entry = gtk.Entry()
+            setattr(self, "byte_%i" % i, byte_entry)
+            byte_entry.show()
+
+            byte_entry.connect("activate", self.byte_entry_changed)
+            byte_entry.connect("focus-out-event", self.byte_entry_changed)
+
+            frame = gtk.Frame(label)
+            frame.add(byte_entry)
+            frame.set_shadow_type(gtk.SHADOW_NONE)
+            frame.show()
+
+            self.pack_start(frame)
+
+        self.entry = entry
+        self.entry.connect("activate", self.entry_changed)
+        self.entry.connect("focus-out-event", self.entry_changed)
+
+    def entry_changed(self, widget, data=None):
+        if self.entry and self.entry.get_text():
+            entry_value = int(self.entry.get_text(), 16)
+
+            for i, label in enumerate(self.labels):
+                byte_entry = getattr(self, "byte_%i" % i)
+                byte_entry.set_text("%02x" % ((entry_value >> (i * 8)) & 0x000000ff))
+
+    def byte_entry_changed(self, widget, data=None):
+        new_value = 0
+
+        for i, label in enumerate(self.labels):
+            byte_entry_value = int(getattr(self, "byte_%i" % i).get_text(), 16)
+            new_value |= (byte_entry_value << (i * 8))
+
+        self.entry.set_text("%08x" % new_value)
