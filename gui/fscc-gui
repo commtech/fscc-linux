@@ -366,7 +366,7 @@ class Window(gtk.Window):
             for i, register_name in enumerate(Window.editable_registers):
                 getattr(self, register_name.lower()).update_value(port)
 
-            port.reset_registers()
+            port.clear_registers()
             port.VSTR = fscc.FSCC_UPDATE_VALUE
             port.get_registers()
 

@@ -49,14 +49,14 @@ class Port(io.FileIO):
             raise IOError(errno.ENOENT, os.strerror(errno.ENOENT), file)
 
         io.FileIO.__init__(self, file, mode)
-        self.reset_registers()
+        self.clear_registers()
 
         if append_status:
             self.enable_append_status()
         else:
             self.disable_append_status()
 
-    def reset_registers(self):
+    def clear_registers(self):
         for register in self.register_names:
             setattr(self, register, -1)
 

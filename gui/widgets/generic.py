@@ -68,7 +68,7 @@ class RegisterEntry(gtk.Entry):
         if port:
             self.port = port
 
-        self.port.reset_registers()
+        self.port.clear_registers()
         setattr(self.port, self.register_name, fscc.FSCC_UPDATE_VALUE)
         self.port.get_registers()
 
@@ -77,7 +77,7 @@ class RegisterEntry(gtk.Entry):
         self.emit("activate")
 
     def save_value(self):
-        self.port.reset_registers()
+        self.port.clear_registers()
         setattr(self.port, self.register_name, int(self.get_text(), 16))
         self.port.set_registers()
 
