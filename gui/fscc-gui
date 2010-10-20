@@ -111,6 +111,29 @@ class ExportFileChooserDialog(gtk.FileChooserDialog):
         return filename
 
 
+class ImportFileChooserDialog(gtk.FileChooserDialog):
+
+    def __init__(self):
+        buttons = (
+            gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL,
+            gtk.STOCK_OPEN, gtk.RESPONSE_OK,
+        )
+
+        super(ImportFileChooserDialog, self).__init__(title="",
+                                                      action=gtk.FILE_CHOOSER_ACTION_OPEN,
+                                                      buttons=buttons)
+
+    def get_import_filename(self):
+        if self.run() == gtk.RESPONSE_OK:
+            filename = self.get_filename()
+        else:
+            filename = None
+
+        self.destroy()
+
+        return filename
+
+
 class PortChooserDialog(gtk.FileChooserDialog):
 
     def __init__(self):
@@ -146,6 +169,7 @@ class Toolbar(gtk.Toolbar):
             (gtk.STOCK_SAVE, self.save_clicked),
             (gtk.STOCK_REFRESH, self.refresh_clicked),
             (gtk.STOCK_GO_FORWARD, self.export_clicked),
+            (gtk.STOCK_GO_BACK, self.import_clicked),
         )
 
         for stock_id, callback in button_data:
@@ -159,6 +183,7 @@ class Toolbar(gtk.Toolbar):
         separator.show()
 
         getattr(self, gtk.STOCK_GO_FORWARD).set_label("Export Settings")
+        getattr(self, gtk.STOCK_GO_BACK).set_label("Import Settings")
 
         self.insert(separator, 2)
 
@@ -185,6 +210,12 @@ class Toolbar(gtk.Toolbar):
         if filename:
             self.emit("export-clicked", filename)
 
+    def import_clicked(self, widget, data=None):
+        filename = ImportFileChooserDialog().get_import_filename()
+
+        if filename:
+            self.emit("import-clicked", filename)
+
     def port_changed(self, widget, data=None):
         for stock_id in [gtk.STOCK_REFRESH, gtk.STOCK_GO_FORWARD]:
             getattr(self, stock_id).set_sensitive(True)
@@ -202,6 +233,9 @@ gobject.signal_new("refresh-clicked", Toolbar, gobject.SIGNAL_RUN_FIRST,
                    gobject.TYPE_NONE, ())
 
 gobject.signal_new("export-clicked", Toolbar, gobject.SIGNAL_RUN_FIRST,
+                   gobject.TYPE_NONE, (gobject.TYPE_STRING,))
+
+gobject.signal_new("import-clicked", Toolbar, gobject.SIGNAL_RUN_FIRST,
                    gobject.TYPE_NONE, (gobject.TYPE_STRING,))
 
 
@@ -231,6 +265,15 @@ class SettingsExportedMessageDialog(gtk.MessageDialog):
         message = "Your settings have been exported."
 
         super(SettingsExportedMessageDialog, self).__init__(buttons=gtk.BUTTONS_CLOSE,
+                                                            message_format=message)
+
+
+class SettingsImportedMessageDialog(gtk.MessageDialog):
+
+    def __init__(self):
+        message = "Your settings have been imported."
+
+        super(SettingsImportedMessageDialog, self).__init__(buttons=gtk.BUTTONS_CLOSE,
                                                             message_format=message)
 
 
@@ -281,6 +324,7 @@ class Window(gtk.Window):
         toolbar.connect("save-clicked", self.save_registers)
         toolbar.connect("refresh-clicked", self.update_registers)
         toolbar.connect("export-clicked", self.export_settings)
+        toolbar.connect("import-clicked", self.import_settings)
         toolbar.show()
 
         registers_hbox = gtk.HBox(False, 3)
@@ -359,19 +403,19 @@ class Window(gtk.Window):
 
     def change_port(self, port_name):
         try:
-            port = fscc.Port(port_name, 'wb')
+            self.port = fscc.Port(port_name, 'wb')
         except IOError:
             pass
         else:
             for i, register_name in enumerate(Window.editable_registers):
-                getattr(self, register_name.lower()).update_value(port)
+                getattr(self, register_name.lower()).update_value(self.port)
 
-            port.clear_registers()
-            port.VSTR = fscc.FSCC_UPDATE_VALUE
-            port.get_registers()
+            self.port.clear_registers()
+            self.port.VSTR = fscc.FSCC_UPDATE_VALUE
+            self.port.get_registers()
 
-            prev = (port.VSTR & 0x0000FF00) >> 8
-            frev = port.VSTR & 0x000000FF
+            prev = (self.port.VSTR & 0x0000FF00) >> 8
+            frev = self.port.VSTR & 0x000000FF
 
             self.port_name.set_markup("<b>%s</b> (<i>%x.%02x</i>)" % (port_name, prev, frev))
             self.port_name.show()
@@ -381,10 +425,8 @@ class Window(gtk.Window):
         invalid_values = []
 
         for i, register_name in enumerate(Window.editable_registers):
-            value = getattr(self, register_name.lower()).get_value()
-
             try:
-                value = int(value, 16)
+                value = getattr(self, register_name.lower()).get_value()
             except ValueError:
                 invalid_values.append((register_name, value))
 
@@ -394,23 +436,36 @@ class Window(gtk.Window):
             message_dialog.destroy()
             return
 
-        for i, register_name in enumerate(Window.editable_registers):
+        for register_name in Window.editable_registers:
             getattr(self, register_name.lower()).save_value()
 
     def update_registers(self, widget=None):
-        for i, register_name in enumerate(Window.editable_registers):
+        for register_name in Window.editable_registers:
             getattr(self, register_name.lower()).update_value()
 
     def export_settings(self, widget, filename):
-        export_file = open(filename, 'w')
+        self.port.clear_registers()
 
-        for i, register_name in enumerate(Window.editable_registers):
+        for register_name in Window.editable_registers:
             value = getattr(self, register_name.lower()).get_value()
-            export_file.write("%s: 0x%08x\n" % (register_name, int(value, 16)))
+            setattr(self.port, register_name, value)
 
-        export_file.close()
+        self.port.export_registers(filename)
 
         message_dialog = SettingsExportedMessageDialog()
+        message_dialog.run()
+        message_dialog.destroy()
+
+    def import_settings(self, widget, filename):
+        self.port.import_registers(filename)
+
+        for register_name in Window.editable_registers:
+            value = getattr(self.port, register_name)
+
+            if value >= 0:
+                getattr(self, register_name.lower()).set_value(value)
+
+        message_dialog = SettingsImportedMessageDialog()
         message_dialog.run()
         message_dialog.destroy()
 

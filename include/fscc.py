@@ -78,6 +78,31 @@ class Port(io.FileIO):
         fcntl.ioctl(self, FSCC_SET_REGISTERS,
                     struct.pack("q" * len(regs), *regs))
 
+    # Note: clears registers
+    def import_registers(self, file_path):
+        self.clear_registers()
+
+        import_file = open(file_path, "r")
+
+        for line in import_file:
+            if line[0] != "#":
+                register_name, value_str = line.split(" ", 2)
+                value = int(value_str, 16)
+                setattr(self, register_name, value)
+
+        import_file.close()
+
+    def export_registers(self, filename):
+        export_file = open(filename, 'w')
+
+        for i, register_name in enumerate(Port.editable_registers):
+            value = getattr(self, register_name)
+
+            if value >= 0:
+                export_file.write("%s 0x%08x\n" % (register_name, value))
+
+        export_file.close()
+
     def flush_tx(self):
         fcntl.ioctl(self, FSCC_FLUSH_TX)
 
@@ -97,6 +122,8 @@ class Port(io.FileIO):
     register_names = ["FIFOT", "CMDR", "STAR", "CCR0", "CCR1", "CCR2", "BGR",
                       "SSR", "SMR", "TSR", "TMR", "RAR", "RAMR", "PPR", "TCR",
                       "VSTR", "IMR", "DPLLR", "FCR"]
+
+    editable_registers = [r for r in register_names if r not in ["STAR", "VSTR", "CMDR"]]
 
     def _construct_full_registers_list(self):
         return [-1, -1, self.FIFOT, -1, -1, self.CMDR, self.STAR, self.CCR0,

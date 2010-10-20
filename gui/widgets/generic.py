@@ -35,6 +35,9 @@ class Register(gtk.HBox):
     def get_value(self):
         return self.entry.get_value()
 
+    def set_value(self, value):
+        self.entry.set_value(value)
+
     def set_verbose_widget(self, widget):
         self.verbose_widget = widget
 
@@ -82,7 +85,10 @@ class RegisterEntry(gtk.Entry):
         self.port.set_registers()
 
     def get_value(self):
-        return self.get_text()
+        return int(self.get_text(), 16)
+
+    def set_value(self, value):
+        self.set_text("%08x" % value)
 
 
 class RegisterSequence(gtk.VBox):
