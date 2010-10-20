@@ -1,4 +1,5 @@
 import gtk
+import pango
 
 from generic import RegisterSequence
 
@@ -344,6 +345,9 @@ class PPR(gtk.VBox):
         self.pre = gtk.Entry()
         self.pre.show()
 
+        #font_desc = pango.FontDescription('monospace')
+        #self.pre.modify_font(font_desc)
+
         self.pre.connect("activate", self.pre_changed)
         self.pre.connect("focus-out-event", self.pre_changed)
 
@@ -369,6 +373,9 @@ class PPR(gtk.VBox):
 
         self.post = gtk.Entry()
         self.post.show()
+
+        #font_desc = pango.FontDescription('monospace')
+        #self.post.modify_font(font_desc)
 
         self.post.connect("activate", self.post_changed)
         self.post.connect("focus-out-event", self.post_changed)
@@ -402,19 +409,19 @@ class PPR(gtk.VBox):
         npost_value = widget.get_value_as_int()
         entry_value = int(self.entry.get_text(), 16)
 
-        self.entry.set_text("%08x" % ((entry_value & 0x00ffffff) | (npost_value << 8)))
+        self.entry.set_text("%08x" % ((entry_value & 0xffff00ff) | (npost_value << 8)))
 
     def pre_changed(self, widget, data=None):
-        pre_value = widget.get_value_as_int()
+        pre_value = int(widget.get_text(), 16)
         entry_value = int(self.entry.get_text(), 16)
 
         self.entry.set_text("%08x" % ((entry_value & 0xff00ffff) | (pre_value << 16)))
 
     def post_changed(self, widget, data=None):
-        post_value = widget.get_value_as_int()
+        post_value = int(widget.get_text(), 16)
         entry_value = int(self.entry.get_text(), 16)
 
-        self.entry.set_text("%08x" % ((entry_value & 0xff00ffff) | post_value))
+        self.entry.set_text("%08x" % ((entry_value & 0xffffff00) | post_value))
 
 
 class TCR(gtk.VBox):

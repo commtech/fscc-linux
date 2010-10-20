@@ -1,4 +1,5 @@
 import gtk
+import pango
 
 import fscc
 
@@ -55,6 +56,9 @@ class RegisterEntry(gtk.Entry):
         self.set_max_length(8)
         self.set_width_chars(8)
 
+        #font_desc = pango.FontDescription("monospace")
+        #self.modify_font(font_desc)
+
         if self.port:
             self.update_value()
 
@@ -88,7 +92,11 @@ class RegisterSequence(gtk.VBox):
         for i, label in enumerate(self.labels):
             byte_entry = gtk.Entry()
             setattr(self, "byte_%i" % i, byte_entry)
+            byte_entry.set_width_chars(2)
             byte_entry.show()
+
+            #font_desc = pango.FontDescription('monospace')
+            #byte_entry.modify_font(font_desc)
 
             byte_entry.connect("activate", self.byte_entry_changed)
             byte_entry.connect("focus-out-event", self.byte_entry_changed)
