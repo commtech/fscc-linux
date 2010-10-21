@@ -450,14 +450,18 @@ class Window(gtk.Window):
             value = getattr(self, register_name.lower()).get_value()
             setattr(self.port, register_name, value)
 
-        self.port.export_registers(filename)
+        export_file = open(filename, 'w')
+        self.port.export_registers(export_file)
+        export_file.close()
 
         message_dialog = SettingsExportedMessageDialog()
         message_dialog.run()
         message_dialog.destroy()
 
     def import_settings(self, widget, filename):
-        self.port.import_registers(filename)
+        import_file = open(filename, "r")
+        self.port.import_registers(import_file)
+        import_file.close()
 
         for register_name in Window.editable_registers:
             value = getattr(self.port, register_name)

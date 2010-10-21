@@ -1,9 +1,10 @@
 #!/usr/bin/python
 
-import argparse
 import random
 import string
 import sys
+
+import argparse
 import fscc
 
 
@@ -86,27 +87,22 @@ def loop(args):
 
 
 def set_registers(args):
-    ports = []
+    ports = [fscc.Port(port, "wb") for port in args.port]
 
-    for port in args.port:
-        ports.append(fscc.Port(port, "wb"))
+    import_file = open("/tmp/fscc_settings", "w+")
 
-    reg_list = args.data.split("\n")
+    for line in args.data.split("\n"):
+        import_file.write("%s\n" % line)
 
-    for reg_string in reg_list:
-        d = reg_string.split("=")
-        reg_name, reg_val = d[0].strip().upper(), d[1].strip()
+    import_file.close()
 
-        if reg_val[0] == "0" and (reg_val[1] == "x" or reg_val[1] == "X"):
-            reg_val = int(reg_val, 16)
-        else:
-            reg_val = int(reg_val)
-
-        for port in ports:
-            setattr(port, reg_name, reg_val)
+    import_file = open("/tmp/fscc_settings", "r")
 
     for port in ports:
+        port.import_registers(import_file)
         port.set_registers()
+
+    import_file.close()
 
 
 def get_registers(args):
@@ -116,9 +112,7 @@ def get_registers(args):
         setattr(port, reg, fscc.FSCC_UPDATE_VALUE)
 
     port.get_registers()
-
-    for reg in port.register_names:
-        print("%s = 0x%08x" % (reg, getattr(port, reg)))
+    port.export_registers(sys.stdout)
 
 
 def flush_tx(args):
@@ -175,13 +169,13 @@ if __name__ == '__main__':
     parser_get_registers.add_argument('port', type=str, help='the fscc node to get a register\'s value from')
     parser_get_registers.set_defaults(func=get_registers)
 
-    parser_get_registers = subparsers.add_parser('flush_tx', help='Removes all pending transmit data')
-    parser_get_registers.add_argument('port', type=str, nargs='+', help='the fscc node to remove its pending data')
-    parser_get_registers.set_defaults(func=flush_tx)
+    parser_flush_tx = subparsers.add_parser('flush-tx', help='Removes all pending transmit data')
+    parser_flush_tx.add_argument('port', type=str, nargs='+', help='the fscc node to remove its pending data')
+    parser_flush_tx.set_defaults(func=flush_tx)
 
-    parser_get_registers = subparsers.add_parser('flush_rx', help='Removes all pending receive data')
-    parser_get_registers.add_argument('port', type=str, nargs='+', help='the fscc node to remove its pending data')
-    parser_get_registers.set_defaults(func=flush_rx)
+    parser_flush_rx = subparsers.add_parser('flush-rx', help='Removes all pending receive data')
+    parser_flush_rx.add_argument('port', type=str, nargs='+', help='the fscc node to remove its pending data')
+    parser_flush_rx.set_defaults(func=flush_rx)
 
     args = parser.parse_args()
     args.func(args)

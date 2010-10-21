@@ -79,29 +79,27 @@ class Port(io.FileIO):
                     struct.pack("q" * len(regs), *regs))
 
     # Note: clears registers
-    def import_registers(self, file_path):
+    def import_registers(self, import_file):
         self.clear_registers()
-
-        import_file = open(file_path, "r")
 
         for line in import_file:
             if line[0] != "#":
-                register_name, value_str = line.split(" ", 2)
-                value = int(value_str, 16)
-                setattr(self, register_name, value)
+                d = line.split("=")
+                reg_name, reg_val = d[0].strip().upper(), d[1].strip()
 
-        import_file.close()
+                if reg_val[0] == "0" and (reg_val[1] == "x" or reg_val[1] == "X"):
+                    reg_val = int(reg_val, 16)
+                else:
+                    reg_val = int(reg_val)
 
-    def export_registers(self, filename):
-        export_file = open(filename, 'w')
+                setattr(self, reg_name, reg_val)
 
+    def export_registers(self, export_file):
         for i, register_name in enumerate(Port.editable_registers):
             value = getattr(self, register_name)
 
             if value >= 0:
-                export_file.write("%s 0x%08x\n" % (register_name, value))
-
-        export_file.close()
+                export_file.write("%s = 0x%08x\n" % (register_name, value))
 
     def flush_tx(self):
         fcntl.ioctl(self, FSCC_FLUSH_TX)
@@ -119,20 +117,20 @@ class Port(io.FileIO):
         if num_bytes:
             return super(io.FileIO, self).read(num_bytes)
 
-    register_names = ["FIFOT", "CMDR", "STAR", "CCR0", "CCR1", "CCR2", "BGR",
+    register_names = ["FIFOT", "STAR", "CCR0", "CCR1", "CCR2", "BGR",
                       "SSR", "SMR", "TSR", "TMR", "RAR", "RAMR", "PPR", "TCR",
                       "VSTR", "IMR", "DPLLR", "FCR"]
 
-    editable_registers = [r for r in register_names if r not in ["STAR", "VSTR", "CMDR"]]
+    editable_registers = [r for r in register_names if r not in ["STAR", "VSTR"]]
 
     def _construct_full_registers_list(self):
-        return [-1, -1, self.FIFOT, -1, -1, self.CMDR, self.STAR, self.CCR0,
+        return [-1, -1, self.FIFOT, -1, -1, -1, self.STAR, self.CCR0,
                 self.CCR1, self.CCR2, self.BGR, self.SSR, self.SMR, self.TSR,
                 self.TMR, self.RAR, self.RAMR, self.PPR, self.TCR, self.VSTR,
                 -1, self.IMR, self.DPLLR, self.FCR]
 
     def _set_register_by_index(self, index, value):
-        data = [("FIFOT", 2), ("CMDR", 5), ("STAR", 6), ("CCR0", 7),
+        data = [("FIFOT", 2), ("STAR", 6), ("CCR0", 7),
                 ("CCR1", 8), ("CCR2", 9), ("BGR", 10), ("SSR", 11),
                 ("SMR", 12), ("TSR", 13), ("TMR", 14), ("RAR", 15),
                 ("RAMR", 16), ("PPR", 17), ("TCR", 18), ("VSTR", 19),
