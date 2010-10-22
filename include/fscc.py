@@ -81,6 +81,8 @@ class Port(io.FileIO):
     # Note: clears registers
     def import_registers(self, import_file):
         self.clear_registers()
+        
+        import_file.seek(0, os.SEEK_SET)
 
         for line in import_file:
             if line[0] != "#":
