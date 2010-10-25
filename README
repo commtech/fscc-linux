@@ -80,8 +80,8 @@ simply running the make command from within the source code directory.
    > cd fscc-linux/
    > make
 
-1) If you would like to enable debug prints within the driver you need to add the
-   DEBUG option while building the driver.
+1) If you would like to enable debug prints within the driver you need to add 
+   the DEBUG option while building the driver.
 
    > make DEBUG=1
    
