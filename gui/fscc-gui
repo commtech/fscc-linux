@@ -2,6 +2,7 @@
 
 import gtk
 import gobject
+import threading
 
 import fscc
 
@@ -23,6 +24,108 @@ class AboutDialog(gtk.AboutDialog):
         self.set_website("www.commtech-fastcom.com")
         self.set_website_label("Commtech Website")
         self.set_authors(["William Fagan <willf@commtech-fastcom.com>"])
+
+
+class ChatDialog(gtk.Dialog):
+    class ReadThread(threading.Thread, gobject.GObject):
+        def __init__(self, port):
+            threading.Thread.__init__(self)
+            gobject.GObject.__init__(self)
+
+            self.port = port
+
+        def run(self):
+            while True:
+                text = self.port.read(4096)
+                self.emit("changed", text)
+
+    def __init__(self, port):
+        buttons = (
+            gtk.STOCK_CLOSE, gtk.RESPONSE_CLOSE,
+        )
+
+        super(ChatDialog, self).__init__("FSCC Send/Receive", buttons=buttons)
+
+        self.set_border_width(10)
+        self.set_default_size(600, 400)
+
+        paned = gtk.VPaned()
+        paned.set_position(200)
+        paned.show()
+
+        self.outgoing_text = gtk.TextView()
+        self.outgoing_text.show()
+
+        send_button = gtk.Button("Send")
+        send_button.connect("clicked", self.send_clicked)
+        send_button.show()
+
+        #hex_button = gtk.ToggleButton("Hex")
+        #hex_button.show()
+
+        button_box = gtk.HButtonBox()
+        button_box.set_layout(gtk.BUTTONBOX_END)
+        button_box.set_spacing(5)
+        button_box.show()
+        #button_box.pack_start(hex_button, False, False)
+        button_box.pack_start(send_button, False, False)
+
+        vbox = gtk.VBox()
+        vbox.show()
+        vbox.pack_start(self.outgoing_text, True, True, 5)
+        vbox.pack_start(button_box, False, False, 5)
+
+        paned.add(vbox)
+
+        self.incoming_text = gtk.Label()
+        self.incoming_text.set_alignment(0, 0)
+        self.incoming_text.show()
+
+        vbox = gtk.VBox()
+        vbox.set_border_width(5)
+        vbox.pack_start(self.incoming_text, True, True)
+        vbox.show()
+
+        scrolled_window = gtk.ScrolledWindow()
+        scrolled_window.add_with_viewport(vbox)
+        scrolled_window.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
+        scrolled_window.set_shadow_type(gtk.SHADOW_NONE)
+        scrolled_window.show()
+
+        frame = gtk.Frame("Incoming")
+        frame.add(scrolled_window)
+        frame.set_shadow_type(gtk.SHADOW_NONE)
+        frame.show()
+
+        paned.add(frame)
+
+        self.vbox.pack_start(paned, True, True, 5)
+
+        self.port = port
+
+        self.read_thread = ChatDialog.ReadThread(self.port)
+        self.read_thread.connect("changed", self.incoming_text_changed)
+        self.read_thread.daemon = True
+        self.read_thread.start()
+
+    def send_clicked(self, widget, data=None):
+        text_buffer = self.outgoing_text.get_buffer()
+        start, end = text_buffer.get_bounds()
+
+        text = text_buffer.get_text(start, end)
+        text_buffer.delete(start, end)
+
+        self.port.write(text)
+
+    def incoming_text_changed(self, widget, text):
+        self.incoming_text.set_text(text)
+
+
+gobject.type_register(ChatDialog.ReadThread)
+
+gobject.signal_new("changed", ChatDialog.ReadThread, gobject.SIGNAL_RUN_FIRST,
+                   gobject.TYPE_NONE, (gobject.TYPE_STRING,))
+
 
 
 class MenuBar(gtk.MenuBar):
@@ -170,6 +273,7 @@ class Toolbar(gtk.Toolbar):
             (gtk.STOCK_REFRESH, self.refresh_clicked),
             (gtk.STOCK_GO_FORWARD, self.export_clicked),
             (gtk.STOCK_GO_BACK, self.import_clicked),
+            (gtk.STOCK_CONNECT, self.chat_clicked),
         )
 
         for stock_id, callback in button_data:
@@ -184,12 +288,13 @@ class Toolbar(gtk.Toolbar):
 
         getattr(self, gtk.STOCK_GO_FORWARD).set_label("Export Settings")
         getattr(self, gtk.STOCK_GO_BACK).set_label("Import Settings")
+        getattr(self, gtk.STOCK_CONNECT).set_label("Send/Receive")
 
         self.insert(separator, 2)
 
         window.connect("port-changed", self.port_changed)
 
-        for stock_id in [gtk.STOCK_REFRESH, gtk.STOCK_GO_FORWARD]:
+        for stock_id in [gtk.STOCK_REFRESH, gtk.STOCK_GO_FORWARD, gtk.STOCK_GO_BACK, gtk.STOCK_CONNECT]:
             getattr(self, stock_id).set_sensitive(False)
 
     def open_clicked(self, widget, data=None):
@@ -216,8 +321,11 @@ class Toolbar(gtk.Toolbar):
         if filename:
             self.emit("import-clicked", filename)
 
+    def chat_clicked(self, widget, data=None):
+        self.emit("chat-clicked")
+
     def port_changed(self, widget, data=None):
-        for stock_id in [gtk.STOCK_REFRESH, gtk.STOCK_GO_FORWARD]:
+        for stock_id in [gtk.STOCK_REFRESH, gtk.STOCK_GO_FORWARD, gtk.STOCK_GO_BACK, gtk.STOCK_CONNECT]:
             getattr(self, stock_id).set_sensitive(True)
 
 
@@ -237,6 +345,9 @@ gobject.signal_new("export-clicked", Toolbar, gobject.SIGNAL_RUN_FIRST,
 
 gobject.signal_new("import-clicked", Toolbar, gobject.SIGNAL_RUN_FIRST,
                    gobject.TYPE_NONE, (gobject.TYPE_STRING,))
+
+gobject.signal_new("chat-clicked", Toolbar, gobject.SIGNAL_RUN_FIRST,
+                   gobject.TYPE_NONE, ())
 
 
 class InsufficientPermissionsMessageDialog(gtk.MessageDialog):
@@ -325,6 +436,7 @@ class Window(gtk.Window):
         toolbar.connect("refresh-clicked", self.update_registers)
         toolbar.connect("export-clicked", self.export_settings)
         toolbar.connect("import-clicked", self.import_settings)
+        toolbar.connect("chat-clicked", self.start_chat)
         toolbar.show()
 
         registers_hbox = gtk.HBox(False, 3)
@@ -388,7 +500,7 @@ class Window(gtk.Window):
 
     def change_port_selected(self, widget, port_name):
         try:
-            fscc.Port(port_name, 'wb')
+            fscc.Port(port_name, 'w+b')
         except IOError as e:
             if e.errno == 13:
                 message_dialog = InsufficientPermissionsMessageDialog()
@@ -403,7 +515,7 @@ class Window(gtk.Window):
 
     def change_port(self, port_name):
         try:
-            self.port = fscc.Port(port_name, 'wb')
+            self.port = fscc.Port(port_name, 'w+b')
         except IOError:
             pass
         else:
@@ -473,6 +585,12 @@ class Window(gtk.Window):
         message_dialog.run()
         message_dialog.destroy()
 
+    def start_chat(self, widget, data=None):
+        chat_dialog = ChatDialog(self.port)
+
+        chat_dialog.run()
+        chat_dialog.destroy()
+
 
 gobject.type_register(Window)
 
@@ -484,4 +602,5 @@ if __name__ == "__main__":
     fscc_window = Window()
     fscc_window.show()
 
+    gobject.threads_init()
     gtk.main()
