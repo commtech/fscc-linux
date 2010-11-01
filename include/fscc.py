@@ -81,7 +81,7 @@ class Port(io.FileIO):
     # Note: clears registers
     def import_registers(self, import_file):
         self.clear_registers()
-        
+
         import_file.seek(0, os.SEEK_SET)
 
         for line in import_file:
@@ -89,7 +89,7 @@ class Port(io.FileIO):
                 d = line.split("=")
                 reg_name, reg_val = d[0].strip().upper(), d[1].strip()
 
-                if reg_val[0] == "0" and (reg_val[1] == "x" or reg_val[1] == "X"):
+                if reg_val[0] == "0" and reg_val[1] in ["x", "X"]:
                     reg_val = int(reg_val, 16)
                 else:
                     reg_val = int(reg_val)

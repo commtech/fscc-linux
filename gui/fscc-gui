@@ -6,24 +6,8 @@ import threading
 
 import fscc
 
-from widgets import generic, registers
-
-VERSION = "1.0"
-NAME = "FSCC Settings Manager"
-PROGRAM_NAME = "fscc-gui"
-
-
-class AboutDialog(gtk.AboutDialog):
-
-    def __init__(self):
-        super(AboutDialog, self).__init__()
-
-        self.set_name(NAME)
-        self.set_program_name(PROGRAM_NAME)
-        self.set_version(VERSION)
-        self.set_website("www.commtech-fastcom.com")
-        self.set_website_label("Commtech Website")
-        self.set_authors(["William Fagan <willf@commtech-fastcom.com>"])
+from widgets import generic, registers, dialogs
+import config
 
 
 class ChatDialog(gtk.Dialog):
@@ -41,7 +25,8 @@ class ChatDialog(gtk.Dialog):
 
     def __init__(self, port):
         buttons = (
-            gtk.STOCK_CLOSE, gtk.RESPONSE_CLOSE,
+            gtk.STOCK_CLOSE,
+            gtk.RESPONSE_CLOSE,
         )
 
         super(ChatDialog, self).__init__("FSCC Send/Receive", buttons=buttons)
@@ -60,14 +45,10 @@ class ChatDialog(gtk.Dialog):
         send_button.connect("clicked", self.send_clicked)
         send_button.show()
 
-        #hex_button = gtk.ToggleButton("Hex")
-        #hex_button.show()
-
         button_box = gtk.HButtonBox()
         button_box.set_layout(gtk.BUTTONBOX_END)
         button_box.set_spacing(5)
         button_box.show()
-        #button_box.pack_start(hex_button, False, False)
         button_box.pack_start(send_button, False, False)
 
         vbox = gtk.VBox()
@@ -103,10 +84,10 @@ class ChatDialog(gtk.Dialog):
 
         self.port = port
 
-        self.read_thread = ChatDialog.ReadThread(self.port)
-        self.read_thread.connect("changed", self.incoming_text_changed)
-        self.read_thread.daemon = True
-        self.read_thread.start()
+        read_thread = ChatDialog.ReadThread(self.port)
+        read_thread.connect("changed", self.incoming_text_changed)
+        read_thread.daemon = True
+        read_thread.start()
 
     def send_clicked(self, widget, data=None):
         text_buffer = self.outgoing_text.get_buffer()
@@ -125,7 +106,6 @@ gobject.type_register(ChatDialog.ReadThread)
 
 gobject.signal_new("changed", ChatDialog.ReadThread, gobject.SIGNAL_RUN_FIRST,
                    gobject.TYPE_NONE, (gobject.TYPE_STRING,))
-
 
 
 class MenuBar(gtk.MenuBar):
@@ -170,17 +150,24 @@ class MenuBar(gtk.MenuBar):
         help_menu.append(about_menu_item)
         about_menu_item.show()
 
-        self.append(file_menu_item)
-        self.append(help_menu_item)
+        for widget in [file_menu_item, help_menu_item]:
+            self.append(widget)
 
     def open_activate(self, widget, data=None):
-        port_name = PortChooserDialog().get_port_name()
+        dialog = dialogs.OpenPortDialog()
+
+        if dialog.run() == gtk.RESPONSE_OK:
+            port_name = dialog.get_filename()
+        else:
+            port_name = None
+
+        dialog.destroy()
 
         if port_name:
             self.emit("port-selected", port_name)
 
     def about_activate(self, widget, data=None):
-        about_dialog = AboutDialog()
+        about_dialog = dialogs.AboutDialog()
         about_dialog.run()
         about_dialog.destroy()
 
@@ -191,114 +178,67 @@ gobject.signal_new("port-selected", MenuBar, gobject.SIGNAL_RUN_FIRST,
                    gobject.TYPE_NONE, (gobject.TYPE_STRING,))
 
 
-class ExportFileChooserDialog(gtk.FileChooserDialog):
-
-    def __init__(self):
-        buttons = (
-            gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL,
-            gtk.STOCK_SAVE, gtk.RESPONSE_OK,
-        )
-
-        super(ExportFileChooserDialog, self).__init__(title="",
-                                                      action=gtk.FILE_CHOOSER_ACTION_SAVE,
-                                                      buttons=buttons)
-
-    def get_export_filename(self):
-        if self.run() == gtk.RESPONSE_OK:
-            filename = self.get_filename()
-        else:
-            filename = None
-
-        self.destroy()
-
-        return filename
-
-
-class ImportFileChooserDialog(gtk.FileChooserDialog):
-
-    def __init__(self):
-        buttons = (
-            gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL,
-            gtk.STOCK_OPEN, gtk.RESPONSE_OK,
-        )
-
-        super(ImportFileChooserDialog, self).__init__(title="",
-                                                      action=gtk.FILE_CHOOSER_ACTION_OPEN,
-                                                      buttons=buttons)
-
-    def get_import_filename(self):
-        if self.run() == gtk.RESPONSE_OK:
-            filename = self.get_filename()
-        else:
-            filename = None
-
-        self.destroy()
-
-        return filename
-
-
-class PortChooserDialog(gtk.FileChooserDialog):
-
-    def __init__(self):
-        buttons = (
-            gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL,
-            gtk.STOCK_OPEN, gtk.RESPONSE_OK,
-        )
-
-        super(PortChooserDialog, self).__init__(title="Select FSCC Port",
-                                                buttons=buttons)
-
-        self.set_current_folder("/dev/")
-        self.set_filename("/dev/fscc0")
-
-    def get_port_name(self):
-        if self.run() == gtk.RESPONSE_OK:
-            port_name = self.get_filename()
-        else:
-            port_name = None
-
-        self.destroy()
-
-        return port_name
-
-
 class Toolbar(gtk.Toolbar):
+    port_dependent_buttons = [
+        gtk.STOCK_SAVE,
+        gtk.STOCK_REFRESH,
+        gtk.STOCK_GO_FORWARD,
+        gtk.STOCK_GO_BACK,
+        gtk.STOCK_CONNECT,
+    ]
 
     def __init__(self, window):
         super(Toolbar, self).__init__()
 
         button_data = (
-            (gtk.STOCK_OPEN, self.open_clicked),
-            (gtk.STOCK_SAVE, self.save_clicked),
-            (gtk.STOCK_REFRESH, self.refresh_clicked),
-            (gtk.STOCK_GO_FORWARD, self.export_clicked),
-            (gtk.STOCK_GO_BACK, self.import_clicked),
-            (gtk.STOCK_CONNECT, self.chat_clicked),
+            (gtk.STOCK_OPEN, self.open_clicked, "Open Port",
+            "Open a port"),
+            (gtk.STOCK_SAVE, self.save_clicked, "Save Settings",
+            "Save settings to port"),
+            (gtk.STOCK_REFRESH, self.refresh_clicked, "Reload Settings",
+            "Reload settings from port"),
+            (gtk.STOCK_GO_FORWARD, self.export_clicked, "Export Settings",
+            "Export settings to file"),
+            (gtk.STOCK_GO_BACK, self.import_clicked, "Import Settings",
+            "Import settings from file"),
+            (gtk.STOCK_CONNECT, self.chat_clicked, "Send/Receive Data",
+            "Send/receive data to/from port"),
         )
 
-        for stock_id, callback in button_data:
-            setattr(self, stock_id, gtk.ToolButton(stock_id))
-            getattr(self, stock_id).connect("clicked", callback)
-            getattr(self, stock_id).show()
+        for stock_id, callback, label, tooltip_text in button_data:
+            button = gtk.ToolButton(stock_id)
+            button.connect("clicked", callback)
+            button.show()
 
-            self.insert(getattr(self, stock_id), -1)
+            if label:
+                button.set_label(label)
 
-        separator = gtk.SeparatorToolItem()
-        separator.show()
+            if tooltip_text:
+                button.set_tooltip_text(tooltip_text)
 
-        getattr(self, gtk.STOCK_GO_FORWARD).set_label("Export Settings")
-        getattr(self, gtk.STOCK_GO_BACK).set_label("Import Settings")
-        getattr(self, gtk.STOCK_CONNECT).set_label("Send/Receive")
+            setattr(self, stock_id, button)
+            self.insert(button, -1)
 
-        self.insert(separator, 2)
+        for i in [2, 6]:
+            separator = gtk.SeparatorToolItem()
+            separator.show()
+
+            self.insert(separator, i)
 
         window.connect("port-changed", self.port_changed)
 
-        for stock_id in [gtk.STOCK_REFRESH, gtk.STOCK_GO_FORWARD, gtk.STOCK_GO_BACK, gtk.STOCK_CONNECT]:
+        for stock_id in Toolbar.port_dependent_buttons:
             getattr(self, stock_id).set_sensitive(False)
 
     def open_clicked(self, widget, data=None):
-        port_name = PortChooserDialog().get_port_name()
+        dialog = dialogs.OpenPortDialog()
+
+        if dialog.run() == gtk.RESPONSE_OK:
+            port_name = dialog.get_filename()
+        else:
+            port_name = None
+
+        dialog.destroy()
 
         if port_name:
             self.emit("port-selected", port_name)
@@ -310,13 +250,27 @@ class Toolbar(gtk.Toolbar):
         self.emit("refresh-clicked")
 
     def export_clicked(self, widget, data=None):
-        filename = ExportFileChooserDialog().get_export_filename()
+        dialog = dialogs.ExportSettingsDialog()
+
+        if dialog.run() == gtk.RESPONSE_OK:
+            filename = dialog.get_filename()
+        else:
+            filename = None
+
+        dialog.destroy()
 
         if filename:
             self.emit("export-clicked", filename)
 
     def import_clicked(self, widget, data=None):
-        filename = ImportFileChooserDialog().get_import_filename()
+        dialog = dialogs.ImportSettingsDialog()
+
+        if dialog.run() == gtk.RESPONSE_OK:
+            filename = dialog.get_filename()
+        else:
+            filename = None
+
+        dialog.destroy()
 
         if filename:
             self.emit("import-clicked", filename)
@@ -325,7 +279,7 @@ class Toolbar(gtk.Toolbar):
         self.emit("chat-clicked")
 
     def port_changed(self, widget, data=None):
-        for stock_id in [gtk.STOCK_REFRESH, gtk.STOCK_GO_FORWARD, gtk.STOCK_GO_BACK, gtk.STOCK_CONNECT]:
+        for stock_id in Toolbar.port_dependent_buttons:
             getattr(self, stock_id).set_sensitive(True)
 
 
@@ -350,72 +304,14 @@ gobject.signal_new("chat-clicked", Toolbar, gobject.SIGNAL_RUN_FIRST,
                    gobject.TYPE_NONE, ())
 
 
-class InsufficientPermissionsMessageDialog(gtk.MessageDialog):
-
-    def __init__(self):
-        message = "You don't have sufficient permissions to open that port."
-
-        super(InsufficientPermissionsMessageDialog, self).__init__(type=gtk.MESSAGE_ERROR,
-                                                      buttons=gtk.BUTTONS_CLOSE,
-                                                      message_format=message)
-
-
-class InvalidPortMessageDialog(gtk.MessageDialog):
-
-    def __init__(self):
-        message = "That doesn't appear to be a valid FSCC port."
-
-        super(InvalidPortMessageDialog, self).__init__(type=gtk.MESSAGE_ERROR,
-                                                      buttons=gtk.BUTTONS_CLOSE,
-                                                      message_format=message)
-
-
-class SettingsExportedMessageDialog(gtk.MessageDialog):
-
-    def __init__(self):
-        message = "Your settings have been exported."
-
-        super(SettingsExportedMessageDialog, self).__init__(buttons=gtk.BUTTONS_CLOSE,
-                                                            message_format=message)
-
-
-class SettingsImportedMessageDialog(gtk.MessageDialog):
-
-    def __init__(self):
-        message = "Your settings have been imported."
-
-        super(SettingsImportedMessageDialog, self).__init__(buttons=gtk.BUTTONS_CLOSE,
-                                                            message_format=message)
-
-
-class InvalidValuesMessageDialog(gtk.MessageDialog):
-
-    def __init__(self, values):
-        if len(values) == 1:
-            message = "The following register contains an invalid " \
-                      "hexadecimal value. It must be fixed before " \
-                      "continuing.\n"
-        else:
-            message = "The following registers contain an invalid " \
-                      "hexadecimal value. They must be fixed before " \
-                      "continuing.\n"
-
-        for register_name, value in values:
-            message += "\n%s - 0x%s" % (register_name, value)
-
-        super(InvalidValuesMessageDialog, self).__init__(type=gtk.MESSAGE_ERROR,
-                                                         buttons=gtk.BUTTONS_CLOSE,
-                                                         message_format=message)
-
-
 class Window(gtk.Window):
 
-    editable_registers = [r for r in fscc.Port.register_names if r not in ["STAR", "VSTR", "CMDR"]]
+    editable_registers = [r for r in fscc.Port.editable_registers if r not in ["CMDR"]]
 
     def __init__(self):
         super(Window, self).__init__(gtk.WINDOW_TOPLEVEL)
 
-        self.set_title(NAME)
+        self.set_title(config.NAME)
         self.set_position(gtk.WIN_POS_CENTER)
         self.set_default_size(600, 0)
 
@@ -478,13 +374,11 @@ class Window(gtk.Window):
 
             register_entries_vbox.pack_start(register, False, False, 0)
 
-        registers_hbox.pack_start(vbox, False, False, 0)
-        registers_hbox.pack_start(separator, False, False, 0)
-        registers_hbox.pack_start(register_guis_vbox, False, False, 0)
+        for widget in [vbox, separator, register_guis_vbox]:
+            registers_hbox.pack_start(widget, False, False, 0)
 
-        main_vbox.pack_start(menu_bar, False, False, 0)
-        main_vbox.pack_start(toolbar, False, False, 0)
-        main_vbox.pack_start(registers_hbox, False, False, 0)
+        for widget in [menu_bar, toolbar, registers_hbox]:
+            main_vbox.pack_start(widget, False, False, 0)
 
         main_vbox.show()
 
@@ -503,13 +397,12 @@ class Window(gtk.Window):
             fscc.Port(port_name, 'w+b')
         except IOError as e:
             if e.errno == 13:
-                message_dialog = InsufficientPermissionsMessageDialog()
-                message_dialog.run()
-                message_dialog.destroy()
-            elif e.errno == 25:
-                message_dialog = InvalidPortMessageDialog()
-                message_dialog.run()
-                message_dialog.destroy()
+                dialog = dialogs.InsufficientPermissionsDialog()
+            else:
+                dialog = dialogs.InvalidPortDialog()
+
+            dialog.run()
+            dialog.destroy()
         else:
             self.change_port(port_name)
 
@@ -531,6 +424,7 @@ class Window(gtk.Window):
 
             self.port_name.set_markup("<b>%s</b> (<i>%x.%02x</i>)" % (port_name, prev, frev))
             self.port_name.show()
+
             self.emit("port-changed", port_name)
 
     def save_registers(self, widget=None):
@@ -543,9 +437,10 @@ class Window(gtk.Window):
                 invalid_values.append((register_name, value))
 
         if invalid_values:
-            message_dialog = InvalidValuesMessageDialog(invalid_values)
-            message_dialog.run()
-            message_dialog.destroy()
+            dialog = dialogs.InvalidValuesDialog(invalid_values)
+            dialog.run()
+            dialog.destroy()
+
             return
 
         for register_name in Window.editable_registers:
@@ -566,9 +461,9 @@ class Window(gtk.Window):
         self.port.export_registers(export_file)
         export_file.close()
 
-        message_dialog = SettingsExportedMessageDialog()
-        message_dialog.run()
-        message_dialog.destroy()
+        dialog = dialogs.SettingsExportedDialog()
+        dialog.run()
+        dialog.destroy()
 
     def import_settings(self, widget, filename):
         import_file = open(filename, "r")
@@ -581,9 +476,9 @@ class Window(gtk.Window):
             if value >= 0:
                 getattr(self, register_name.lower()).set_value(value)
 
-        message_dialog = SettingsImportedMessageDialog()
-        message_dialog.run()
-        message_dialog.destroy()
+        dialog = dialogs.SettingsImportedDialog()
+        dialog.run()
+        dialog.destroy()
 
     def start_chat(self, widget, data=None):
         chat_dialog = ChatDialog(self.port)
