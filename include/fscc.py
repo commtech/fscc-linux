@@ -49,12 +49,9 @@ class Port(io.FileIO):
             raise IOError(errno.ENOENT, os.strerror(errno.ENOENT), file)
 
         io.FileIO.__init__(self, file, mode)
-        self.clear_registers()
 
-        if append_status:
-            self.enable_append_status()
-        else:
-            self.disable_append_status()
+        self.clear_registers()
+        self.append_status = append_status
 
     def clear_registers(self):
         for register in self.register_names:
@@ -109,11 +106,13 @@ class Port(io.FileIO):
     def flush_rx(self):
         fcntl.ioctl(self, FSCC_FLUSH_RX)
 
-    def enable_append_status(self):
-        fcntl.ioctl(self, FSCC_ENABLE_APPEND_STATUS)
+    def _set_append_status(self, append_status):
+        if append_status:
+            fcntl.ioctl(self, FSCC_ENABLE_APPEND_STATUS)
+        else:
+            fcntl.ioctl(self, FSCC_DISABLE_APPEND_STATUS)
 
-    def disable_append_status(self):
-        fcntl.ioctl(self, FSCC_DISABLE_APPEND_STATUS)
+    append_status = property(fset=_set_append_status)
 
     def read(self, num_bytes):
         if num_bytes:
