@@ -1,12 +1,49 @@
 using System;
 using System.IO;
+using System.Runtime.InteropServices;
+using System.Text;
 
 namespace FSCC
 {
+	public class Registers
+	{
+	    public Registers()
+	    {
+	    }
+	    
+		public int FIFOT { get; set; }
+		public int STAR { get; set; }
+		public int CCR0 { get; set; }
+		public int CCR1 { get; set; }
+		public int CCR2 { get; set; }
+		public int BGR { get; set; }
+		public int SSR { get; set; }
+		public int TSR { get; set; }
+		public int TMR { get; set; }
+		public int RAR { get; set; }
+		public int RAMR { get; set; }
+		public int PPR { get; set; }
+		public int TCR { get; set; }
+		public int VSTR { get; set; }
+		public int IMR { get; set; }
+		public int DPLLR { get; set; }
+		public int FCR { get; set; }
+	}
+
 	public class Port : System.IO.FileStream
 	{
+		public const int FLUSH_TX = 6146;
+		public Registers Registers;
+
 		public Port(string path, FileAccess access) : base(path, FileMode.Open, access)
 		{
+			this.fd = this.Open(path, 1);
+			this.Registers = new Registers();
+		}
+
+		~Port()
+		{
+		    this.Close(this.fd);
 		}
 
 		public void Write(string data)
@@ -26,5 +63,65 @@ namespace FSCC
 
 			return encoder.GetString(input_bytes);
 		}
+
+		public bool AppendStatus
+		{
+		    set
+			{
+					throw new System.NotImplementedException();
+
+					/*
+					if (value == true)
+						this.Ioctl(FSCC_ENABLE_APPEND_STATUS)
+					else
+						tihs.Ioctl(FSCC_DISABLE_APPEND_STATUS)
+					*/
+			}
+		}
+
+		/* Cannot pass in File. Must use FileStream or something else
+		public void ImportRegisters(File import_file)
+		{
+			throw new System.NotImplementedException();
+		}
+
+		public void ExportRegisters(File export_file)
+		{
+			throw new System.NotImplementedException();
+		}
+		*/
+
+		public void FlushRx()
+		{
+			throw new System.NotImplementedException();
+			
+			/*
+			this.Ioctl(Port.FLUSH_RX);
+			*/
+		}
+
+		public void FlushTx()
+		{
+			throw new System.NotImplementedException();
+			
+			/*
+			this.Ioctl(Port.FLUSH_TX);
+			*/
+		}
+
+		public int Ioctl(int request)
+		{
+			return this.IoctlWorker(this.fd, request);
+		}
+
+		[DllImport("libc.so.6", EntryPoint="open")]
+		private static extern int Open(string path, int oflag);
+
+		[DllImport("libc.so.6", EntryPoint="close")]
+		private static extern int Close(int fd);
+
+		[DllImport("libc.so.6", EntryPoint="ioctl")]
+		private static extern int IoctlWorker(int fd, int request);
+		private int fd;
 	}
 }

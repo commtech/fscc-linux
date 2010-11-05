@@ -5,12 +5,6 @@ import fscc
 if __name__ == '__main__':
     port = fscc.Port('/dev/fscc0', 'wb')
 
-    port.CCR0 = fscc.FSCC_UPDATE_VALUE
-    port.CCR1 = fscc.FSCC_UPDATE_VALUE
-    port.CCR2 = fscc.FSCC_UPDATE_VALUE
-
-    port.get_registers()
-
-    print(("0x%08x" % port.CCR0))
-    print(("0x%08x" % port.CCR1))
-    print(("0x%08x" % port.CCR2))
+    print(("CCR0 = 0x%08x" % port.registers.CCR0))
+    print(("CCR1 = 0x%08x" % port.registers.CCR1))
+    print(("CCR2 = 0x%08x" % port.registers.CCR2))

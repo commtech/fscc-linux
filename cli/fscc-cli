@@ -37,9 +37,9 @@ def read(args):
     port = fscc.Port(args.port, "rb")
 
     if args.append_status == 0:
-        port.disable_append_status()
+        port.append_status = False
     else:
-        port.enable_append_status()
+        port.append_status = True
 
     incoming_data = port.read(4096)
 
@@ -99,8 +99,7 @@ def set_registers(args):
     import_file = open("/tmp/fscc_settings", "r")
 
     for port in ports:
-        port.import_registers(import_file)
-        port.set_registers()
+        port.registers.import_from_file(import_file)
 
     import_file.close()
 
@@ -108,11 +107,10 @@ def set_registers(args):
 def get_registers(args):
     port = fscc.Port(args.port, "rb")
 
-    for reg in port.register_names:
-        setattr(port, reg, fscc.FSCC_UPDATE_VALUE)
+    for reg in port.registers.register_names:
+        setattr(port.registers, reg, fscc.FSCC_UPDATE_VALUE)
 
-    port.get_registers()
-    port.export_registers(sys.stdout)
+    port.registers.export_to_file(sys.stdout)
 
 
 def flush_tx(args):
