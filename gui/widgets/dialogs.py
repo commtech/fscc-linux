@@ -136,6 +136,20 @@ class SettingsImportedDialog(gtk.MessageDialog):
         super(SettingsImportedDialog, self).__init__(*arguments)
 
 
+class SettingsSavedDialog(gtk.MessageDialog):
+
+    def __init__(self):
+        arguments = (
+            None,
+            gtk.DIALOG_MODAL & gtk.DIALOG_DESTROY_WITH_PARENT,
+            gtk.MESSAGE_INFO,
+            gtk.BUTTONS_CLOSE,
+            "Your settings have been saved.",
+        )
+
+        super(SettingsSavedDialog, self).__init__(*arguments)
+
+
 class InvalidValuesDialog(gtk.MessageDialog):
 
     def __init__(self, values):

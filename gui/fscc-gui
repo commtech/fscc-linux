@@ -306,7 +306,7 @@ gobject.signal_new("chat-clicked", Toolbar, gobject.SIGNAL_RUN_FIRST,
 
 class Window(gtk.Window):
 
-    editable_registers = [r for r in fscc.Port.editable_registers if r not in ["CMDR"]]
+    editable_register_names = [r for r in fscc.Port.Registers.editable_register_names if r not in ["CMDR"]]
 
     def __init__(self):
         super(Window, self).__init__(gtk.WINDOW_TOPLEVEL)
@@ -358,7 +358,7 @@ class Window(gtk.Window):
         vbox.pack_start(self.port_name, False, False, 10)
         vbox.pack_start(register_entries_vbox)
 
-        for i, register_name in enumerate(Window.editable_registers):
+        for i, register_name in enumerate(Window.editable_register_names):
             register = generic.Register(register_name)
             setattr(self, register_name.lower(), register)
             register.entry.connect("focus-in-event", self.entry_selected)
@@ -387,7 +387,7 @@ class Window(gtk.Window):
         self.add(main_vbox)
 
     def entry_selected(self, widget, data=None):
-        for register_name in Window.editable_registers:
+        for register_name in Window.editable_register_names:
             getattr(self, register_name.lower()).hide_gui()
 
         getattr(self, widget.register_name.lower()).show_gui()
@@ -412,15 +412,14 @@ class Window(gtk.Window):
         except IOError:
             pass
         else:
-            for i, register_name in enumerate(Window.editable_registers):
-                getattr(self, register_name.lower()).update_value(self.port)
+            for register_name in Window.editable_register_names:
+                value = getattr(self.port.registers, register_name)
+                getattr(self, register_name.lower()).set_value(value)
 
-            self.port.clear_registers()
-            self.port.VSTR = fscc.FSCC_UPDATE_VALUE
-            self.port.get_registers()
+            vstr = self.port.registers.VSTR
 
-            prev = (self.port.VSTR & 0x0000FF00) >> 8
-            frev = self.port.VSTR & 0x000000FF
+            prev = (vstr & 0x0000FF00) >> 8
+            frev = vstr & 0x000000FF
 
             self.port_name.set_markup("<b>%s</b> (<i>%x.%02x</i>)" % (port_name, prev, frev))
             self.port_name.show()
@@ -430,7 +429,7 @@ class Window(gtk.Window):
     def save_registers(self, widget=None):
         invalid_values = []
 
-        for i, register_name in enumerate(Window.editable_registers):
+        for i, register_name in enumerate(Window.editable_register_names):
             try:
                 value = getattr(self, register_name.lower()).get_value()
             except ValueError:
@@ -443,22 +442,28 @@ class Window(gtk.Window):
 
             return
 
-        for register_name in Window.editable_registers:
-            getattr(self, register_name.lower()).save_value()
+        for register_name in Window.editable_register_names:
+            value = getattr(self, register_name.lower()).get_value()
+            setattr(self.port.registers, register_name, value)
+
+        dialog = dialogs.SettingsSavedDialog()
+        dialog.run()
+        dialog.destroy()
 
     def update_registers(self, widget=None):
-        for register_name in Window.editable_registers:
-            getattr(self, register_name.lower()).update_value()
+        for register_name in Window.editable_register_names:
+            value = getattr(self.port.registers, register_name)
+            getattr(self, register_name.lower()).set_value(value)
 
     def export_settings(self, widget, filename):
-        self.port.clear_registers()
+        registers = fscc.Port.Registers()
 
-        for register_name in Window.editable_registers:
+        for register_name in Window.editable_register_names:
             value = getattr(self, register_name.lower()).get_value()
-            setattr(self.port, register_name, value)
+            setattr(registers, register_name, value)
 
         export_file = open(filename, 'w')
-        self.port.export_registers(export_file)
+        registers.export_to_file(export_file)
         export_file.close()
 
         dialog = dialogs.SettingsExportedDialog()
@@ -466,12 +471,14 @@ class Window(gtk.Window):
         dialog.destroy()
 
     def import_settings(self, widget, filename):
+        registers = fscc.Port.Registers()
+
         import_file = open(filename, "r")
-        self.port.import_registers(import_file)
+        registers.import_from_file(import_file)
         import_file.close()
 
-        for register_name in Window.editable_registers:
-            value = getattr(self.port, register_name)
+        for register_name in Window.editable_register_names:
+            value = getattr(registers, register_name)
 
             if value >= 0:
                 getattr(self, register_name.lower()).set_value(value)

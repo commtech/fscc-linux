@@ -25,18 +25,12 @@ class Register(gtk.HBox):
 
         self.set_sensitive(False)
 
-    def update_value(self, port=None):
-        self.entry.update_value(port)
-        self.set_sensitive(True)
-
-    def save_value(self):
-        self.entry.save_value()
-
     def get_value(self):
         return self.entry.get_value()
 
     def set_value(self, value):
         self.entry.set_value(value)
+        self.set_sensitive(True)
 
     def set_verbose_widget(self, widget):
         self.verbose_widget = widget
@@ -61,34 +55,15 @@ class RegisterEntry(gtk.Entry):
         self.set_max_length(8)
         self.set_width_chars(8)
 
-        #font_desc = pango.FontDescription("monospace")
-        #self.modify_font(font_desc)
-
         if self.port:
             self.update_value()
-
-    def update_value(self, port=None):
-        if port:
-            self.port = port
-
-        self.port.clear_registers()
-        setattr(self.port, self.register_name, fscc.FSCC_UPDATE_VALUE)
-        self.port.get_registers()
-
-        self.set_text("%08x" % getattr(self.port, self.register_name))
-
-        self.emit("activate")
-
-    def save_value(self):
-        self.port.clear_registers()
-        setattr(self.port, self.register_name, int(self.get_text(), 16))
-        self.port.set_registers()
 
     def get_value(self):
         return int(self.get_text(), 16)
 
     def set_value(self, value):
         self.set_text("%08x" % value)
+        self.emit("activate")
 
 
 class RegisterSequence(gtk.VBox):
@@ -103,9 +78,6 @@ class RegisterSequence(gtk.VBox):
             setattr(self, "byte_%i" % i, byte_entry)
             byte_entry.set_width_chars(2)
             byte_entry.show()
-
-            #font_desc = pango.FontDescription('monospace')
-            #byte_entry.modify_font(font_desc)
 
             byte_entry.connect("activate", self.byte_entry_changed)
             byte_entry.connect("focus-out-event", self.byte_entry_changed)
