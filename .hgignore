@@ -13,3 +13,4 @@ syntax: glob
 *.markers
 *.exe
 *.bak
+*.o.d
