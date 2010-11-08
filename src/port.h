@@ -21,6 +21,7 @@
 #ifndef FSCC_PORT
 #define FSCC_PORT
 
+#include <linux/fs.h> /* Needed to build on older kernel version */
 #include <linux/cdev.h> /* struct cdev */
 #include <linux/interrupt.h> /* struct tasklet_struct */
 #include <linux/version.h> /* LINUX_VERSION_CODE, KERNEL_VERSION */

@@ -72,7 +72,7 @@ irqreturn_t fscc_isr(int irq, void *potential_port, struct pt_regs *regs)
 void iframe_worker(unsigned long data)
 {
 	struct fscc_port *port = 0;
-	int receive_length = 0; //need to be signed
+	int receive_length = 0; /* Needs to be signed */
 	unsigned finished_frame = 0;
 
 	port = (struct fscc_port *)data;
@@ -86,56 +86,57 @@ void iframe_worker(unsigned long data)
 		port->pending_iframe = fscc_frame_new(0, 0, port);
 
 		return_if_untrue(port->pending_iframe);
-
-		dev_dbg(port->device, "F#%i receive started\n",
-		        port->pending_iframe->number);
 	}
 
 	finished_frame = (port->handled_frames < port->ended_frames);
 
 	if (finished_frame) {
 		unsigned bc_fifo_l = 0;
+		unsigned current_length = 0;
 
 		bc_fifo_l = fscc_port_get_register(port, 0, BC_FIFO_L_OFFSET);
-		receive_length = bc_fifo_l - fscc_frame_get_current_length(port->pending_iframe);
+		current_length = fscc_frame_get_current_length(port->pending_iframe);
+		
+		receive_length = bc_fifo_l - current_length;
 	} else {
-		unsigned rxcnt = 0;
+		/* We take off 2 bytes from the amount we can read just in case all the
+		   data got transfered in between the time we determined all of the 
+		   data wasn't in the FIFO and now. In this case, we let the next pass 
+		   take care of that data.
+		   
+		   3 is the maximum amount of leftover bytes
+		*/
 
-		//We take off 2 bytes from the amount we can read just in case all the
-		//data got transfered in between the time we determined all of the data
-		//wasn't in the FIFO and now. In this case, we let the next pass take
-		//care of that data.
-
-		//3 is the maximum amount of leftover bytes
-		rxcnt = fscc_port_get_RXCNT(port);
-		receive_length = rxcnt - STATUS_LENGTH - 3;
+		receive_length = fscc_port_get_RXCNT(port) - STATUS_LENGTH - 3;
 		receive_length -= receive_length % 4;
 	}
 
 	if (receive_length > 0) {
 	    char *buffer = 0;
 
+        /* Make sure we don't go over the user's memory constraint. */
 	    if (fscc_memory_usage() + receive_length > memory_cap) {
-		    dev_warn(port->device, "F#%i receive rejected (memory constraint)\n",
+            dev_warn(port->device, "F#%i receive rejected (memory constraint)\n",
 		            port->pending_iframe->number);
 
 		    fscc_frame_delete(port->pending_iframe);
+		    
 		    port->pending_iframe = 0;
-
 	        port->handled_frames += 1;
 
 		    return;
 	    }
 
-	   buffer = kmalloc(receive_length, GFP_ATOMIC);
+        buffer = kmalloc(receive_length, GFP_ATOMIC);
 
+        /* Make sure the kernel gives us enough memory to receive the data. */
         if (buffer == NULL) {
 		    dev_warn(port->device, "F#%i receive rejected (kmalloc of %i bytes)\n",
 				    port->pending_iframe->number, receive_length);
 
 			fscc_frame_delete(port->pending_iframe);
+			
 			port->pending_iframe = 0;
-
 	        port->handled_frames += 1;
 
 			return;
@@ -143,6 +144,8 @@ void iframe_worker(unsigned long data)
 
 		fscc_port_get_register_rep(port, 0, FIFO_OFFSET, buffer, receive_length);
 		fscc_frame_add_data(port->pending_iframe, buffer, receive_length);
+
+		kfree(buffer);
 
 #ifdef __BIG_ENDIAN
         {
@@ -155,27 +158,22 @@ void iframe_worker(unsigned long data)
         }
 #endif
 
-		kfree(buffer);
-
-		dev_dbg(port->device, "F#%i <= %i byte%s\n",
+		dev_dbg(port->device, "F#%i <= %i byte%s (%sfinished)\n",
 				port->pending_iframe->number, receive_length,
-				(receive_length == 1) ? "" : "s");
+				(receive_length == 1) ? "" : "s",
+				(finished_frame) ? "" : "un");
 	}
 
 	if (!finished_frame)
 	    return;
 
 	fscc_frame_trim(port->pending_iframe);
-
 	list_add_tail(&port->pending_iframe->list, &port->iframes);
-
-	dev_dbg(port->device, "F#%i receive successful\n",
-			port->pending_iframe->number);
 
 	wake_up_interruptible(&port->input_queue);
 
-	port->handled_frames += 1;
 	port->pending_iframe = 0;
+	port->handled_frames += 1;
 }
 
 void oframe_worker(unsigned long data)
@@ -192,6 +190,7 @@ void oframe_worker(unsigned long data)
 
 	return_if_untrue(port);
 
+    /* Check if exists and if so, grabs the frame to transmit. */
 	if (!port->pending_oframe) {
 		if (fscc_port_has_oframes(port)) {
 			port->pending_oframe = fscc_port_peek_front_frame(port, &port->oframes);
@@ -218,20 +217,24 @@ void oframe_worker(unsigned long data)
 	padding_bytes = target_length % 4 ? 4 - target_length % 4 : 0;
 	fifo_space = TX_FIFO_SIZE - fscc_port_get_TXCNT(port);
 
+    /* Determine the maximum amount of data we can send this time around. */
 	transmit_length = (current_length + padding_bytes > fifo_space) ? fifo_space : current_length;
 	fscc_port_set_register_rep(port, 0, FIFO_OFFSET, port->pending_oframe->data, transmit_length);
+	
 	fscc_frame_remove_data(port->pending_oframe, transmit_length);
 
-	dev_dbg(port->device, "F#%i => %i byte%s\n",
+	dev_dbg(port->device, "F#%i => %i byte%s%s\n",
 		    port->pending_oframe->number, transmit_length,
-		    (transmit_length == 1) ? "" : "s");
+		    (transmit_length == 1) ? "" : "s",
+		    (fscc_frame_is_empty(port->pending_oframe)) ? " (starting)" : "");
 
-	/* If this is the first time we add data to the FIFO for this frame */
+	/* If this is the first time we add data to the FIFO for this frame we
+	   tell the port how much data is in this frame. */
 	if (current_length == target_length)
 		fscc_port_set_register(port, 0, BC_FIFO_L_OFFSET, target_length);
 
+    /* If we have sent all of the data we clean up. */
 	if (fscc_frame_is_empty(port->pending_oframe)) {
-		dev_dbg(port->device, "F#%i sending\n", port->pending_oframe->number);
 		fscc_frame_delete(port->pending_oframe);
 		port->pending_oframe = 0;
 	}

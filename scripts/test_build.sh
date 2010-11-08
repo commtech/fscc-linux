@@ -17,22 +17,6 @@ function build_kernel()
     fi
 }
 
-#if [ $1 ] && [ $2 ]; then
-#	for i in $(seq $1 $2)
-#	do
-#		build_kernel $i
-#	done
-#else
-#	if [ $1 ]; then
-#		build_kernel $1
-#	else
-#		for i in $(seq $START $END)
-#		do
-#			build_kernel $i
-#		done
-#	fi
-#fi
-
 for FILE in `ls $BASE_C_EXAMPLES_PATH*.c`
 do
     gcc -Wall -Wextra -ansi -pedantic $FILE
@@ -41,3 +25,19 @@ do
         exit $?
     fi
 done
+
+if [ $1 ] && [ $2 ]; then
+	for i in $(seq $1 $2)
+	do
+		build_kernel $i
+	done
+else
+	if [ $1 ]; then
+		build_kernel $1
+	else
+		for i in $(seq $START $END)
+		do
+			build_kernel $i
+		done
+	fi
+fi

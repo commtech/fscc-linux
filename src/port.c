@@ -19,7 +19,6 @@
 */
 
 #include <linux/version.h> /* LINUX_VERSION_CODE, KERNEL_VERSION */
-#include <linux/fs.h> /* TODO: Needed to compile but isn't correct */
 
 #include <asm/uaccess.h> /* copy_*_user in <= 2.6.24 */
 
