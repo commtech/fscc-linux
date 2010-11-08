@@ -104,7 +104,6 @@ void debug_interrupt_display(unsigned long data)
 
 	port = (struct fscc_port *)data;
 
-	//TODO: This may  not be needed
 	if (!port_exists(port))
 		return;
 

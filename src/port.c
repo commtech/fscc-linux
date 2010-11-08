@@ -90,7 +90,8 @@ struct fscc_port *fscc_port_new(struct fscc_card *card, unsigned channel,
 		return 0;
 	}
 
-	//TODO: This needs to be better
+	/* Simple check to see if the port is messed up. It won't catch all
+	   instances. */
 	if (fscc_port_get_PREV(port) == 0xff) {
 		dev_warn(port->device, "couldn't initialize\n");
 
@@ -158,7 +159,7 @@ struct fscc_port *fscc_port_new(struct fscc_card *card, unsigned channel,
 		return 0;
 	}
 
-//TODO: Can I get this to work?
+/* The sysfs structures I use in sysfs.c don't work prior to 2.6.25 */
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25)
 	if (sysfs_create_group(&port->device->kobj, &port_registers_attr_group)) {
 		dev_err(port->device, "sysfs_create_group\n");
@@ -189,8 +190,6 @@ struct fscc_port *fscc_port_new(struct fscc_card *card, unsigned channel,
 
 #endif /* LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25) */
 
-	/* TODO When these were up above before setting the registers channel 1
-	   wouldn't work when scheduling the prink tasklet */
 	tasklet_init(&port->oframe_tasklet, oframe_worker, (unsigned long)port);
 	tasklet_init(&port->iframe_tasklet, iframe_worker, (unsigned long)port);
 
