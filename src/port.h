@@ -32,6 +32,7 @@
 
 #include "fscc.h" /* struct fscc_registers */
 #include "descriptor.h" /* struct fscc_descriptor */
+#include "stream.h" /* struct fscc_descriptor */
 #include "debug.h" /* stuct debug_interrupt_tracker */
 
 #define FIFO_OFFSET 0x00
@@ -109,10 +110,13 @@ struct fscc_port {
 	struct fscc_frame *pending_oframe; /* Frame being put in the FIFO */
 	struct fscc_frame *pending_iframe; /* Frame retrieving from the FIFO */
 
+	struct fscc_stream *istream; /* Transparent stream */
+
 	struct fscc_registers register_storage; /* Only valid on suspend/resume */
 
 	struct tasklet_struct oframe_tasklet;
 	struct tasklet_struct iframe_tasklet;
+	struct tasklet_struct istream_tasklet;
 
 	unsigned last_isr_value;
 
@@ -193,10 +197,14 @@ struct fscc_frame *fscc_port_peek_front_frame(struct fscc_port *port,
                                               struct list_head *frames);
 
 unsigned fscc_port_using_async(struct fscc_port *port);
+unsigned fscc_port_using_transparent(struct fscc_port *port);
+
 void fscc_port_execute_XF(struct fscc_port *port);
 void fscc_port_execute_GO_T(struct fscc_port *port);
 
 unsigned fscc_port_has_dma(struct fscc_port *port);
+
+unsigned fscc_port_has_incoming_data(struct fscc_port *port, unsigned count);
 
 #ifdef DEBUG
 unsigned fscc_port_get_interrupt_count(struct fscc_port *port, __u32 isr_bit);

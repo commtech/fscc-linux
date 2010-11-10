@@ -24,6 +24,7 @@
 #include "frame.h" /* struct fscc_frame */
 
 #define TX_FIFO_SIZE 4096
+#define MAX_LEFTOVER_BYTES 3
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 19)
 irqreturn_t fscc_isr(int irq, void *potential_port)
@@ -33,6 +34,7 @@ irqreturn_t fscc_isr(int irq, void *potential_port, struct pt_regs *regs)
 {
 	struct fscc_port *port = 0;
 	unsigned isr_value = 0;
+	unsigned transparent_mode = 0;
 
 	if (!port_exists(potential_port))
 		return IRQ_NONE;
@@ -45,15 +47,22 @@ irqreturn_t fscc_isr(int irq, void *potential_port, struct pt_regs *regs)
 		return IRQ_NONE;
 
 	port->last_isr_value |= isr_value;
+	transparent_mode = fscc_port_using_transparent(port);
 
-	if (isr_value & RFE)
-		port->ended_frames += 1;
+    if (transparent_mode) {
+        if (isr_value & (RFT | RFS))
+		    tasklet_schedule(&port->istream_tasklet);
+    }
+    else {
+	    if (isr_value & RFE)
+		    port->ended_frames += 1;
 
-	if (isr_value & RFS)
-		port->started_frames += 1;
+	    if (isr_value & RFS)
+		    port->started_frames += 1;
 
-	if (isr_value & (RFE | RFT | RFS))
-		tasklet_schedule(&port->iframe_tasklet);
+	    if (isr_value & (RFE | RFT | RFS))
+		    tasklet_schedule(&port->iframe_tasklet);
+    }
 
 	if (isr_value & TFT && !fscc_port_has_dma(port))
 		tasklet_schedule(&port->oframe_tasklet);
@@ -96,31 +105,29 @@ void iframe_worker(unsigned long data)
 
 		bc_fifo_l = fscc_port_get_register(port, 0, BC_FIFO_L_OFFSET);
 		current_length = fscc_frame_get_current_length(port->pending_iframe);
-		
+
 		receive_length = bc_fifo_l - current_length;
 	} else {
-		/* We take off 2 bytes from the amount we can read just in case all the
-		   data got transfered in between the time we determined all of the 
-		   data wasn't in the FIFO and now. In this case, we let the next pass 
-		   take care of that data.
-		   
-		   3 is the maximum amount of leftover bytes
-		*/
+	    unsigned rxcnt = 0;
 
-		receive_length = fscc_port_get_RXCNT(port) - STATUS_LENGTH - 3;
+	    rxcnt = fscc_port_get_RXCNT(port);
+
+		/* We choose a safe amount to read due to more data coming in after we
+		   get our values. The rest will be read on the next interrupt. */
+		receive_length = rxcnt - STATUS_LENGTH - MAX_LEFTOVER_BYTES;
 		receive_length -= receive_length % 4;
 	}
-
 	if (receive_length > 0) {
 	    char *buffer = 0;
 
         /* Make sure we don't go over the user's memory constraint. */
 	    if (fscc_memory_usage() + receive_length > memory_cap) {
-            dev_warn(port->device, "F#%i receive rejected (memory constraint)\n",
-		            port->pending_iframe->number);
+            dev_warn(port->device,
+                     "F#%i receive rejected (memory constraint)\n",
+		             port->pending_iframe->number);
 
 		    fscc_frame_delete(port->pending_iframe);
-		    
+
 		    port->pending_iframe = 0;
 	        port->handled_frames += 1;
 
@@ -135,7 +142,7 @@ void iframe_worker(unsigned long data)
 				    port->pending_iframe->number, receive_length);
 
 			fscc_frame_delete(port->pending_iframe);
-			
+
 			port->pending_iframe = 0;
 	        port->handled_frames += 1;
 
@@ -174,6 +181,63 @@ void iframe_worker(unsigned long data)
 
 	port->pending_iframe = 0;
 	port->handled_frames += 1;
+}
+
+void istream_worker(unsigned long data)
+{
+	struct fscc_port *port = 0;
+	int receive_length = 0; /* Needs to be signed */
+
+	port = (struct fscc_port *)data;
+
+	return_if_untrue(port);
+
+	receive_length = fscc_port_get_RXCNT(port);
+
+	if (receive_length > 0) {
+	    char *buffer = 0;
+
+        /* Make sure we don't go over the user's memory constraint. */
+	    if (fscc_memory_usage() + receive_length > memory_cap) {
+            dev_warn(port->device,
+                     "Stream receive rejected (memory constraint)\n");
+
+		    return;
+	    }
+
+        buffer = kmalloc(receive_length, GFP_ATOMIC);
+
+        /* Make sure the kernel gives us enough memory to receive the data. */
+        if (buffer == NULL) {
+		    dev_warn(port->device, "Stream receive rejected (kmalloc of %i bytes)\n",
+				     receive_length);
+
+			return;
+		}
+
+		fscc_port_get_register_rep(port, 0, FIFO_OFFSET, buffer, receive_length);
+		fscc_stream_add_data(port->istream, buffer, receive_length);
+
+		kfree(buffer);
+
+#ifdef TODO_ADD_ENDIAN_CODE
+#ifdef __BIG_ENDIAN
+        {
+            char status[STATUS_LENGTH];
+
+            /* Moves the status bytes to the end. */
+            memmove(&status, port->pending_iframe->data, STATUS_LENGTH);
+            memmove(port->pending_iframe->data, port->pending_iframe->data + STATUS_LENGTH, port->pending_iframe->current_length - STATUS_LENGTH);
+            memmove(port->pending_iframe->data + port->pending_iframe->current_length - STATUS_LENGTH, &status, STATUS_LENGTH);
+        }
+#endif
+#endif
+
+		dev_dbg(port->device, "Stream <= %i byte%s\n", receive_length,
+				(receive_length == 1) ? "" : "s");
+	}
+
+	wake_up_interruptible(&port->input_queue);
 }
 
 void oframe_worker(unsigned long data)
@@ -220,7 +284,7 @@ void oframe_worker(unsigned long data)
     /* Determine the maximum amount of data we can send this time around. */
 	transmit_length = (current_length + padding_bytes > fifo_space) ? fifo_space : current_length;
 	fscc_port_set_register_rep(port, 0, FIFO_OFFSET, port->pending_oframe->data, transmit_length);
-	
+
 	fscc_frame_remove_data(port->pending_oframe, transmit_length);
 
 	dev_dbg(port->device, "F#%i => %i byte%s%s\n",

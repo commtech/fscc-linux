@@ -61,6 +61,7 @@ struct fscc_port *fscc_port_new(struct fscc_card *card, unsigned channel,
 	port->class = class;
 	port->pending_iframe = 0;
 	port->pending_oframe = 0;
+	port->istream = fscc_stream_new();
 	port->dev_t = MKDEV(major_number, minor_number);
 	port->append_status = DEFAULT_APPEND_STATUS_VALUE;
 
@@ -192,6 +193,7 @@ struct fscc_port *fscc_port_new(struct fscc_card *card, unsigned channel,
 
 	tasklet_init(&port->oframe_tasklet, oframe_worker, (unsigned long)port);
 	tasklet_init(&port->iframe_tasklet, iframe_worker, (unsigned long)port);
+	tasklet_init(&port->istream_tasklet, istream_worker, (unsigned long)port);
 
 #ifdef DEBUG
 	tasklet_init(&port->print_tasklet, debug_interrupt_display, (unsigned long)port);
@@ -227,6 +229,8 @@ void fscc_port_delete(struct fscc_port *port)
 
 	    fscc_port_set_register(port, 2, DMACCR_OFFSET, 0x00000000);
 	}
+
+	fscc_stream_delete(port->istream);
 
 	if (port->pending_iframe)
 		fscc_frame_delete(port->pending_iframe);
@@ -310,9 +314,7 @@ int fscc_port_write(struct fscc_port *port, const char *data, unsigned length)
 	return 0;
 }
 
-//Returns -ENOBUFS if count is smaller than pending frame size
-//Buf needs to be a user buffer
-ssize_t fscc_port_read(struct fscc_port *port, char *buf, size_t count)
+ssize_t fscc_port_frame_read(struct fscc_port *port, char *buf, size_t count)
 {
 	struct fscc_frame *frame = 0;
 	unsigned data_length = 0;
@@ -340,6 +342,35 @@ ssize_t fscc_port_read(struct fscc_port *port, char *buf, size_t count)
 	fscc_frame_delete(frame);
 
 	return data_length;
+}
+
+ssize_t fscc_port_stream_read(struct fscc_port *port, char *buf, size_t count)
+{
+    unsigned data_length = 0;
+	unsigned uncopied_bytes = 0;
+
+	return_val_if_untrue(port, 0);
+
+	data_length = min(count, fscc_stream_get_length(port->istream));
+
+	uncopied_bytes = copy_to_user(buf, fscc_stream_get_data(port->istream),
+	                              data_length);
+
+	return_val_if_untrue(!uncopied_bytes, 0);
+
+	fscc_stream_remove_data(port->istream, data_length);
+
+	return data_length;
+}
+
+//Returns -ENOBUFS if count is smaller than pending frame size
+//Buf needs to be a user buffer
+ssize_t fscc_port_read(struct fscc_port *port, char *buf, size_t count)
+{
+	if (fscc_port_using_transparent(port))
+	    return fscc_port_stream_read(port, buf, count);
+	else
+	    return fscc_port_frame_read(port, buf, count);
 }
 
 void fscc_port_empty_frames(struct fscc_port *port, struct list_head *frames)
@@ -385,6 +416,20 @@ unsigned fscc_port_has_oframes(struct fscc_port *port)
 	return_val_if_untrue(port, 0);
 
 	return !list_empty(&port->oframes);
+}
+
+/* Count is for transparent mode where we need to check there is enough
+   transparent data */
+unsigned fscc_port_has_incoming_data(struct fscc_port *port, unsigned count)
+{
+	return_val_if_untrue(port, 0);
+
+	if (fscc_port_using_transparent(port))
+	    return (fscc_stream_is_empty(port->istream)) ? 0 : 1;
+	else if (fscc_port_has_iframes(port))
+	    return 1;
+
+	return 0;
 }
 
 __u32 fscc_port_get_register(struct fscc_port *port, unsigned bar,
@@ -595,6 +640,9 @@ void fscc_port_flush_rx(struct fscc_port *port)
 	}
 
 	fscc_port_empty_frames(port, &port->iframes);
+
+	fscc_stream_remove_data(port->istream,
+	                        fscc_stream_get_length(port->istream));
 }
 
 unsigned fscc_port_get_frames_qty(struct fscc_port *port,
@@ -658,10 +706,16 @@ unsigned fscc_port_get_output_memory_usage(struct fscc_port *port)
 
 unsigned fscc_port_get_input_memory_usage(struct fscc_port *port)
 {
+    unsigned memory = 0;
+
 	return_val_if_untrue(port, 0);
 
-	return fscc_port_calculate_memory_usage(port, port->pending_iframe,
-	                                        &port->iframes);
+	memory = fscc_port_calculate_memory_usage(port, port->pending_iframe,
+	                                          &port->iframes);
+
+    memory += fscc_stream_get_length(port->istream);
+
+    return memory;
 }
 
 unsigned fscc_port_get_memory_usage(struct fscc_port *port)
@@ -831,6 +885,13 @@ unsigned fscc_port_using_async(struct fscc_port *port)
 	}
 
 	return 0;
+}
+
+unsigned fscc_port_using_transparent(struct fscc_port *port)
+{
+	return_val_if_untrue(port, 0);
+
+	return ((port->register_storage.CCR0 & 0x3) == 0x2) ? 1 : 0;
 }
 
 unsigned fscc_port_has_dma(struct fscc_port *port)

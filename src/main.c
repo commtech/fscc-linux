@@ -94,14 +94,14 @@ ssize_t fscc_read(struct file *file, char *buf, size_t count, loff_t *ppos)
 	if (down_interruptible(&port->read_semaphore))
 		return -ERESTARTSYS;
 
-	while (!fscc_port_has_iframes(port)) {
+	while (!fscc_port_has_incoming_data(port, count)) {
 		up(&port->read_semaphore);
 
 		if (file->f_flags & O_NONBLOCK)
 			return -EAGAIN;
 
 		if (wait_event_interruptible(port->input_queue,
-		                             fscc_port_has_iframes(port))) {
+		                           fscc_port_has_incoming_data(port, count))) {
 			return -ERESTARTSYS;
 		}
 

@@ -18,21 +18,22 @@
 
 */
 
-#ifndef FSCC_ISR_H
-#define FSCC_ISR_H
+#ifndef FSCC_STREAM_H
+#define FSCC_STREAM_H
 
-//#include <linux/irqreturn.h> /* irqreturn_t */
-#include <linux/version.h> /* LINUX_VERSION_CODE, KERNEL_VERSION */
-#include <linux/interrupt.h> /* struct pt_regs */
+struct fscc_stream {
+	char *data;
+	unsigned length;
+};
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 19)
-irqreturn_t fscc_isr(int irq, void *dev_id);
-#else
-irqreturn_t fscc_isr(int irq, void *dev_id, struct pt_regs *regs);
-#endif
+struct fscc_stream *fscc_stream_new(void);
+void fscc_stream_delete(struct fscc_stream *stream);
 
-void oframe_worker(unsigned long data);
-void iframe_worker(unsigned long data);
-void istream_worker(unsigned long data);
+void fscc_stream_add_data(struct fscc_stream *stream, const char *data,
+                          unsigned length);
+char *fscc_stream_get_data(struct fscc_stream *stream);
+unsigned fscc_stream_get_length(struct fscc_stream *stream);
+void fscc_stream_remove_data(struct fscc_stream *stream, unsigned length);
+unsigned fscc_stream_is_empty(struct fscc_stream *stream);
 
 #endif
