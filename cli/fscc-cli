@@ -41,7 +41,7 @@ def read(args):
     else:
         port.append_status = True
 
-    incoming_data = port.read(4096)
+    incoming_data = port.read(args.length)
 
     if args.hex:
         incoming_data = incoming_data.encode("hex")
@@ -107,9 +107,6 @@ def set_registers(args):
 def get_registers(args):
     port = fscc.Port(args.port, "rb")
 
-    for reg in port.registers.register_names:
-        setattr(port.registers, reg, fscc.FSCC_UPDATE_VALUE)
-
     port.registers.export_to_file(sys.stdout)
 
 
@@ -149,6 +146,7 @@ if __name__ == '__main__':
     parser_read.add_argument('port', type=str, help='the fscc node to receive data out of')
     parser_read.add_argument('--append_status', type=int, default=0, help='whether or not to append the status bytes to the data')
     parser_read.add_argument('--hex', type=int, default=0, help='whether or not the data is hexidecimal')
+    parser_read.add_argument('--length', type=int, default=4096, help='the largest frame size in frame based mode or how much data to read in transparent')
     parser_read.set_defaults(func=read)
 
     parser_loop = subparsers.add_parser('loop', help='sends data back and forth between FSCC ports')
