@@ -10,7 +10,7 @@ namespace FSCC
 	    public Registers()
 	    {
 	    }
-	    
+
 		public int FIFOT { get; set; }
 		public int STAR { get; set; }
 		public int CCR0 { get; set; }
@@ -94,7 +94,7 @@ namespace FSCC
 		public void FlushRx()
 		{
 			throw new System.NotImplementedException();
-			
+
 			/*
 			this.Ioctl(Port.FLUSH_RX);
 			*/
@@ -103,7 +103,7 @@ namespace FSCC
 		public void FlushTx()
 		{
 			throw new System.NotImplementedException();
-			
+
 			/*
 			this.Ioctl(Port.FLUSH_TX);
 			*/
