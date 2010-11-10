@@ -194,8 +194,8 @@ void fscc_frame_update_buffer_size(struct fscc_frame *frame, unsigned length)
 	memset(new_data, 0, sizeof(new_data));
 
 	if (frame->data) {
-		if (frame->current_length) //TODO: Is there a problem here if new_data is smaller than current_length?
-			memmove(new_data, frame->data, frame->current_length);
+		if (frame->current_length)
+			memmove(new_data, frame->data, length);
 
 		kfree(frame->data);
 	}
