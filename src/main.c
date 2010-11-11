@@ -168,6 +168,7 @@ int fscc_ioctl(struct inode *inode, struct file *file, unsigned int cmd,
                unsigned long arg)
 {
 	struct fscc_port *port = 0;
+	int error_code = 0;
 
 	port = file->private_data;
 
@@ -181,11 +182,15 @@ int fscc_ioctl(struct inode *inode, struct file *file, unsigned int cmd,
 		break;
 
 	case FSCC_FLUSH_TX:
-		fscc_port_flush_tx(port);
+		if ((error_code = fscc_port_flush_tx(port)) < 0)
+		    return error_code;
+
 		break;
 
 	case FSCC_FLUSH_RX:
-		fscc_port_flush_rx(port);
+		if ((error_code = fscc_port_flush_rx(port)) < 0)
+		    return error_code;
+
 		break;
 
 	case FSCC_ENABLE_APPEND_STATUS:

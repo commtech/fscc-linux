@@ -260,6 +260,23 @@ void fscc_port_delete(struct fscc_port *port)
 	kfree(port);
 }
 
+unsigned fscc_port_timed_out(struct fscc_port *port)
+{
+    __u32 star_value = 0;
+    unsigned i = 0;
+
+	return_val_if_untrue(port, 0);
+
+    for (i = 0; i < 5; i++) {
+        star_value = fscc_port_get_register(port, 0, STAR_OFFSET);
+
+        if ((star_value & CE_BIT) == 0)
+            return 0;
+    }
+
+    return 1;
+}
+
 int fscc_port_write(struct fscc_port *port, const char *data, unsigned length)
 {
 	struct fscc_frame *frame = 0;
@@ -269,27 +286,9 @@ int fscc_port_write(struct fscc_port *port, const char *data, unsigned length)
 	return_val_if_untrue(port, 0);
 
 	/* Checks to make sure there is a clock present. */
-    if (ignore_timeout == 0) {
-        __u32 star_value = 0;
-        unsigned i = 0;
-        unsigned stalled = 0;
-
-        for (i = 0; i < 5; i++) {
-            star_value = fscc_port_get_register(port, 0, STAR_OFFSET);
-
-            if (star_value & CE_BIT) {
-                stalled = 1;
-            }
-            else {
-                stalled = 0;
-                break;
-            }
-        }
-
-        if (stalled) {
-	        dev_dbg(port->device, "device stalled (wrong clock mode?)\n");
-	        return -ETIMEDOUT;
-	    }
+    if (ignore_timeout == 0 && fscc_port_timed_out(port)) {
+	    dev_dbg(port->device, "device stalled (wrong clock mode?)\n");
+	    return -ETIMEDOUT;
     }
 
 	temp_storage = kmalloc(length, GFP_KERNEL);
@@ -445,15 +444,21 @@ __u32 fscc_port_get_register(struct fscc_port *port, unsigned bar,
 	return fscc_card_get_register(port->card, bar, offset);
 }
 
-void fscc_port_set_register(struct fscc_port *port, unsigned bar,
+int fscc_port_set_register(struct fscc_port *port, unsigned bar,
                             unsigned register_offset, __u32 value)
 {
 	unsigned offset = 0;
 
-	return_if_untrue(port);
-	return_if_untrue(bar <= 2);
+	return_val_if_untrue(port, 0);
+	return_val_if_untrue(bar <= 2, 0);
 
 	offset = port_offset(port, bar, register_offset);
+
+    /* Checks to make sure there is a clock present. */
+    if (register_offset == CMDR_OFFSET && ignore_timeout == 0
+        && fscc_port_timed_out(port)) {
+        return -ETIMEDOUT;
+    }
 
 	fscc_card_set_register(port->card, bar, offset, value);
 
@@ -461,6 +466,8 @@ void fscc_port_set_register(struct fscc_port *port, unsigned bar,
 		((fscc_register *)&port->register_storage)[register_offset / 4] = value;
 	else if (register_offset == FCR_OFFSET)
 		port->register_storage.FCR = value;
+
+    return 1;
 }
 
 void fscc_port_get_register_rep(struct fscc_port *port, unsigned bar,
@@ -495,29 +502,37 @@ void fscc_port_set_register_rep(struct fscc_port *port, unsigned bar,
 	fscc_card_set_register_rep(port->card, bar, offset, data, byte_count);
 }
 
-void fscc_port_set_registers(struct fscc_port *port,
+int fscc_port_set_registers(struct fscc_port *port,
                              const struct fscc_registers *regs)
 {
+    unsigned stalled = 0;
 	unsigned i = 0;
 
-	return_if_untrue(port);
-	return_if_untrue(regs);
+	return_val_if_untrue(port, 0);
+	return_val_if_untrue(regs, 0);
 
 	for (i = 0; i < sizeof(*regs) / sizeof(fscc_register); i++) {
-		if (is_read_only_register(i * 4))
-			continue;
+	    unsigned register_offset = i * 4;
 
-		if (((fscc_register *)regs)[i] < 0)
+		if (is_read_only_register(register_offset)
+		    || ((fscc_register *)regs)[i] < 0) {
 			continue;
+	    }
 
-		if (i * 4 <= DPLLR_OFFSET) {
-			fscc_port_set_register(port, 0, i * 4, ((fscc_register *)regs)[i]);
+		if (register_offset <= DPLLR_OFFSET) {
+			if (fscc_port_set_register(port, 0, register_offset, ((fscc_register *)regs)[i]) == -ETIMEDOUT)
+			    stalled = 1;
 		}
 		else {
 			fscc_port_set_register(port, 2, FCR_OFFSET,
 			                       ((fscc_register *)regs)[i]);
 		}
 	}
+
+	if (stalled)
+	    return -ETIMEDOUT;
+	else
+	    return 1;
 }
 
 void fscc_port_get_registers(struct fscc_port *port,
@@ -610,13 +625,16 @@ void fscc_port_resume(struct fscc_port *port)
 	fscc_port_set_registers(port, &port->register_storage);
 }
 
-void fscc_port_flush_tx(struct fscc_port *port)
+int fscc_port_flush_tx(struct fscc_port *port)
 {
-	return_if_untrue(port);
+    int error_code = 0;
+
+	return_val_if_untrue(port, 0);
 
 	dev_dbg(port->device, "flush_tx\n");
 
-	fscc_port_execute_TRES(port);
+	if ((error_code = fscc_port_execute_TRES(port)) < 0)
+	    return error_code;
 
 	if (port->pending_oframe) {
 		fscc_frame_delete(port->pending_oframe);
@@ -624,15 +642,20 @@ void fscc_port_flush_tx(struct fscc_port *port)
 	}
 
 	fscc_port_empty_frames(port, &port->oframes);
+
+	return 1;
 }
 
-void fscc_port_flush_rx(struct fscc_port *port)
+int fscc_port_flush_rx(struct fscc_port *port)
 {
-	return_if_untrue(port);
+    int error_code = 0;
+
+	return_val_if_untrue(port, 0);
 
 	dev_dbg(port->device, "flush_rx\n");
 
-	fscc_port_execute_RRES(port);
+	if ((error_code = fscc_port_execute_RRES(port)) < 0)
+	    return error_code;
 
 	if (port->pending_iframe) {
 		fscc_frame_delete(port->pending_iframe);
@@ -643,6 +666,8 @@ void fscc_port_flush_rx(struct fscc_port *port)
 
 	fscc_stream_remove_data(port->istream,
 	                        fscc_stream_get_length(port->istream));
+
+	return 1;
 }
 
 unsigned fscc_port_get_frames_qty(struct fscc_port *port,
@@ -803,18 +828,18 @@ unsigned fscc_port_get_append_status(struct fscc_port *port)
 	return port->append_status;
 }
 
-void fscc_port_execute_TRES(struct fscc_port *port)
+int fscc_port_execute_TRES(struct fscc_port *port)
 {
-	return_if_untrue(port);
+	return_val_if_untrue(port, 0);
 
-	fscc_port_set_register(port, 0, CMDR_OFFSET, 0x08000000);
+	return fscc_port_set_register(port, 0, CMDR_OFFSET, 0x08000000);
 }
 
-void fscc_port_execute_RRES(struct fscc_port *port)
+int fscc_port_execute_RRES(struct fscc_port *port)
 {
-	return_if_untrue(port);
+	return_val_if_untrue(port, 0);
 
-	fscc_port_set_register(port, 0, CMDR_OFFSET, 0x00020000);
+	return fscc_port_set_register(port, 0, CMDR_OFFSET, 0x00020000);
 }
 
 void fscc_port_execute_XF(struct fscc_port *port)

@@ -152,15 +152,15 @@ void fscc_port_get_register_rep(struct fscc_port *port, unsigned bar,
                                 unsigned register_offset, char *buf,
                                 unsigned byte_count);
 
-void fscc_port_set_register(struct fscc_port *port, unsigned bar,
+int fscc_port_set_register(struct fscc_port *port, unsigned bar,
                             unsigned register_offset, __u32 value);
 
 void fscc_port_set_register_rep(struct fscc_port *port, unsigned bar,
                                 unsigned register_offset, const char *data,
                                 unsigned byte_count);
 
-void fscc_port_flush_tx(struct fscc_port *port);
-void fscc_port_flush_rx(struct fscc_port *port);
+int fscc_port_flush_tx(struct fscc_port *port);
+int fscc_port_flush_rx(struct fscc_port *port);
 
 __u32 fscc_port_get_TXCNT(struct fscc_port *port);
 __u32 fscc_port_get_RXCNT(struct fscc_port *port);
@@ -168,8 +168,8 @@ __u32 fscc_port_get_RXCNT(struct fscc_port *port);
 __u8 fscc_port_get_FREV(struct fscc_port *port);
 __u8 fscc_port_get_PREV(struct fscc_port *port);
 
-void fscc_port_execute_TRES(struct fscc_port *port);
-void fscc_port_execute_RRES(struct fscc_port *port);
+int fscc_port_execute_TRES(struct fscc_port *port);
+int fscc_port_execute_RRES(struct fscc_port *port);
 
 void fscc_port_suspend(struct fscc_port *port);
 void fscc_port_resume(struct fscc_port *port);
@@ -187,7 +187,7 @@ void fscc_port_set_clock_bits(struct fscc_port *port,
 void fscc_port_set_append_status(struct fscc_port *port, unsigned value);
 unsigned fscc_port_get_append_status(struct fscc_port *port);
 
-void fscc_port_set_registers(struct fscc_port *port,
+int fscc_port_set_registers(struct fscc_port *port,
                              const struct fscc_registers *regs);
 
 void fscc_port_get_registers(struct fscc_port *port,
