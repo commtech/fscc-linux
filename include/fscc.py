@@ -160,7 +160,10 @@ class Port(io.FileIO):
             import_file.seek(0, os.SEEK_SET)
 
             for line in import_file:
-                line = str(line, encoding='utf8')
+                try:
+                    line = str(line, encoding='utf8')
+                except:
+                    pass
 
                 if line[0] != "#":
                     d = line.split("=")
