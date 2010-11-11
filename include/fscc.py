@@ -175,6 +175,9 @@ class Port(io.FileIO):
 
         def export_to_file(self, export_file):
             for i, register_name in enumerate(self.editable_register_names):
+                if register_name in self.writeonly_register_names:
+                    continue
+
                 value = getattr(self, register_name)
 
                 if value >= 0:
