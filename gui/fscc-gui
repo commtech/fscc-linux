@@ -1,3 +1,5 @@
+#!/usr/bin/python
+
 """
         Copyright (C) 2010  Commtech, Inc.
 
@@ -17,8 +19,6 @@
         along with fscc-linux.  If not, see <http://www.gnu.org/licenses/>.
 
 """
-
-#!/usr/bin/python
 
 import gtk
 import gobject
