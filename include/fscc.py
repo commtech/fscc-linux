@@ -65,9 +65,12 @@ FSCC_UPDATE_VALUE = -2
 class Port(io.FileIO):
 
     class Registers(object):
-        register_names = ["FIFOT", "STAR", "CCR0", "CCR1", "CCR2", "BGR",
-                          "SSR", "SMR", "TSR", "TMR", "RAR", "RAMR", "PPR",
-                          "TCR", "VSTR", "IMR", "DPLLR", "FCR"]
+        register_names = ["FIFOT", "CMDR", "STAR", "CCR0", "CCR1", "CCR2",
+                          "BGR", "SSR", "SMR", "TSR", "TMR", "RAR", "RAMR",
+                          "PPR", "TCR", "VSTR", "IMR", "DPLLR", "FCR"]
+
+        readonly_register_names = ["STAR", "VSTR"]
+        writeonly_register_names = ["CMDR"]
 
         editable_register_names = [r for r in register_names if r not in ["STAR", "VSTR"]]
 
@@ -79,7 +82,7 @@ class Port(io.FileIO):
                 self._add_register(register)
 
         def __iter__(self):
-            registers = [-1, -1, self._FIFOT, -1, -1, -1, self._STAR,
+            registers = [-1, -1, self._FIFOT, -1, -1, self._CMDR, self._STAR,
                          self._CCR0, self._CCR1, self._CCR2, self._BGR,
                          self._SSR, self._SMR, self._TSR, self._TMR, self._RAR,
                          self._RAMR, self._PPR, self._TCR, self._VSTR, -1,
@@ -89,8 +92,15 @@ class Port(io.FileIO):
                 yield register
 
         def _add_register(self, register):
-            fget = lambda self: self._get_register(register)
-            fset = lambda self, value: self._set_register(register, value)
+            if register not in self.writeonly_register_names:
+                fget = lambda self: self._get_register(register)
+            else:
+                fget = None
+
+            if register not in self.readonly_register_names:
+                fset = lambda self, value: self._set_register(register, value)
+            else:
+                fset = None
 
             setattr(self.__class__, register, property(fget, fset, None, ""))
 
@@ -135,7 +145,7 @@ class Port(io.FileIO):
                         struct.pack("q" * len(registers), *registers))
 
         def _set_register_by_index(self, index, value):
-            data = [("FIFOT", 2), ("STAR", 6), ("CCR0", 7),
+            data = [("FIFOT", 2), ("CMDR", 5), ("STAR", 6), ("CCR0", 7),
                     ("CCR1", 8), ("CCR2", 9), ("BGR", 10), ("SSR", 11),
                     ("SMR", 12), ("TSR", 13), ("TMR", 14), ("RAR", 15),
                     ("RAMR", 16), ("PPR", 17), ("TCR", 18), ("VSTR", 19),
@@ -181,10 +191,16 @@ class Port(io.FileIO):
         self.append_status = append_status
 
     def flush_tx(self):
-        fcntl.ioctl(self, FSCC_FLUSH_TX)
+        try:
+            fcntl.ioctl(self, FSCC_FLUSH_TX)
+        except IOError as e:
+            raise e
 
     def flush_rx(self):
-        fcntl.ioctl(self, FSCC_FLUSH_RX)
+        try:
+            fcntl.ioctl(self, FSCC_FLUSH_RX)
+        except IOError as e:
+            raise e
 
     def _set_append_status(self, append_status):
         if append_status:
