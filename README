@@ -14,11 +14,13 @@ IV.    Installing the header files
 V.     Changing a port's register values
        1) Using sysfs from the command line
        2) Using the ioctl call from within your application code
-       3) Using the config.h file for modifying the boot defaults
+       3) Using the Python API from within your application code
+       4) Using the config.h file for modifying the boot defaults
 
 VI.    Reading a port's register values
        1) Using sysfs from the command line
        2) Using the ioctl call from within your application code
+       3) Using the Python API from within your application code
       
 VII.   Asynchronous communication
 
@@ -28,8 +30,10 @@ VIII.  Setting the clock frequency
 IX.    Operating the driver
        1) Writing data in C code
        2) Writing data from the command line
-       3) Reading data in C code
-       4) Reading data from the command line
+       3) Writing data using the Python API
+       4) Reading data in C code
+       5) Reading data from the command line
+       6) Reading data using the Python API
        
 X.     Viewing frame status data
        1) Using sysfs from the command line
@@ -39,6 +43,7 @@ X.     Viewing frame status data
 XI.    Flushing data out of driver
        1) Using sysfs from the command line
        2) Using the ioctl call from within your application code
+       2) Using the Python API from within your application code
        
 XII.   Migrating from the 1.x driver to the 2.x driver
        1) Setting register values
@@ -158,7 +163,7 @@ NOTE: For a listing of all of the configuration options please see the manual.
    > echo 030000ff > /sys/class/fscc/fscc0/registers/bgr
    
 2) Use the FSCC_SET_REGISTERS ioctl to set the values of any registers you
-   need to modify from within code. This ioctl can be found within 
+   need to modify from within C code. This ioctl can be found within 
    <fscc/fscc.h> after you install the header files (see section IV).
    
    struct fscc_registers regs;
@@ -172,8 +177,17 @@ NOTE: For a listing of all of the configuration options please see the manual.
    
    NOTE: A complete example of how to do this can be found in the file 
          set-registers.c.
+         
+3) Use the Python API to easily set the values of any registers you need to
+   modify from within Python code.
+
+   >>> port.registers.BGR = 0x030000ff
+   >>> port.registers.FCR = 0x00000000
    
-3) Modify the '#define DEFAULT_[BGR|CCR0|...]_VALUE 0x030000ff' lines within 
+   NOTE: A complete example of how to do this can be found in the file 
+         set-registers.py.
+   
+4) Modify the '#define DEFAULT_[BGR|CCR0|...]_VALUE 0x030000ff' lines within 
    the config.h file to be whatever you would like the card to boot up as. You 
    will need to recompile the driver after doing this.
    
@@ -211,6 +225,18 @@ doing this.
    
    NOTE: A complete example of how to do this can be found in the file 
          get-registers.c.
+         
+3) Use the Python API to easily get the values of any registers you need to
+   read from within Python code.
+
+   >>> "0x%08x" % port.registers.BGR
+   "0x00000000"
+   
+   >>> "0x%08x" % port.registers.FCR
+   "0x00000000"
+   
+   NOTE: A complete example of how to do this can be found in the file 
+         get-registers.py.
 
 
 VII. Asynchronous communication
@@ -295,7 +321,7 @@ are only a couple ways.
    bytes_written = write(port_fd, data, sizeof(data));
    
    In in addition to the standard errors that the write() function returns
-   there is a error specific to the FSCC you might run into.
+   there are a couple errors specific to the FSCC you might run into.
    
    -EOPNOTSUPP: If trying to use a FSCC port with the /dev/fscc nodes while
                 in asynchronous communication mode (should be using /dev/ttyS
@@ -314,35 +340,80 @@ are only a couple ways.
    
    echo "Hello world!" > /dev/fscc0
    
-3) Reading data will typically be done within C code using the read() function
+3) The Python API has a built-in method for writing data to the card.
+
+   >>> port.write('Hello world!'.encode())
+    
+   The same errors returned from the C code above can be found while using the
+   Python API. The only difference is instead of returning an error they throw
+   an IOError exception with the appropriate errno value set.
+   
+   NOTE: A complete example of how to do this can be found in the file 
+         write.py.
+   
+4) Reading data will typically be done within C code using the read() function
    found within the <unistd.h> file. You can find a more in depth example named
    "sync-read.c" within the examples directory. You will need to look online
    for a more in depth explanation of the parameters and return value.
       
    bytes_read = read(port_fd, data, sizeof(data));
    
+   The length argument of the read() function means different things depending 
+   on the mode you are using. 
+   
+   In a frame based mode the length argument specifies the maximum frame size 
+   to return. If the next frame in queue is larger than the size you specified 
+   the error -ENOBUFS is returned and the data will remain waiting for a read() 
+   of a larger value. If a read() length is specified that is larger than the
+   length of multiple frames in queue you will still only receive one frame per 
+   read() call.
+   
+   In transparent mode the length argument specifies the maximum amount of 
+   data to return. If there is 100 bytes of transparent data in the card and
+   you read() with a length of 50, you will receive 50 bytes. If you were to do
+   a read() of 200 bytes you will receive the 100 bytes available.
+   
+   Frame based data and transparent data are kept separate within the driver.
+   To understand what this means first imagine this scenario. You are in a 
+   frame based mode and receive a couple of frames. You then switch to 
+   transparent mode and receive a stream of data. When calling read() you will 
+   receive the the transparent data until you switch back into a frame based 
+   mode then do a read().
+   
    In in addition to the standard errors that the read() function returns
    there are a couple errors specific to the FSCC you might run into.
    
    -ENOBUFS: If the size parameter passed into the read() function is smaller 
-             than the next frame.
+             than the next frame (in a frame based mode).
    
    -EOPNOTSUPP: If trying to using a FSCC port using the /dev/fscc nodes while
                 in asynchronous communication mode (should be using /dev/ttyS
                 nodes).
+               
    
    NOTE: A complete example of how to do this can be found in the file 
          sync-read.c.
    
-4) A simpler but not nearly as useful way of reading data out of a FSCC port is
+5) A simpler but not nearly as useful way of reading data out of a FSCC port is
    by using the built-in linux program cat. This is mainly useful while
    debugging.
    
    cat /dev/fscc0
    
+6) The Python API has a built-in method for read data from the card.
+
+   >>> port.read(4096)
+    
+   The same errors returned from the C code above can be found while using the
+   Python API. The only difference is instead of returning an error they throw
+   an IOError exception with the appropriate errno value set.
+   
+   NOTE: A complete example of how to do this can be found in the file 
+         read.py.
+   
 NOTE: fread/fwrite are not allowable ways of interfacing with the card. They
       make assumptions about the data that doesn't hold up with our "frame"
-      perspective. This means python functions like file.write() and
+      perspective. This means Python functions like file.write() and
       file.read() will not work because they are wrappers around fread/fwrite.
       You will instead need to use file streams which act more like read/write.
       
@@ -401,12 +472,24 @@ clear this data out and start out fresh there are a couple ways of doing this.
    NOTE: A complete example of how to do this can be found in the files 
          flush_tx.c and flush_rx.c.
    
+   In in addition to the standard errors that the ioctl() function returns
+   there is an error specific to the FSCC you might run into.
+                
+   -ETIMEDOUT: If trying to use a FSCC port without a transmit clock present.
+               This check can be turned off with the 'ignore_timeout' command
+               line parameter.
+         
+3) The Python API makes this easy by calling a couple built-in methods.
+
+   >>> port.flush_rx()
+   >>> port.flush_tx()
+   
    
 XII. Migrating from the 1.x driver to the 2.x driver
 -------------------------------------------------------------------------------
 There are multiple benefits of using the 2.x driver: accurate posix error
-codes, intuitive ioctl calls, backend support for multiple languages (python,
-c#) and dynamic memory management are some.
+codes, intuitive ioctl calls, backend support for multiple languages (Python,
+C#) and dynamic memory management are some.
 
 The 1.x driver and the 2.x driver are very similar so porting from one to the
 other should be rather painless.
