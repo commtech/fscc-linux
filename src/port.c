@@ -350,7 +350,7 @@ ssize_t fscc_port_stream_read(struct fscc_port *port, char *buf, size_t count)
 
 	return_val_if_untrue(port, 0);
 
-	data_length = min(count, fscc_stream_get_length(port->istream));
+	data_length = min(count, (size_t)fscc_stream_get_length(port->istream));
 
 	uncopied_bytes = copy_to_user(buf, fscc_stream_get_data(port->istream),
 	                              data_length);
@@ -529,10 +529,7 @@ int fscc_port_set_registers(struct fscc_port *port,
 		}
 	}
 
-	if (stalled)
-	    return -ETIMEDOUT;
-	else
-	    return 1;
+	return (stalled) ? -ETIMEDOUT : 1;
 }
 
 void fscc_port_get_registers(struct fscc_port *port,
