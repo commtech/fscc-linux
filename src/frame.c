@@ -127,7 +127,7 @@ void fscc_frame_add_data(struct fscc_frame *frame, const char *data, unsigned le
 
     memmove(frame->data + frame->current_length, data, length);
 	frame->current_length += length;
-
+	
 	if (frame->dma && frame->data) {
 		frame->data_handle = pci_map_single(frame->port->card->pci_dev,
 		                                    frame->data,
@@ -187,7 +187,7 @@ void fscc_frame_update_buffer_size(struct fscc_frame *frame, unsigned length)
 	if (frame->target_length == length)
 		return;
 
-	new_data = kmalloc(length, GFP_KERNEL);
+	new_data = kmalloc(length, GFP_ATOMIC);
 
 	return_if_untrue(new_data);
 
