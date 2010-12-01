@@ -24,6 +24,7 @@ import random
 import string
 import sys
 import binascii
+import threading
 
 import argparse
 import fscc
@@ -43,7 +44,9 @@ def random_write(args):
     for port_name in args.port:
         port = fscc.Port(port_name, "wb")
 
-        port.write(outgoing_data)
+        for i in range(args.iterations):
+            port.write(outgoing_data)
+            
         port.close()
 
 
@@ -81,21 +84,73 @@ def read(args):
 
 
 def loop(args):
+    """
+    class WriteThread(threading.Thread):
+        def __init__(self, port_name, data):
+            super(WriteThread, self).__init__()
+            
+            self.port = fscc.Port(port_name, "w+")
+            self.data = data
+            
+        def run(self):
+            for packet in self.data:
+                self.port.write(packet)
+                
+    class ReadThread(threading.Thread):
+        def __init__(self, port_name, data):
+            super(ReadThread, self).__init__()
+            
+            self.port = fscc.Port(port_name, "w+")
+            self.data = data
+            
+        def run(self):
+            failures = 0
+            
+            for i, packet in enumerate(self.data, start=1):
+                if self.port.read(4096) != packet:
+                    failures += 1
+
+                print("\b" * len(str(i - 1)), end="", file=sys.stdout)                    
+                print(str(i), end="", file=sys.stdout)
+                sys.stdout.flush()
+                
+            print("\b" * len(str(len(self.data))), end="", file=sys.stdout)
+            sys.stdout.flush()
+            
+            print("%i failure%s out of %i iteration%s (%2.1f%%)" % \
+                  (failures, "s"[failures == 1:],
+                  len(self.data), "s"[len(self.data) == 1:],
+                  (float(failures)) / float(len(self.data)) * 100))
+                
+    ports = [fscc.Port(name, "w+") for name in [args.port1, args.port2]]
+    
+    for port in ports:
+        port.flush_tx()
+        port.flush_rx()
+    
+    outgoing_data = [random_string(random.randint(1, args.max_length)).encode() for i in range(1, args.iterations + 1)]
+    
+    threads = [ReadThread(args.port2, outgoing_data), WriteThread(args.port1, outgoing_data)]
+    
+    for thread in threads:
+        #thread.daemon = True
+        thread.start()
+    """
+
+    ports = [fscc.Port(name, "w+") for name in [args.port1, args.port2]]
+    
     failures = 0
-
-    port1 = fscc.Port(args.port1, "w+")
-    port2 = fscc.Port(args.port2, "w+")
-
+    
     for i in range(1, args.iterations + 1):
         outgoing_data = random_string(random.randint(1, args.max_length)).encode()
         incoming_data = ""
 
         if i % 2 == 0:
-            port1.write(outgoing_data)
-            incoming_data = port2.read(args.max_length)
+            ports[0].write(outgoing_data)
+            incoming_data = ports[1].read(args.max_length)
         else:
-            port2.write(outgoing_data)
-            incoming_data = port1.read(args.max_length)
+            ports[1].write(outgoing_data)
+            incoming_data = ports[0].read(args.max_length)
 
         if outgoing_data != incoming_data:
             failures = failures + 1
@@ -113,6 +168,7 @@ def loop(args):
           (failures, "s"[failures == 1:],
           args.iterations, "s"[args.iterations == 1:],
           (float(failures)) / float(args.iterations) * 100))
+    
 
 
 def set_registers(args):
@@ -169,6 +225,7 @@ if __name__ == '__main__':
     parser_random = subparsers.add_parser('random', description="Sends a frame of random data out of an FSCC port.", help='sends a frame of random data out of an FSCC port.')
     parser_random.add_argument('port', type=str, nargs='+', help='the fscc node to send data out of')
     parser_random.add_argument('--length', type=int, default=1000, help='frame length')
+    parser_random.add_argument('--iterations', type=int, default=1, help='how many times to transmit the data')
     parser_random.set_defaults(func=random_write)
 
     parser_read = subparsers.add_parser('read', help='receives a frame of data from an FSCC port')
