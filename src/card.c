@@ -142,23 +142,6 @@ void fscc_card_delete(struct fscc_card *card)
 	kfree(card);
 }
 
-unsigned fscc_card_get_memory_usage(struct fscc_card *card)
-{
-	struct list_head *current_node = 0;
-	struct list_head *temp_node = 0;
-	unsigned memory = 0;
-
-	return_val_if_untrue(card, 0);
-
-	list_for_each_safe(current_node, temp_node, &card->ports) {
-		struct fscc_port *current_port = 0;
-		current_port = list_entry(current_node, struct fscc_port, list);
-		memory += fscc_port_get_memory_usage(current_port);
-	}
-
-	return memory;
-}
-
 void fscc_card_suspend(struct fscc_card *card)
 {
 	struct fscc_port *current_port = 0;

@@ -58,6 +58,7 @@ FSCC_FLUSH_TX = _IO(FSCC_IOCTL_MAGIC, 2)
 FSCC_FLUSH_RX = _IO(FSCC_IOCTL_MAGIC, 3)
 FSCC_ENABLE_APPEND_STATUS = _IO(FSCC_IOCTL_MAGIC, 4)
 FSCC_DISABLE_APPEND_STATUS = _IO(FSCC_IOCTL_MAGIC, 5)
+FSCC_SET_MEMORY_CAP = _IOW(FSCC_IOCTL_MAGIC, 6, struct.calcsize("P"))
 
 FSCC_UPDATE_VALUE = -2
 
@@ -215,7 +216,21 @@ class Port(io.FileIO):
             fcntl.ioctl(self, FSCC_DISABLE_APPEND_STATUS)
 
     append_status = property(fset=_set_append_status)
+    
+    def _set_memory_cap(self, input_memory_cap, output_memory_cap):
+        fcntl.ioctl(self, FSCC_SET_MEMORY_CAP,
+                    struct.pack("i" * 2, input_memory_cap, output_memory_cap))
+    
+    def _set_input_memory_cap(self, memory_cap):
+        self._set_memory_cap(memory_cap, -1)
 
+    input_memory_cap = property(fset=_set_input_memory_cap)
+    
+    def _set_output_memory_cap(self, memory_cap):
+        self._set_memory_cap(-1, memory_cap)
+
+    output_memory_cap = property(fset=_set_output_memory_cap)
+    
     def read(self, num_bytes):
         if num_bytes:
             return super(io.FileIO, self).read(num_bytes)

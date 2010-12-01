@@ -98,33 +98,36 @@ struct fscc_port {
 	unsigned channel;
 	char *name;
 
+    /* Prevents simultaneous read(), write() and poll() calls. */
 	struct semaphore read_semaphore;
 	struct semaphore write_semaphore;
 	struct semaphore poll_semaphore;
 
 	wait_queue_head_t input_queue;
+	wait_queue_head_t output_queue;
 
-	struct list_head oframes; /* Frames not yet in the FIFO yet */
 	struct list_head iframes; /* Frames already retrieved from the FIFO */
+	struct list_head oframes; /* Frames not yet in the FIFO yet */
 
-	struct fscc_frame *pending_oframe; /* Frame being put in the FIFO */
 	struct fscc_frame *pending_iframe; /* Frame retrieving from the FIFO */
+	struct fscc_frame *pending_oframe; /* Frame being put in the FIFO */
 
 	struct fscc_stream *istream; /* Transparent stream */
 
 	struct fscc_registers register_storage; /* Only valid on suspend/resume */
 
-	struct tasklet_struct oframe_tasklet;
 	struct tasklet_struct iframe_tasklet;
 	struct tasklet_struct istream_tasklet;
+	struct tasklet_struct oframe_tasklet;
 
 	unsigned last_isr_value;
 
-	volatile unsigned started_frames;
-	volatile unsigned ended_frames;
-	volatile unsigned handled_frames;
-
 	unsigned append_status;
+	
+    spinlock_t oframe_spinlock;
+    spinlock_t iframe_spinlock;
+    
+    struct fscc_memory_cap memory_cap;
 
 #ifdef DEBUG
 	struct debug_interrupt_tracker *interrupt_tracker;
@@ -142,8 +145,8 @@ void fscc_port_delete(struct fscc_port *port);
 int fscc_port_write(struct fscc_port *port, const char *data, unsigned length);
 ssize_t fscc_port_read(struct fscc_port *port, char *buf, size_t count);
 
-unsigned fscc_port_has_iframes(struct fscc_port *port);
-unsigned fscc_port_has_oframes(struct fscc_port *port);
+unsigned fscc_port_has_iframes(struct fscc_port *port, unsigned lock);
+unsigned fscc_port_has_oframes(struct fscc_port *port, unsigned lock);
 
 __u32 fscc_port_get_register(struct fscc_port *port, unsigned bar,
                              unsigned register_offset);
@@ -174,12 +177,20 @@ int fscc_port_execute_RRES(struct fscc_port *port);
 void fscc_port_suspend(struct fscc_port *port);
 void fscc_port_resume(struct fscc_port *port);
 
-unsigned fscc_port_get_input_frames_qty(struct fscc_port *port);
-unsigned fscc_port_get_output_frames_qty(struct fscc_port *port);
+unsigned fscc_port_get_iframes_qty(struct fscc_port *port);
+unsigned fscc_port_get_oframes_qty(struct fscc_port *port);
 
-unsigned fscc_port_get_output_memory_usage(struct fscc_port *port);
-unsigned fscc_port_get_input_memory_usage(struct fscc_port *port);
-unsigned fscc_port_get_memory_usage(struct fscc_port *port);
+unsigned fscc_port_get_output_memory_usage(struct fscc_port *port, 
+                                           unsigned lock);
+                                           
+unsigned fscc_port_get_input_memory_usage(struct fscc_port *port, 
+                                          unsigned lock);
+                                          
+unsigned fscc_port_get_input_memory_cap(struct fscc_port *port);
+unsigned fscc_port_get_output_memory_cap(struct fscc_port *port);
+
+void fscc_port_set_memory_cap(struct fscc_port *port,
+                              struct fscc_memory_cap *memory_cap);
 
 void fscc_port_set_clock_bits(struct fscc_port *port,
                               const unsigned char *clock_data);
@@ -204,7 +215,9 @@ void fscc_port_execute_GO_T(struct fscc_port *port);
 
 unsigned fscc_port_has_dma(struct fscc_port *port);
 
-unsigned fscc_port_has_incoming_data(struct fscc_port *port, unsigned count);
+unsigned fscc_port_has_incoming_data(struct fscc_port *port);
+
+unsigned fscc_port_get_RFCNT(struct fscc_port *port);
 
 #ifdef DEBUG
 unsigned fscc_port_get_interrupt_count(struct fscc_port *port, __u32 isr_bit);

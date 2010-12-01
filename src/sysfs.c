@@ -239,7 +239,7 @@ static ssize_t output_memory(struct kobject *kobj, struct kobj_attribute *attr,
 
 	port = (struct fscc_port *)dev_get_drvdata((struct device *)kobj);
 
-	return sprintf(buf, "%i\n", fscc_port_get_output_memory_usage(port));
+	return sprintf(buf, "%i\n", fscc_port_get_output_memory_usage(port, 1));
 }
 
 static ssize_t input_memory(struct kobject *kobj, struct kobj_attribute *attr,
@@ -249,7 +249,7 @@ static ssize_t input_memory(struct kobject *kobj, struct kobj_attribute *attr,
 
 	port = (struct fscc_port *)dev_get_drvdata((struct device *)kobj);
 
-	return sprintf(buf, "%i\n", fscc_port_get_input_memory_usage(port));
+	return sprintf(buf, "%i\n", fscc_port_get_input_memory_usage(port, 1));
 }
 
 static ssize_t output_frames(struct kobject *kobj, struct kobj_attribute *attr,
@@ -259,7 +259,7 @@ static ssize_t output_frames(struct kobject *kobj, struct kobj_attribute *attr,
 
 	port = (struct fscc_port *)dev_get_drvdata((struct device *)kobj);
 
-	return sprintf(buf, "%i\n", fscc_port_get_output_frames_qty(port));
+	return sprintf(buf, "%i\n", fscc_port_get_oframes_qty(port));
 }
 
 static ssize_t input_frames(struct kobject *kobj, struct kobj_attribute *attr,
@@ -269,7 +269,7 @@ static ssize_t input_frames(struct kobject *kobj, struct kobj_attribute *attr,
 
 	port = (struct fscc_port *)dev_get_drvdata((struct device *)kobj);
 
-	return sprintf(buf, "%i\n", fscc_port_get_input_frames_qty(port));
+	return sprintf(buf, "%i\n", fscc_port_get_iframes_qty(port));
 }
 
 static struct kobj_attribute output_memory_attribute =
@@ -329,11 +329,77 @@ static ssize_t append_status_show(struct kobject *kobj,
 	return sprintf(buf, "%i\n", fscc_port_get_append_status(port));
 }
 
+static ssize_t input_memory_cap_store(struct kobject *kobj,
+                                   struct kobj_attribute *attr, const char *buf,
+                                   size_t count)
+{
+	struct fscc_port *port = 0;
+	struct fscc_memory_cap memory_cap;
+    char *end = 0;
+
+	port = (struct fscc_port *)dev_get_drvdata((struct device *)kobj);
+	
+	FSCC_MEMORY_CAP_INIT(memory_cap);
+
+	memory_cap.input = (int)simple_strtoul(buf, &end, 10);
+
+	fscc_port_set_memory_cap(port, &memory_cap);
+
+	return count;
+}
+
+static ssize_t input_memory_cap_show(struct kobject *kobj,
+                                  struct kobj_attribute *attr, char *buf)
+{
+	struct fscc_port *port = 0;
+
+	port = (struct fscc_port *)dev_get_drvdata((struct device *)kobj);
+
+	return sprintf(buf, "%i\n", fscc_port_get_input_memory_cap(port));
+}
+
+static ssize_t output_memory_cap_store(struct kobject *kobj,
+                                   struct kobj_attribute *attr, const char *buf,
+                                   size_t count)
+{
+	struct fscc_port *port = 0;
+	struct fscc_memory_cap memory_cap;
+    char *end = 0;
+
+	port = (struct fscc_port *)dev_get_drvdata((struct device *)kobj);
+	
+	FSCC_MEMORY_CAP_INIT(memory_cap);
+
+	memory_cap.output = (int)simple_strtoul(buf, &end, 10);
+
+	fscc_port_set_memory_cap(port, &memory_cap);
+
+	return count;
+}
+
+static ssize_t output_memory_cap_show(struct kobject *kobj,
+                                  struct kobj_attribute *attr, char *buf)
+{
+	struct fscc_port *port = 0;
+
+	port = (struct fscc_port *)dev_get_drvdata((struct device *)kobj);
+
+	return sprintf(buf, "%i\n", fscc_port_get_output_memory_cap(port));
+}
+
 static struct kobj_attribute append_status_attribute =
 	__ATTR(append_status, SYSFS_READ_WRITE_MODE, append_status_show, append_status_store);
 
+static struct kobj_attribute input_memory_cap_attribute =
+	__ATTR(input_memory_cap, SYSFS_READ_WRITE_MODE, input_memory_cap_show, input_memory_cap_store);
+
+static struct kobj_attribute output_memory_cap_attribute =
+	__ATTR(output_memory_cap, SYSFS_READ_WRITE_MODE, output_memory_cap_show, output_memory_cap_store);
+
 static struct attribute *settings_attrs[] = {
 	&append_status_attribute.attr,
+	&input_memory_cap_attribute.attr,
+	&output_memory_cap_attribute.attr,
 	NULL,
 };
 

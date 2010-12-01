@@ -6,8 +6,7 @@ II.    Compiling the driver
        2) Specifying non-default header files directory
       
 III.   Loading the driver
-       1) Changing memory constraints
-       2) Enabling hot plugging support
+       1) Enabling hot plugging support
       
 IV.    Installing the header files
 
@@ -35,25 +34,31 @@ IX.    Operating the driver
        5) Reading data from the command line
        6) Reading data using the Python API
        
-X.     Viewing frame status data
+X.     Viewing/setting frame status data
        1) Using sysfs from the command line
-       2) Using the ioctl call from within your application code
+       2) Using the ioctl call from within yzour application code
+       3) Using the config.h file for modifying the boot defaults
+       
+XI.    Viewing/setting memory constraints
+       1) Using sysfs from the command line
+       2) Using the ioctl call from within yzour application code
        3) Using the config.h file for modifying the boot defaults
 
-XI.    Flushing data out of driver
+XII.   Flushing data out of driver
        1) Using sysfs from the command line
        2) Using the ioctl call from within your application code
        2) Using the Python API from within your application code
        
-XII.   Migrating from the 1.x driver to the 2.x driver
+XIII.  Migrating from the 1.x driver to the 2.x driver
        1) Setting register values
        2) Getting register values
        3) Flushing transmit and receive data
        4) Getting the frame status
        5) Changing the clock frequency
        
-XIII.  FAQ
+XIV.   FAQ
        1) Ports are not created even though the driver has loaded
+       2) What does poll() and select() base their information on
 
 
 I. Getting the latest driver
@@ -103,15 +108,6 @@ now ready to load the driver so you can begin using it. To do this you insert
 the driver's kernel object file (fscc.ko) into the kernel.
 
    > insmod fscc.ko
-   
-1) Since the card can read and hold data in the driver layer until you are
-   ready to read it there must be some sort of memory constraint associated 
-   with it so that the system doesn't run out of memory. The driver will
-   default to a reasonable value but in the instance that you need to change
-   it's value you specify the memory_cap option in bytes while loading the 
-   driver.
-   
-   > insmod fscc.ko memory_cap=40000
    
 1) By default if there are no cards present when the driver is loaded the
    insmod will fail with a 'No such device' error. To allow the driver to load
@@ -331,6 +327,11 @@ are only a couple ways.
                This check can be turned off with the 'ignore_timeout' command
                line parameter.
    
+   -ENOBUFS: If the count parameter passed into the write() function is larger
+             than the output cap. If the count parameter is less than the
+             output cap but the amount out of output space isn't enough the 
+             driver will block instead of returning this error.
+   
    NOTE: A complete example of how to do this can be found in the file 
          sync-write.c.
    
@@ -418,7 +419,7 @@ NOTE: fread/fwrite are not allowable ways of interfacing with the card. They
       You will instead need to use file streams which act more like read/write.
       
         
-X. Viewing frame status data
+X. Viewing/setting frame status data
 -------------------------------------------------------------------------------
 More than likely when you are receiving frames of data from the card which
 you trust the data coming in was correctly formatted to whatever protocol
@@ -435,6 +436,10 @@ this data. There are a couple of ways of enabling this additional data.
    
    echo 1 > /sys/class/fscc/fscc0/settings/append_status
    
+   You can also check if append status is enabled from the command line.
+   
+   cat /sys/class/fscc/fscc0/settings/append_status
+   
 2) Another way of doing this is by using the FSCC_ENABLE_APPEND_STATUS ioctl
    from within your C code.
    
@@ -449,9 +454,53 @@ this data. There are a couple of ways of enabling this additional data.
    
    NOTE: This will set all ports to this at driver boot up. It is a driver wide
          setting.
-   
+         
+         
+XI. Viewing/setting memory constraints
+-------------------------------------------------------------------------------
+For systems with limited memory available to them there is safety checks in 
+place to prevent spurious incoming data from overrunning your system. Each port
+has an option for setting it's input and output memory cap.
 
-XI. Flushing data out of driver
+There are multiple ways of setting this value.
+   
+1) The simplest method of doing this is by writing a value to the
+   {input, output}_memory_cap file in sysfs from the command line.
+   
+   echo 1000000 > /sys/class/fscc/fscc0/settings/input_memory_cap
+   
+   You can also check the current memory cap value from the command line.
+   
+   cat /sys/class/fscc/fscc0/settings/input_memory_cap
+   
+2) Use the FSCC_SET_MEMORY_CAP ioctl to set the memory cap values from within C 
+   code. This ioctl can be found within <fscc/fscc.h> after you install the header files (see section IV).
+   
+   struct fscc_memory_cap memory_cap;
+   
+   FSCC_MEMORY_CAP_INIT(memory_cap);
+   
+   memory_cap.input = 5000000;
+   memory_cap.output = 10000;
+   
+   ioctl(port_fd, FSCC_SET_MEMORY_CAP, &memory_cap);
+   
+   NOTE: You can set only 1 of the 2 values by running the FSCC_MEMORY_CAP_INIT
+         macro on the fscc_memory_cap struct then setting only 1 of the values
+         in the structure. The FSCC_MEMORY_CAP_INIT structure initializes both
+         values to -1 which will be ignored in the driver.
+   
+   NOTE: A complete example of how to do this can be found in the file 
+         memory-cap.c.
+   
+3) Modify the '#define DEFAULT_{INPUT, OUTPUT}_MEMORY_CAP 100000' lines within 
+   the config.h file to be whatever you would like the card to boot up as. You
+   will need to recompile the driver after doing this.
+   
+   NOTE: This will set all ports to this at driver boot up. It is a driver wide
+         setting.
+
+XII. Flushing data out of driver
 -------------------------------------------------------------------------------
 Between the hardware FIFO and the driver's software buffers there are multiple
 places data could be at excluding your application code. If you ever need to 
@@ -485,7 +534,7 @@ clear this data out and start out fresh there are a couple ways of doing this.
    >>> port.flush_tx()
    
    
-XII. Migrating from the 1.x driver to the 2.x driver
+XIII. Migrating from the 1.x driver to the 2.x driver
 -------------------------------------------------------------------------------
 There are multiple benefits of using the 2.x driver: accurate posix error
 codes, intuitive ioctl calls, backend support for multiple languages (Python,
@@ -520,7 +569,7 @@ NOTE: All ioctl values have changed even if their new names match their old
 3) Flushing transmit and receive data has not changed. Continue using
    FSCC_FLUSH_TX and FSCC_FLUSH_RX. 
    
-   For more information on these ioctl's see section XI.
+   For more information on these ioctl's see section XII.
    
 4) Getting the frame status has now been designed to be configurable. In the 
    1.x driver you would always have the frame status appended to your data on a
@@ -541,7 +590,7 @@ NOTE: All ioctl values have changed even if their new names match their old
    frequency and the clock bits that represent the frequency. In the 2.x driver
    this has been simplified down to just the clock bits.
    
-XIII. FAQ  
+XIV. FAQ  
 -------------------------------------------------------------------------------
 
 1) Q: Why are the /dev/fscc* ports not created even though the driver has
@@ -561,4 +610,13 @@ XIII. FAQ
       the 'hot_plug' option enabled and your cards are not actually present.
       Double check that your card shows up in the output of 'lspci' and make
       sure to use hot_plug=0.
-      
+
+2)  Q: What does poll() and select() base their information on?
+
+    A: Whether or not you can read data will be based on if there is at least 1 
+       byte of data available to be read in your current mode of operation. For 
+       example, if there is transparent data it will not be considered when in 
+       a frame based mode.
+       
+       Whether or not you can write data will be based on if you have hit your
+       output memory cap. (see section XI).

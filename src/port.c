@@ -30,7 +30,11 @@
 #include "isr.h" /* fscc_isr */
 #include "sysfs.h" /* port_*_attribute_group */
 
-void fscc_port_empty_frames(struct fscc_port *port, struct list_head *frames);
+/* No locking */
+void empty_frame_list(struct list_head *frames);
+
+void fscc_port_clear_oframes(struct fscc_port *port, unsigned lock);
+void fscc_port_clear_iframes(struct fscc_port *port, unsigned lock);
 
 void fscc_port_execute_GO_R(struct fscc_port *port);
 void fscc_port_execute_STOP_R(struct fscc_port *port);
@@ -49,21 +53,24 @@ struct fscc_port *fscc_port_new(struct fscc_card *card, unsigned channel,
 
 	port = kmalloc(sizeof(*port), GFP_KERNEL);
 
-	port->started_frames = 0;
-	port->ended_frames = 0;
-	port->handled_frames = 0;
-
 	port->name = kmalloc(10, GFP_KERNEL);
 	sprintf(port->name, "%s%u", DEVICE_NAME, minor_number);
 
 	port->channel = channel;
 	port->card = card;
 	port->class = class;
-	port->pending_iframe = 0;
-	port->pending_oframe = 0;
 	port->istream = fscc_stream_new();
 	port->dev_t = MKDEV(major_number, minor_number);
 	port->append_status = DEFAULT_APPEND_STATUS_VALUE;
+	
+	port->memory_cap.input = DEFAULT_INPUT_MEMORY_CAP_VALUE;
+	port->memory_cap.output = DEFAULT_OUTPUT_MEMORY_CAP_VALUE;
+	
+	port->pending_iframe = 0;
+	port->pending_oframe = 0;
+	
+    spin_lock_init(&port->iframe_spinlock);
+    spin_lock_init(&port->oframe_spinlock);
 
 #ifdef DEBUG
 	port->interrupt_tracker = debug_interrupt_tracker_new();
@@ -112,6 +119,7 @@ struct fscc_port *fscc_port_new(struct fscc_card *card, unsigned channel,
 	init_MUTEX(&port->poll_semaphore);
 
 	init_waitqueue_head(&port->input_queue);
+	init_waitqueue_head(&port->output_queue);
 
 	cdev_init(&port->cdev, fops);
 	port->cdev.owner = THIS_MODULE;
@@ -209,6 +217,7 @@ struct fscc_port *fscc_port_new(struct fscc_card *card, unsigned channel,
 	    fscc_port_execute_RST_T(port);
 	}
 
+    /* Locks both iframe_spinlock & oframe_spinlock. */
 	fscc_port_execute_RRES(port);
 	fscc_port_execute_TRES(port);
 
@@ -221,6 +230,9 @@ void fscc_port_delete(struct fscc_port *port)
 
 	return_if_untrue(port);
 
+	irq_num = fscc_card_get_irq(port->card);
+	free_irq(irq_num, port);
+
 	if (port->card->dma) {
 	    fscc_port_execute_STOP_T(port);
 	    fscc_port_execute_STOP_R(port);
@@ -232,21 +244,13 @@ void fscc_port_delete(struct fscc_port *port)
 
 	fscc_stream_delete(port->istream);
 
-	if (port->pending_iframe)
-		fscc_frame_delete(port->pending_iframe);
-
-	if (port->pending_oframe)
-		fscc_frame_delete(port->pending_oframe);
-
-	fscc_port_empty_frames(port, &port->iframes);
-	fscc_port_empty_frames(port, &port->oframes);
+	/* Locks both iframe_spinlock & oframe_spinlock. */
+	fscc_port_clear_iframes(port, 0);
+    fscc_port_clear_oframes(port, 0);
 
 #ifdef DEBUG
 	debug_interrupt_tracker_delete(port->interrupt_tracker);
 #endif
-
-	irq_num = fscc_card_get_irq(port->card);
-	free_irq(irq_num, port);
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 18)
 	device_destroy(port->class, port->dev_t);
@@ -297,10 +301,7 @@ int fscc_port_write(struct fscc_port *port, const char *data, unsigned length)
 	uncopied_bytes = copy_from_user(temp_storage, data, length);
 	return_val_if_untrue(!uncopied_bytes, 0);
 
-	if (port->card->dma)
-		frame = fscc_frame_new(length, 1, port);
-	else
-		frame = fscc_frame_new(length, 0, port);
+	frame = fscc_frame_new(length, port->card->dma, port);
 
 	fscc_frame_add_data(frame, temp_storage, length);
 
@@ -372,17 +373,18 @@ ssize_t fscc_port_read(struct fscc_port *port, char *buf, size_t count)
 	    return fscc_port_frame_read(port, buf, count);
 }
 
-void fscc_port_empty_frames(struct fscc_port *port, struct list_head *frames)
+void empty_frame_list(struct list_head *frames)
 {
 	struct list_head *current_node = 0;
 	struct list_head *temp_node = 0;
 
-	return_if_untrue(port);
 	return_if_untrue(frames);
 
 	list_for_each_safe(current_node, temp_node, frames) {
 		struct fscc_frame *current_frame = 0;
+		
 		current_frame = list_entry(current_node, struct fscc_frame, list);
+		
 		list_del(current_node);
 		fscc_frame_delete(current_frame);
 	}
@@ -403,29 +405,59 @@ struct fscc_frame *fscc_port_peek_front_frame(struct fscc_port *port,
 	return 0;
 }
 
-unsigned fscc_port_has_iframes(struct fscc_port *port)
+unsigned has_frames(struct list_head *frames, spinlock_t *spinlock)
 {
-	return_val_if_untrue(port, 0);
+    unsigned long flags = 0;
+    unsigned empty = 0;
+    
+	return_val_if_untrue(frames, 0);
+	
+    if (spinlock)
+        spin_lock_irqsave(spinlock, flags);
+    
+    empty = list_empty(frames);
+    
+    if (spinlock)
+        spin_unlock_irqrestore(spinlock, flags);
 
-	return !list_empty(&port->iframes);
+	return !empty;
 }
 
-unsigned fscc_port_has_oframes(struct fscc_port *port)
+unsigned fscc_port_has_iframes(struct fscc_port *port, unsigned lock)
 {
+    spinlock_t *spinlock = 0;
+    
 	return_val_if_untrue(port, 0);
+	
+	spinlock = (lock) ? &port->iframe_spinlock : 0;
 
-	return !list_empty(&port->oframes);
+	return has_frames(&port->iframes, spinlock);
+}
+
+unsigned fscc_port_has_oframes(struct fscc_port *port, unsigned lock)
+{
+    spinlock_t *spinlock = 0;
+    
+	return_val_if_untrue(port, 0);
+	
+	spinlock = (lock) ? &port->oframe_spinlock : 0;
+	
+	return has_frames(&port->oframes, spinlock);
 }
 
 /* Count is for transparent mode where we need to check there is enough
-   transparent data */
-unsigned fscc_port_has_incoming_data(struct fscc_port *port, unsigned count)
+   transparent data.
+
+   Locks iframe_spinlock.   
+*/
+
+unsigned fscc_port_has_incoming_data(struct fscc_port *port)
 {
 	return_val_if_untrue(port, 0);
 
 	if (fscc_port_using_transparent(port))
 	    return (fscc_stream_is_empty(port->istream)) ? 0 : 1;
-	else if (fscc_port_has_iframes(port))
+	else if (fscc_port_has_iframes(port, 1))
 	    return 1;
 
 	return 0;
@@ -608,6 +640,17 @@ unsigned fscc_port_get_CE(struct fscc_port *port)
 	return (unsigned)((star_value & 0x00040000) >> 18);
 }
 
+unsigned fscc_port_get_RFCNT(struct fscc_port *port)
+{
+	__u32 fifo_fc_value = 0;
+
+	return_val_if_untrue(port, 0);
+
+	fifo_fc_value = fscc_port_get_register(port, 0, FIFO_FC_OFFSET);
+
+	return (unsigned)(fifo_fc_value & 0x00000eff);
+}
+
 void fscc_port_suspend(struct fscc_port *port)
 {
 	return_if_untrue(port);
@@ -622,27 +665,50 @@ void fscc_port_resume(struct fscc_port *port)
 	fscc_port_set_registers(port, &port->register_storage);
 }
 
-int fscc_port_flush_tx(struct fscc_port *port)
+void clear_frames(struct fscc_frame **pending_frame,
+                  struct list_head *frame_list, spinlock_t *spinlock)
 {
-    int error_code = 0;
+    unsigned long flags = 0;
 
-	return_val_if_untrue(port, 0);
+    if (spinlock)
+        spin_lock_irqsave(spinlock, flags);
 
-	dev_dbg(port->device, "flush_tx\n");
-
-	if ((error_code = fscc_port_execute_TRES(port)) < 0)
-	    return error_code;
-
-	if (port->pending_oframe) {
-		fscc_frame_delete(port->pending_oframe);
-		port->pending_oframe = 0;
+	if (*pending_frame) {
+		fscc_frame_delete(*pending_frame);
+		*pending_frame = 0;
 	}
 
-	fscc_port_empty_frames(port, &port->oframes);
-
-	return 1;
+	empty_frame_list(frame_list);
+	
+	if (spinlock)
+        spin_unlock_irqrestore(spinlock, flags);
 }
 
+void fscc_port_clear_iframes(struct fscc_port *port, unsigned lock)
+{
+    spinlock_t *spinlock = 0;
+
+	return_if_untrue(port);
+	
+	spinlock = (lock) ? &port->iframe_spinlock : 0;
+	
+    clear_frames(&port->pending_iframe, &port->iframes, 
+                 spinlock);
+}
+
+void fscc_port_clear_oframes(struct fscc_port *port, unsigned lock)
+{
+    spinlock_t *spinlock = 0;
+
+	return_if_untrue(port);
+	
+	spinlock = (lock) ? &port->oframe_spinlock : 0;
+	
+    clear_frames(&port->pending_oframe, &port->oframes, 
+                 spinlock);
+}
+
+/* Locks iframe_spinlock. */
 int fscc_port_flush_rx(struct fscc_port *port)
 {
     int error_code = 0;
@@ -651,15 +717,12 @@ int fscc_port_flush_rx(struct fscc_port *port)
 
 	dev_dbg(port->device, "flush_rx\n");
 
+    /* Locks iframe_spinlock. */
 	if ((error_code = fscc_port_execute_RRES(port)) < 0)
 	    return error_code;
 
-	if (port->pending_iframe) {
-		fscc_frame_delete(port->pending_iframe);
-		port->pending_iframe = 0;
-	}
-
-	fscc_port_empty_frames(port, &port->iframes);
+	/* Locks iframe_spinlock. */
+	fscc_port_clear_iframes(port, 1);
 
 	fscc_stream_remove_data(port->istream,
 	                        fscc_stream_get_length(port->istream));
@@ -667,46 +730,77 @@ int fscc_port_flush_rx(struct fscc_port *port)
 	return 1;
 }
 
-unsigned fscc_port_get_frames_qty(struct fscc_port *port,
-                                  struct list_head *frames)
+/* Locks oframe_spinlock. */
+int fscc_port_flush_tx(struct fscc_port *port)
+{
+    int error_code = 0;
+
+	return_val_if_untrue(port, 0);
+
+	dev_dbg(port->device, "flush_tx\n");
+
+    /* Locks oframe_spinlock. */
+	if ((error_code = fscc_port_execute_TRES(port)) < 0)
+	    return error_code;
+	    
+	/* Locks oframe_spinlock. */
+	fscc_port_clear_oframes(port, 1);
+	
+	wake_up_interruptible(&port->output_queue);
+
+	return 1;
+}
+
+unsigned get_frames_qty(struct list_head *frames,
+                                  spinlock_t *spinlock)
 {
 	struct list_head *iter = 0;
 	struct list_head *temp = 0;
+	unsigned long flags = 0;
 	unsigned qty = 0;
 
-	return_val_if_untrue(port, 0);
 	return_val_if_untrue(frames, 0);
+	return_val_if_untrue(spinlock, 0);
+
+    spin_lock_irqsave(spinlock, flags);
 
 	list_for_each_safe(iter, temp, frames) {
 		qty++;
 	}
+    
+    spin_unlock_irqrestore(spinlock, flags);
 
 	return qty;
 }
 
-unsigned fscc_port_get_output_frames_qty(struct fscc_port *port)
+/* Locks iframe_spinlock. */
+unsigned fscc_port_get_iframes_qty(struct fscc_port *port)
 {
 	return_val_if_untrue(port, 0);
-
-    return fscc_port_get_frames_qty(port, &port->oframes);
+    
+    return get_frames_qty(&port->iframes, &port->iframe_spinlock);
 }
 
-unsigned fscc_port_get_input_frames_qty(struct fscc_port *port)
+/* Locks oframe_spinlock. */
+unsigned fscc_port_get_oframes_qty(struct fscc_port *port)
 {
 	return_val_if_untrue(port, 0);
-
-    return fscc_port_get_frames_qty(port, &port->iframes);
+    
+    return get_frames_qty(&port->oframes, &port->oframe_spinlock);
 }
 
-/* Worker function */
-unsigned fscc_port_calculate_memory_usage(struct fscc_port *port,
-                                          struct fscc_frame *pending_frame,
-                                          struct list_head *frame_list)
+unsigned calculate_memory_usage(struct fscc_frame *pending_frame,
+                                struct list_head *frame_list,
+                                spinlock_t *spinlock)
 {
 	struct fscc_frame *current_frame = 0;
+	unsigned long flags = 0;
 	unsigned memory = 0;
 
-	return_val_if_untrue(port, 0);
+	return_val_if_untrue(frame_list, 0);
+
+    if (spinlock)
+        spin_lock_irqsave(spinlock, flags);
 
 	list_for_each_entry(current_frame, frame_list, list) {
 		memory += fscc_frame_get_current_length(current_frame);
@@ -714,43 +808,77 @@ unsigned fscc_port_calculate_memory_usage(struct fscc_port *port,
 
 	if (pending_frame)
 		memory += fscc_frame_get_current_length(pending_frame);
+    
+    if (spinlock)
+        spin_unlock_irqrestore(spinlock, flags);
 
 	return memory;
 }
 
-unsigned fscc_port_get_output_memory_usage(struct fscc_port *port)
+unsigned fscc_port_get_input_memory_usage(struct fscc_port *port, 
+                                          unsigned lock)
 {
-	return_val_if_untrue(port, 0);
-
-	return fscc_port_calculate_memory_usage(port, port->pending_oframe,
-	                                        &port->oframes);
-}
-
-unsigned fscc_port_get_input_memory_usage(struct fscc_port *port)
-{
+    spinlock_t *spinlock = 0;
     unsigned memory = 0;
 
 	return_val_if_untrue(port, 0);
+	
+	spinlock = (lock) ? &port->iframe_spinlock : 0;
 
-	memory = fscc_port_calculate_memory_usage(port, port->pending_iframe,
-	                                          &port->iframes);
-
+	memory = calculate_memory_usage(port->pending_iframe, &port->iframes,
+	                                spinlock);
+	                                
     memory += fscc_stream_get_length(port->istream);
 
     return memory;
 }
 
-unsigned fscc_port_get_memory_usage(struct fscc_port *port)
+unsigned fscc_port_get_output_memory_usage(struct fscc_port *port, 
+                                           unsigned lock)
 {
-	unsigned output_memory = 0;
-	unsigned input_memory = 0;
-
+    spinlock_t *spinlock = 0;
+    
 	return_val_if_untrue(port, 0);
+	
+	spinlock = (lock) ? &port->oframe_spinlock : 0;
 
-	output_memory = fscc_port_get_output_memory_usage(port);
-	input_memory = fscc_port_get_input_memory_usage(port);
+	return calculate_memory_usage(port->pending_oframe, &port->oframes,
+	                              spinlock);
+}
 
-	return output_memory + input_memory;
+unsigned fscc_port_get_input_memory_cap(struct fscc_port *port)
+{    
+	return_val_if_untrue(port, 0);
+	
+    return port->memory_cap.input;
+}
+
+unsigned fscc_port_get_output_memory_cap(struct fscc_port *port)
+{    
+	return_val_if_untrue(port, 0);
+	
+    return port->memory_cap.output;
+}
+
+void fscc_port_set_memory_cap(struct fscc_port *port,
+                              struct fscc_memory_cap *memory_cap)
+{    
+	return_if_untrue(port);
+	return_if_untrue(memory_cap);
+	
+	if (memory_cap->input >= 0) {
+        dev_dbg(port->device, "changing input memory cap %i => %i\n",
+                port->memory_cap.input, memory_cap->input);
+                
+	    port->memory_cap.input = memory_cap->input;
+	}
+	
+	if (memory_cap->output >= 0) {
+        dev_dbg(port->device, "changing output memory cap %i => %i\n",
+                port->memory_cap.output, memory_cap->output);
+                
+	    port->memory_cap.output = memory_cap->output;	    
+	}
 }
 
 #define STRB_BASE 0x00000008
@@ -825,18 +953,38 @@ unsigned fscc_port_get_append_status(struct fscc_port *port)
 	return port->append_status;
 }
 
+/* Locks oframe_spinlock. */
 int fscc_port_execute_TRES(struct fscc_port *port)
 {
+	unsigned long flags = 0;
+	int error_code = 0;
+    
 	return_val_if_untrue(port, 0);
+	
+    spin_lock_irqsave(&port->oframe_spinlock, flags);
+    
+	error_code = fscc_port_set_register(port, 0, CMDR_OFFSET, 0x08000000);
+    
+    spin_unlock_irqrestore(&port->oframe_spinlock, flags);
 
-	return fscc_port_set_register(port, 0, CMDR_OFFSET, 0x08000000);
+	return error_code;
 }
 
+/* Locks iframe_spinlock. */
 int fscc_port_execute_RRES(struct fscc_port *port)
 {
+	unsigned long flags = 0;
+	int error_code = 0;
+    
 	return_val_if_untrue(port, 0);
+	
+    spin_lock_irqsave(&port->iframe_spinlock, flags);
+    
+	error_code = fscc_port_set_register(port, 0, CMDR_OFFSET, 0x00020000);
+    
+    spin_unlock_irqrestore(&port->iframe_spinlock, flags);
 
-	return fscc_port_set_register(port, 0, CMDR_OFFSET, 0x00020000);
+	return error_code;
 }
 
 void fscc_port_execute_XF(struct fscc_port *port)

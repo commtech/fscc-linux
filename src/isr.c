@@ -38,7 +38,7 @@ irqreturn_t fscc_isr(int irq, void *potential_port, struct pt_regs *regs)
 
 	if (!port_exists(potential_port))
 		return IRQ_NONE;
-
+    
 	port = (struct fscc_port *)potential_port;
 
 	isr_value = fscc_port_get_register(port, 0, ISR_OFFSET);
@@ -54,14 +54,8 @@ irqreturn_t fscc_isr(int irq, void *potential_port, struct pt_regs *regs)
 		    tasklet_schedule(&port->istream_tasklet);
     }
     else {
-	    if (isr_value & RFE)
-		    port->ended_frames += 1;
-
-	    if (isr_value & RFS)
-		    port->started_frames += 1;
-
 	    if (isr_value & (RFE | RFT | RFS))
-		    tasklet_schedule(&port->iframe_tasklet);
+		   tasklet_schedule(&port->iframe_tasklet);
     }
 
 	if (isr_value & TFT && !fscc_port_has_dma(port))
@@ -83,21 +77,24 @@ void iframe_worker(unsigned long data)
 	struct fscc_port *port = 0;
 	int receive_length = 0; /* Needs to be signed */
 	unsigned finished_frame = 0;
+	unsigned long flags = 0;
 
 	port = (struct fscc_port *)data;
 
 	return_if_untrue(port);
 
-	if (port->handled_frames == port->started_frames)
-		return;
+    spin_lock_irqsave(&port->iframe_spinlock, flags);
 
 	if (!port->pending_iframe) {
 		port->pending_iframe = fscc_frame_new(0, 0, port);
 
-		return_if_untrue(port->pending_iframe);
+        if (!port->pending_iframe) {
+            spin_unlock_irqrestore(&port->iframe_spinlock, flags);
+            return;
+        }
 	}
 
-	finished_frame = (port->handled_frames < port->ended_frames);
+	finished_frame = (fscc_port_get_RFCNT(port) > 0) ? 1 : 0;
 
 	if (finished_frame) {
 		unsigned bc_fifo_l = 0;
@@ -117,20 +114,19 @@ void iframe_worker(unsigned long data)
 		receive_length = rxcnt - STATUS_LENGTH - MAX_LEFTOVER_BYTES;
 		receive_length -= receive_length % 4;
 	}
+	
 	if (receive_length > 0) {
 	    char *buffer = 0;
-
+	    
         /* Make sure we don't go over the user's memory constraint. */
-	    if (fscc_memory_usage() + receive_length > memory_cap) {
-            dev_warn(port->device,
-                     "F#%i receive rejected (memory constraint)\n",
+        if (fscc_port_get_input_memory_usage(port, 0) + receive_length > fscc_port_get_input_memory_cap(port)) {
+            dev_warn(port->device, "F#%i rejected (memory constraint)\n",
 		             port->pending_iframe->number);
 
 		    fscc_frame_delete(port->pending_iframe);
-
 		    port->pending_iframe = 0;
-	        port->handled_frames += 1;
 
+            spin_unlock_irqrestore(&port->iframe_spinlock, flags);
 		    return;
 	    }
 
@@ -138,14 +134,13 @@ void iframe_worker(unsigned long data)
 
         /* Make sure the kernel gives us enough memory to receive the data. */
         if (buffer == NULL) {
-		    dev_warn(port->device, "F#%i receive rejected (kmalloc of %i bytes)\n",
-				    port->pending_iframe->number, receive_length);
+		    dev_warn(port->device, "F#%i rejected (kmalloc of %i bytes)\n",
+				     port->pending_iframe->number, receive_length);
 
 			fscc_frame_delete(port->pending_iframe);
-
 			port->pending_iframe = 0;
-	        port->handled_frames += 1;
 
+            spin_unlock_irqrestore(&port->iframe_spinlock, flags);
 			return;
 		}
 
@@ -171,8 +166,10 @@ void iframe_worker(unsigned long data)
 				(finished_frame) ? "" : "un");
 	}
 
-	if (!finished_frame)
+	if (!finished_frame) {
+        spin_unlock_irqrestore(&port->iframe_spinlock, flags);
 	    return;
+	}
 
 	fscc_frame_trim(port->pending_iframe);
 	list_add_tail(&port->pending_iframe->list, &port->iframes);
@@ -180,7 +177,8 @@ void iframe_worker(unsigned long data)
 	wake_up_interruptible(&port->input_queue);
 
 	port->pending_iframe = 0;
-	port->handled_frames += 1;
+	
+	spin_unlock_irqrestore(&port->iframe_spinlock, flags);
 }
 
 void istream_worker(unsigned long data)
@@ -197,25 +195,20 @@ void istream_worker(unsigned long data)
 	if (receive_length > 0) {
 	    char *buffer = 0;
 
-        /* Make sure we don't go over the user's memory constraint. */
-	    if (fscc_memory_usage() + receive_length > memory_cap) {
-            dev_warn(port->device,
-                     "Stream receive rejected (memory constraint)\n");
-
-		    return;
-	    }
-
         buffer = kmalloc(receive_length, GFP_ATOMIC);
 
         /* Make sure the kernel gives us enough memory to receive the data. */
         if (buffer == NULL) {
-		    dev_warn(port->device, "Stream receive rejected (kmalloc of %i bytes)\n",
+		    dev_warn(port->device, 
+		             "Stream receive rejected (kmalloc of %i bytes)\n",
 				     receive_length);
 
 			return;
 		}
 
-		fscc_port_get_register_rep(port, 0, FIFO_OFFSET, buffer, receive_length);
+		fscc_port_get_register_rep(port, 0, FIFO_OFFSET, buffer, 
+		                           receive_length);
+		                           
 		fscc_stream_add_data(port->istream, buffer, receive_length);
 
 		kfree(buffer);
@@ -249,17 +242,22 @@ void oframe_worker(unsigned long data)
 	unsigned current_length = 0;
 	unsigned target_length = 0;
 	unsigned transmit_length = 0;
+	
+	unsigned long flags = 0;
 
 	port = (struct fscc_port *)data;
 
 	return_if_untrue(port);
 
+    spin_lock_irqsave(&port->oframe_spinlock, flags);
+
     /* Check if exists and if so, grabs the frame to transmit. */
 	if (!port->pending_oframe) {
-		if (fscc_port_has_oframes(port)) {
+		if (fscc_port_has_oframes(port, 0)) {
 			port->pending_oframe = fscc_port_peek_front_frame(port, &port->oframes);
-			list_del(&port->pending_oframe->list);
+			list_del(&port->pending_oframe->list);			
 		} else {
+	        spin_unlock_irqrestore(&port->oframe_spinlock, flags);
 			return;
 		}
 	}
@@ -273,9 +271,11 @@ void oframe_worker(unsigned long data)
 		//TODO: Memory leak because DMA needs to access the memory. What to do?
 		//fscc_frame_delete(port->pending_oframe);
 		port->pending_oframe = 0;
+		
+		spin_unlock_irqrestore(&port->oframe_spinlock, flags);
 		return;
 	}
-
+	
 	current_length = fscc_frame_get_current_length(port->pending_oframe);
 	target_length = fscc_frame_get_target_length(port->pending_oframe);
 	padding_bytes = target_length % 4 ? 4 - target_length % 4 : 0;
@@ -301,8 +301,11 @@ void oframe_worker(unsigned long data)
 	if (fscc_frame_is_empty(port->pending_oframe)) {
 		fscc_frame_delete(port->pending_oframe);
 		port->pending_oframe = 0;
+        wake_up_interruptible(&port->output_queue);
 	}
 
 	fscc_port_execute_XF(port);
+	
+    spin_unlock_irqrestore(&port->oframe_spinlock, flags);
 }
 

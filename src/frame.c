@@ -74,8 +74,6 @@ void fscc_frame_delete(struct fscc_frame *frame)
 		kfree(frame->data);
 
 	kfree(frame);
-
-	wake_up_interruptible(&output_queue);
 }
 
 unsigned fscc_frame_get_target_length(struct fscc_frame *frame)
@@ -167,6 +165,7 @@ void fscc_frame_trim(struct fscc_frame *frame)
 void fscc_frame_update_buffer_size(struct fscc_frame *frame, unsigned length)
 {
 	char *new_data = 0;
+	int malloc_flags = 0;
 
 	return_if_untrue(frame);
 
@@ -185,7 +184,12 @@ void fscc_frame_update_buffer_size(struct fscc_frame *frame, unsigned length)
 	}
 
 	if (frame->target_length == length)
-		return;
+		return;		
+		
+    malloc_flags |= GFP_ATOMIC;
+    
+    if (frame->dma)
+        malloc_flags |= GFP_DMA;
 
 	new_data = kmalloc(length, GFP_ATOMIC);
 

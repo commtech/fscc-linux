@@ -48,8 +48,6 @@ void fscc_card_delete(struct fscc_card *card);
 void fscc_card_suspend(struct fscc_card *card);
 void fscc_card_resume(struct fscc_card *card);
 
-unsigned fscc_card_get_memory_usage(struct fscc_card *card);
-
 struct fscc_card *fscc_card_find(struct pci_dev *pdev,
                                  struct list_head *card_list);
 

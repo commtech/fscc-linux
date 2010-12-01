@@ -26,6 +26,7 @@
 #include <sys/ioctl.h>
 
 #define FSCC_REGISTERS_INIT(registers) memset(&registers, -1, sizeof(registers))
+#define FSCC_MEMORY_CAP_INIT(memory_cap) memset(&memory_cap, -1, sizeof(memory_cap))
 #define FSCC_UPDATE_VALUE -2
 
 typedef int64_t fscc_register;
@@ -63,6 +64,11 @@ struct fscc_registers {
 	fscc_register FCR;
 };
 
+struct fscc_memory_cap {
+    int input;
+    int output;
+};
+
 
 #define FSCC_IOCTL_MAGIC 0x18
 
@@ -74,6 +80,8 @@ struct fscc_registers {
 
 #define FSCC_ENABLE_APPEND_STATUS _IO(FSCC_IOCTL_MAGIC, 4)
 #define FSCC_DISABLE_APPEND_STATUS _IO(FSCC_IOCTL_MAGIC, 5)
+
+#define FSCC_SET_MEMORY_CAP _IOW(FSCC_IOCTL_MAGIC, 6, struct fscc_memory_cap *)
 
 #define FSCC_SET_CLOCK_BITS _IOW(FSCC_IOCTL_MAGIC, 8, const unsigned char[20])
 

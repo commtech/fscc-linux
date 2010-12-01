@@ -34,11 +34,9 @@
 
 static int fscc_major_number;
 static struct class *fscc_class = 0;
-unsigned memory_cap = DEFAULT_MEMORY_CAP_VALUE;
 unsigned hot_plug = DEFAULT_HOT_PLUG_VALUE;
 unsigned ignore_timeout = DEFAULT_IGNORE_TIMEOUT_VALUE;
 
-wait_queue_head_t output_queue;
 LIST_HEAD(fscc_cards);
 
 struct pci_device_id fscc_id_table[] __devinitdata = {
@@ -62,20 +60,10 @@ int fscc_open(struct inode *inode, struct file *file)
 	return 0;
 }
 
-unsigned fscc_memory_usage(void)
-{
-	struct fscc_card *current_card = 0;
-	unsigned memory = 0;
-
-	list_for_each_entry(current_card, &fscc_cards, list) {
-		memory += fscc_card_get_memory_usage(current_card);
-	}
-
-	return memory;
-}
-
-//Returns -ENOBUFS if read size is smaller than next frame
-//Returns -EOPNOTSUPP if in async mode
+/*
+    Returns -ENOBUFS if read size is smaller than next frame
+    Returns -EOPNOTSUPP if in async mode
+*/
 ssize_t fscc_read(struct file *file, char *buf, size_t count, loff_t *ppos)
 {
 	struct fscc_port *port = 0;
@@ -94,14 +82,14 @@ ssize_t fscc_read(struct file *file, char *buf, size_t count, loff_t *ppos)
 	if (down_interruptible(&port->read_semaphore))
 		return -ERESTARTSYS;
 
-	while (!fscc_port_has_incoming_data(port, count)) {
+	while (!fscc_port_has_incoming_data(port)) {
 		up(&port->read_semaphore);
 
 		if (file->f_flags & O_NONBLOCK)
 			return -EAGAIN;
 
 		if (wait_event_interruptible(port->input_queue,
-		                           fscc_port_has_incoming_data(port, count))) {
+		                             fscc_port_has_incoming_data(port))) {
 			return -ERESTARTSYS;
 		}
 
@@ -116,6 +104,9 @@ ssize_t fscc_read(struct file *file, char *buf, size_t count, loff_t *ppos)
 	return read_count;
 }
 
+/*
+    Returns -ENOBUFS if write size is larger than memory_cap
+*/
 ssize_t fscc_write(struct file *file, const char *buf, size_t count,
                    loff_t *ppos)
 {
@@ -131,10 +122,28 @@ ssize_t fscc_write(struct file *file, const char *buf, size_t count,
 		dev_warn(port->device, "use /dev/ttySx nodes while in async mode\n");
 		return -EOPNOTSUPP;
 	}
+	
+	if (count > fscc_port_get_output_memory_cap(port))
+	    return -ENOBUFS;
 
 	if (down_interruptible(&port->write_semaphore))
 		return -ERESTARTSYS;
 
+	while (fscc_port_get_output_memory_usage(port, 1) + count > fscc_port_get_output_memory_cap(port)) {
+		up(&port->write_semaphore);
+
+		if (file->f_flags & O_NONBLOCK)
+			return -EAGAIN;
+
+		if (wait_event_interruptible(port->output_queue,
+		        fscc_port_get_output_memory_usage(port, 1) + count <= fscc_port_get_output_memory_cap(port))) {
+			return -ERESTARTSYS;
+		}
+
+		if (down_interruptible(&port->write_semaphore))
+			return -ERESTARTSYS;
+	}
+    
 	error_code = fscc_port_write(port, buf, count);
 
 	up(&port->write_semaphore);
@@ -152,12 +161,13 @@ unsigned fscc_poll(struct file *file, struct poll_table_struct *wait)
 	down(&port->poll_semaphore);
 
 	poll_wait(file, &port->input_queue, wait);
-	poll_wait(file, &output_queue, wait);
+	poll_wait(file, &port->output_queue, wait);
 
-	if (fscc_port_has_iframes(port))
+	if (fscc_port_has_incoming_data(port))
 		mask |= POLLIN | POLLRDNORM;
 
-	mask |= POLLOUT | POLLWRNORM;
+    if (fscc_port_get_output_memory_usage(port, 1) < fscc_port_get_output_memory_cap(port))
+	    mask |= POLLOUT | POLLWRNORM;
 
 	up(&port->poll_semaphore);
 
@@ -199,6 +209,10 @@ int fscc_ioctl(struct inode *inode, struct file *file, unsigned int cmd,
 
 	case FSCC_DISABLE_APPEND_STATUS:
 		fscc_port_set_append_status(port, 0);
+		break;
+
+	case FSCC_SET_MEMORY_CAP:
+		fscc_port_set_memory_cap(port, (struct fscc_memory_cap *)arg);
 		break;
 
 	case FSCC_SET_CLOCK_BITS:
@@ -344,12 +358,6 @@ static int __init fscc_init(void)
 		}
 	}
 
-	if (memory_cap != DEFAULT_MEMORY_CAP_VALUE)
-		printk(KERN_INFO DEVICE_NAME " changing the memory cap from %u => %u (bytes)\n",
-		       DEFAULT_MEMORY_CAP_VALUE, memory_cap);
-
-	init_waitqueue_head(&output_queue);
-
 	return 0;
 }
 
@@ -367,9 +375,6 @@ MODULE_VERSION("2.0 beta");
 MODULE_AUTHOR("William Fagan <willf@commtech-fastcom.com>");
 
 MODULE_DESCRIPTION("Driver for the FSCC series of cards from Commtech, Inc.");
-
-module_param(memory_cap, int, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
-MODULE_PARM_DESC(memory_cap, "The maximum user data (in bytes) the driver will allow in it's buffer.");
 
 module_param(hot_plug, int, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
 MODULE_PARM_DESC(hot_plug, "Let's the driver load even if no devices exist.");
