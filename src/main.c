@@ -35,7 +35,6 @@
 static int fscc_major_number;
 static struct class *fscc_class = 0;
 unsigned hot_plug = DEFAULT_HOT_PLUG_VALUE;
-unsigned ignore_timeout = DEFAULT_IGNORE_TIMEOUT_VALUE;
 
 LIST_HEAD(fscc_cards);
 
@@ -218,6 +217,14 @@ int fscc_ioctl(struct inode *inode, struct file *file, unsigned int cmd,
 	case FSCC_SET_CLOCK_BITS:
 		fscc_port_set_clock_bits(port, (char *)arg);
 		break;
+		
+    case FSCC_ENABLE_IGNORE_TIMEOUT:
+        fscc_port_set_ignore_timeout(port, 1);
+        break;
+        
+    case FSCC_DISABLE_IGNORE_TIMEOUT:
+        fscc_port_set_ignore_timeout(port, 0);
+        break;
 
 	default:
 		dev_dbg(port->device, "unknown ioctl 0x%x\n", cmd);
@@ -378,9 +385,6 @@ MODULE_DESCRIPTION("Driver for the FSCC series of cards from Commtech, Inc.");
 
 module_param(hot_plug, int, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
 MODULE_PARM_DESC(hot_plug, "Let's the driver load even if no devices exist.");
-
-module_param(ignore_timeout, int, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
-MODULE_PARM_DESC(ignore_timeout, "Allow the driver to continue partial operation even if no clock is present.");
 
 module_init(fscc_init);
 module_exit(fscc_exit);

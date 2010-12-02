@@ -62,6 +62,7 @@ struct fscc_port *fscc_port_new(struct fscc_card *card, unsigned channel,
 	port->istream = fscc_stream_new();
 	port->dev_t = MKDEV(major_number, minor_number);
 	port->append_status = DEFAULT_APPEND_STATUS_VALUE;
+	port->ignore_timeout = DEFAULT_IGNORE_TIMEOUT_VALUE;
 	
 	port->memory_cap.input = DEFAULT_INPUT_MEMORY_CAP_VALUE;
 	port->memory_cap.output = DEFAULT_OUTPUT_MEMORY_CAP_VALUE;
@@ -290,7 +291,7 @@ int fscc_port_write(struct fscc_port *port, const char *data, unsigned length)
 	return_val_if_untrue(port, 0);
 
 	/* Checks to make sure there is a clock present. */
-    if (ignore_timeout == 0 && fscc_port_timed_out(port)) {
+    if (port->ignore_timeout == 0 && fscc_port_timed_out(port)) {
 	    dev_dbg(port->device, "device stalled (wrong clock mode?)\n");
 	    return -ETIMEDOUT;
     }
@@ -487,7 +488,7 @@ int fscc_port_set_register(struct fscc_port *port, unsigned bar,
 	offset = port_offset(port, bar, register_offset);
 
     /* Checks to make sure there is a clock present. */
-    if (register_offset == CMDR_OFFSET && ignore_timeout == 0
+    if (register_offset == CMDR_OFFSET && port->ignore_timeout == 0
         && fscc_port_timed_out(port)) {
         return -ETIMEDOUT;
     }
@@ -776,17 +777,27 @@ unsigned get_frames_qty(struct list_head *frames,
 /* Locks iframe_spinlock. */
 unsigned fscc_port_get_iframes_qty(struct fscc_port *port)
 {
-	return_val_if_untrue(port, 0);
+    unsigned qty = 0;
     
-    return get_frames_qty(&port->iframes, &port->iframe_spinlock);
+	return_val_if_untrue(port, 0);
+	
+	if (port->pending_iframe)
+	    qty++;
+    
+    return qty + get_frames_qty(&port->iframes, &port->iframe_spinlock);
 }
 
 /* Locks oframe_spinlock. */
 unsigned fscc_port_get_oframes_qty(struct fscc_port *port)
 {
-	return_val_if_untrue(port, 0);
+    unsigned qty = 0;
     
-    return get_frames_qty(&port->oframes, &port->oframe_spinlock);
+	return_val_if_untrue(port, 0);
+	
+	if (port->pending_oframe)
+	    qty++;
+    
+    return qty + get_frames_qty(&port->oframes, &port->oframe_spinlock);
 }
 
 unsigned calculate_memory_usage(struct fscc_frame *pending_frame,
@@ -946,6 +957,14 @@ void fscc_port_set_append_status(struct fscc_port *port, unsigned value)
 	port->append_status = (value) ? 1 : 0;
 }
 
+void fscc_port_set_ignore_timeout(struct fscc_port *port, 
+                                  unsigned ignore_timeout)
+{
+	return_if_untrue(port);
+	
+	port->ignore_timeout = (ignore_timeout) ? 1 : 0;
+}
+
 unsigned fscc_port_get_append_status(struct fscc_port *port)
 {
 	return_val_if_untrue(port, 0);
@@ -963,7 +982,7 @@ int fscc_port_execute_TRES(struct fscc_port *port)
 	
     spin_lock_irqsave(&port->oframe_spinlock, flags);
     
-	error_code = fscc_port_set_register(port, 0, CMDR_OFFSET, 0x08000000);
+    error_code = fscc_port_set_register(port, 0, CMDR_OFFSET, 0x08000000);
     
     spin_unlock_irqrestore(&port->oframe_spinlock, flags);
 

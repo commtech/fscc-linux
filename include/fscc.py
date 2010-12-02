@@ -20,9 +20,10 @@
 
 import struct
 import fcntl
+import select
+import errno
 import io
 import os
-import errno
 
 IOCPARM_MASK = 0x7f
 IOC_NONE = 0x20000000
@@ -59,6 +60,9 @@ FSCC_FLUSH_RX = _IO(FSCC_IOCTL_MAGIC, 3)
 FSCC_ENABLE_APPEND_STATUS = _IO(FSCC_IOCTL_MAGIC, 4)
 FSCC_DISABLE_APPEND_STATUS = _IO(FSCC_IOCTL_MAGIC, 5)
 FSCC_SET_MEMORY_CAP = _IOW(FSCC_IOCTL_MAGIC, 6, struct.calcsize("P"))
+
+FSCC_ENABLE_IGNORE_TIMEOUT = _IO(FSCC_IOCTL_MAGIC, 10)
+FSCC_DISABLE_IGNORE_TIMEOUT = _IO(FSCC_IOCTL_MAGIC, 11)
 
 FSCC_UPDATE_VALUE = -2
 
@@ -230,7 +234,41 @@ class Port(io.FileIO):
         self._set_memory_cap(-1, memory_cap)
 
     output_memory_cap = property(fset=_set_output_memory_cap)
+
+    def _set_ignore_timeout(self, ignore_timeout):
+        if ignore_timeout:
+            fcntl.ioctl(self, FSCC_ENABLE_IGNORE_TIMEOUT)
+        else:
+            fcntl.ioctl(self, FSCC_DISABLE_IGNORE_TIMEOUT)
+
+    ignore_timeout = property(fset=_set_ignore_timeout)
     
     def read(self, num_bytes):
         if num_bytes:
             return super(io.FileIO, self).read(num_bytes)
+            
+    def check_POLLIN(self, timeout=100):
+        poll_obj = select.poll()
+        poll_obj.register(self, select.POLLIN)
+            
+        poll_data = poll_obj.poll(timeout)
+    
+        poll_obj.unregister(self)
+            
+        if poll_data and (poll_data[0][1] | select.POLLIN):
+            return True
+        else:
+            return False
+            
+    def check_POLLOUT(self, timeout=100):
+        poll_obj = select.poll()
+        poll_obj.register(self, select.POLLOUT)
+            
+        poll_data = poll_obj.poll(timeout)
+    
+        poll_obj.unregister(self)
+            
+        if poll_data and (poll_data[0][1] | select.POLLOUT):
+            return True
+        else:
+            return False

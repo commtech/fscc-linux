@@ -128,6 +128,7 @@ struct fscc_port {
     spinlock_t iframe_spinlock;
     
     struct fscc_memory_cap memory_cap;
+    unsigned ignore_timeout;
 
 #ifdef DEBUG
 	struct debug_interrupt_tracker *interrupt_tracker;
@@ -191,6 +192,9 @@ unsigned fscc_port_get_output_memory_cap(struct fscc_port *port);
 
 void fscc_port_set_memory_cap(struct fscc_port *port,
                               struct fscc_memory_cap *memory_cap);
+
+void fscc_port_set_ignore_timeout(struct fscc_port *port, 
+                                  unsigned ignore_timeout);
 
 void fscc_port_set_clock_bits(struct fscc_port *port,
                               const unsigned char *clock_data);
