@@ -238,10 +238,10 @@ void oframe_worker(unsigned long data)
 	struct fscc_port *port = 0;
 
 	unsigned fifo_space = 0;
-	unsigned padding_bytes = 0;
 	unsigned current_length = 0;
 	unsigned target_length = 0;
 	unsigned transmit_length = 0;
+	unsigned size_in_fifo = 0;
 	
 	unsigned long flags = 0;
 
@@ -278,12 +278,21 @@ void oframe_worker(unsigned long data)
 	
 	current_length = fscc_frame_get_current_length(port->pending_oframe);
 	target_length = fscc_frame_get_target_length(port->pending_oframe);
-	padding_bytes = target_length % 4 ? 4 - target_length % 4 : 0;
-	fifo_space = TX_FIFO_SIZE - fscc_port_get_TXCNT(port);
+	size_in_fifo = current_length + (4 - current_length % 4);
+	
+	/* Subtracts 1 so a TDO overflow doesn't happen on the 4096th byte. */
+	fifo_space = TX_FIFO_SIZE - fscc_port_get_TXCNT(port) - 1;
+	fifo_space -= fifo_space % 4;
 
     /* Determine the maximum amount of data we can send this time around. */
-	transmit_length = (current_length + padding_bytes > fifo_space) ? fifo_space : current_length;
-	fscc_port_set_register_rep(port, 0, FIFO_OFFSET, port->pending_oframe->data, transmit_length);
+	transmit_length = (size_in_fifo > fifo_space) ? fifo_space : current_length;
+	
+    if (transmit_length == 0) {
+        spin_unlock_irqrestore(&port->oframe_spinlock, flags);
+        return;
+    }
+	    
+	fscc_port_set_register_rep(port, 0, FIFO_OFFSET, port->pending_oframe->data, transmit_length);	
 
 	fscc_frame_remove_data(port->pending_oframe, transmit_length);
 
