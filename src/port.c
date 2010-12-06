@@ -40,7 +40,6 @@ void fscc_port_execute_GO_R(struct fscc_port *port);
 void fscc_port_execute_STOP_R(struct fscc_port *port);
 void fscc_port_execute_STOP_T(struct fscc_port *port);
 void fscc_port_execute_RST_R(struct fscc_port *port);
-void fscc_port_execute_RST_T(struct fscc_port *port);
 
 struct fscc_port *fscc_port_new(struct fscc_card *card, unsigned channel,
                                 unsigned major_number, unsigned minor_number,
@@ -147,12 +146,7 @@ struct fscc_port *fscc_port_new(struct fscc_card *card, unsigned channel,
 	port->register_storage.RAMR = DEFAULT_RAMR_VALUE;
 	port->register_storage.PPR = DEFAULT_PPR_VALUE;
 	port->register_storage.TCR = DEFAULT_TCR_VALUE;
-
-	if (port->card->dma)
-		port->register_storage.IMR = DEFAULT_IMR_VALUE_WITH_DMA;
-	else
-		port->register_storage.IMR = DEFAULT_IMR_VALUE_WITHOUT_DMA;
-
+	port->register_storage.IMR = DEFAULT_IMR_VALUE;
 	port->register_storage.DPLLR = DEFAULT_DPLLR_VALUE;
 	port->register_storage.FCR = DEFAULT_FCR_VALUE;
 
@@ -241,11 +235,11 @@ void fscc_port_delete(struct fscc_port *port)
 	    fscc_port_execute_RST_R(port);
 
 	    fscc_port_set_register(port, 2, DMACCR_OFFSET, 0x00000000);
+	    fscc_port_set_register(port, 2, DMA_TX_BASE_OFFSET, 0x00000000);
 	}
 
 	fscc_stream_delete(port->istream);
 
-	/* Locks both iframe_spinlock & oframe_spinlock. */
 	fscc_port_clear_iframes(port, 0);
     fscc_port_clear_oframes(port, 0);
 
@@ -301,17 +295,16 @@ int fscc_port_write(struct fscc_port *port, const char *data, unsigned length)
 
 	uncopied_bytes = copy_from_user(temp_storage, data, length);
 	return_val_if_untrue(!uncopied_bytes, 0);
-
-	frame = fscc_frame_new(length, port->card->dma, port);
-
+    
+	frame = fscc_frame_new(length, port->card->dma, port);	
 	fscc_frame_add_data(frame, temp_storage, length);
-
+    
 	kfree(temp_storage);
 
 	list_add_tail(&frame->list, &port->oframes);
 
 	tasklet_schedule(&port->oframe_tasklet);
-
+    
 	return 0;
 }
 

@@ -36,12 +36,10 @@ struct fscc_frame *fscc_frame_new(unsigned target_length, unsigned dma, struct f
 	frame = kmalloc(sizeof(*frame), GFP_ATOMIC);
 
 	return_val_if_untrue(frame, 0);
+	
+	memset(frame, 0, sizeof(*frame));
 
 	INIT_LIST_HEAD(&frame->list);
-
-	frame->target_length = 0;
-	frame->current_length = 0;
-	frame->data = 0;
 
 	frame->dma = dma;
 	frame->port = port;
@@ -50,10 +48,20 @@ struct fscc_frame *fscc_frame_new(unsigned target_length, unsigned dma, struct f
 	frame_counter += 1;
 
 	if (frame->dma) {
-		frame->descriptor_handle = pci_map_single(frame->port->card->pci_dev,
-				                                  &frame->descriptor,
-				                                  sizeof(frame->descriptor),
-					                              DMA_TO_DEVICE);
+	    frame->d1 = kmalloc(sizeof(*frame->d1), GFP_ATOMIC | GFP_DMA);	
+	    frame->d2 = kmalloc(sizeof(*frame->d1), GFP_ATOMIC | GFP_DMA);	
+	    		                                                
+	    memset(frame->d1, 0, sizeof(*frame->d1));            
+	    memset(frame->d2, 0, sizeof(*frame->d2));
+	    
+        frame->d1_handle = pci_map_single(port->card->pci_dev, frame->d1, 
+                                          sizeof(*frame->d1), DMA_TO_DEVICE);
+                                          
+        frame->d2_handle = pci_map_single(port->card->pci_dev, frame->d2, 
+                                          sizeof(*frame->d2), DMA_TO_DEVICE);
+	
+	    frame->d2->control = 0x40000000;
+	    frame->d1->next_descriptor = cpu_to_le32(frame->d2_handle);                                                
 	}
 
 	fscc_frame_update_buffer_size(frame, target_length);
@@ -64,11 +72,25 @@ struct fscc_frame *fscc_frame_new(unsigned target_length, unsigned dma, struct f
 void fscc_frame_delete(struct fscc_frame *frame)
 {
 	return_if_untrue(frame);
-
+    
 	if (frame->dma) {
-		pci_unmap_single(frame->port->card->pci_dev, frame->descriptor_handle,
-			             sizeof(frame->descriptor), DMA_TO_DEVICE);
+		pci_unmap_single(frame->port->card->pci_dev, frame->d1_handle,
+			             sizeof(*frame->d1), DMA_TO_DEVICE);
+			             
+		pci_unmap_single(frame->port->card->pci_dev, frame->d2_handle,
+			             sizeof(*frame->d2), DMA_TO_DEVICE);
+		
+		if (frame->data_handle && frame->current_length) {
+		    pci_unmap_single(frame->port->card->pci_dev, frame->data_handle,
+			                 frame->current_length, DMA_TO_DEVICE);
+        }
 	}
+	
+	if (frame->d1)
+	    kfree(frame->d1);
+	    
+	if (frame->d2)
+	    kfree(frame->d2);
 
     if (frame->data)
 		kfree(frame->data);
@@ -114,6 +136,7 @@ unsigned fscc_frame_is_full(struct fscc_frame *frame)
 void fscc_frame_add_data(struct fscc_frame *frame, const char *data, unsigned length)
 {
 	return_if_untrue(frame);
+	return_if_untrue(length > 0);
 
 	if (frame->dma && frame->data) {
 		pci_unmap_single(frame->port->card->pci_dev, frame->data_handle,
@@ -132,12 +155,9 @@ void fscc_frame_add_data(struct fscc_frame *frame, const char *data, unsigned le
 		                                    frame->current_length,
 		                                    DMA_TO_DEVICE);
 
-		memset(&frame->descriptor, 0, sizeof(frame->descriptor));
-
-		frame->descriptor.control = 0xA0000000 | frame->current_length;
-		frame->descriptor.data_address = cpu_to_le32(frame->data_handle);
-		frame->descriptor.data_count = frame->current_length;
-		frame->descriptor.next_descriptor = 0;
+		frame->d1->control = 0xA0000000 | frame->current_length;
+		frame->d1->data_address = cpu_to_le32(frame->data_handle);
+		frame->d1->data_count = frame->current_length;
 	}
 }
 
@@ -191,7 +211,7 @@ void fscc_frame_update_buffer_size(struct fscc_frame *frame, unsigned length)
     if (frame->dma)
         malloc_flags |= GFP_DMA;
 
-	new_data = kmalloc(length, GFP_ATOMIC);
+	new_data = kmalloc(length, malloc_flags);
 
 	return_if_untrue(new_data);
 

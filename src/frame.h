@@ -30,11 +30,15 @@ struct fscc_frame {
 	unsigned target_length;
 	unsigned current_length;
 	unsigned number;
-
 	unsigned dma;
-	struct fscc_descriptor descriptor;
+	
+	struct fscc_descriptor *d1;
+	struct fscc_descriptor *d2;
+	
 	dma_addr_t data_handle;
-	dma_addr_t descriptor_handle;
+	dma_addr_t d1_handle;
+	dma_addr_t d2_handle;
+	
 	struct fscc_port *port;
 };
 

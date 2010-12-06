@@ -128,7 +128,9 @@ void fscc_card_delete(struct fscc_card *card)
 
 	list_for_each_safe(current_node, temp_node, &card->ports) {
 		struct fscc_port *current_port = 0;
+		
 		current_port = list_entry(current_node, struct fscc_port, list);
+		
 		list_del(current_node);
 		fscc_port_delete(current_port);
 	}

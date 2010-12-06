@@ -63,6 +63,18 @@ irqreturn_t fscc_isr(int irq, void *potential_port, struct pt_regs *regs)
 
 	if (isr_value & DT_STOP)
 		tasklet_schedule(&port->oframe_tasklet);
+	
+	/* We have to wait until an ALLS to delete a DMA frame because if we
+	   delete the frame right away the DMA engine will lose the data to
+	   transfer. */
+    if (fscc_port_has_dma(port) && isr_value & ALLS) {
+        if (port->pending_oframe) {
+		    fscc_frame_delete(port->pending_oframe);
+		    port->pending_oframe = 0;
+		}
+		
+		tasklet_schedule(&port->oframe_tasklet);
+    }
 
 #ifdef DEBUG
 	tasklet_schedule(&port->print_tasklet);
@@ -248,7 +260,7 @@ void oframe_worker(unsigned long data)
 	port = (struct fscc_port *)data;
 
 	return_if_untrue(port);
-
+	
     spin_lock_irqsave(&port->oframe_spinlock, flags);
 
     /* Check if exists and if so, grabs the frame to transmit. */
@@ -261,16 +273,14 @@ void oframe_worker(unsigned long data)
 			return;
 		}
 	}
-
+	
 	if (fscc_port_has_dma(port)) {
 		fscc_port_set_register(port, 2, DMA_TX_BASE_OFFSET,
-		                       cpu_to_le32(port->pending_oframe->descriptor_handle));
-
+		                       cpu_to_le32(port->pending_oframe->d1_handle));
+    
 		dev_dbg(port->device, "F#%i sending\n", port->pending_oframe->number);
+		
 		fscc_port_execute_GO_T(port);
-		//TODO: Memory leak because DMA needs to access the memory. What to do?
-		//fscc_frame_delete(port->pending_oframe);
-		port->pending_oframe = 0;
 		
 		spin_unlock_irqrestore(&port->oframe_spinlock, flags);
 		return;
@@ -312,7 +322,7 @@ void oframe_worker(unsigned long data)
 		port->pending_oframe = 0;
         wake_up_interruptible(&port->output_queue);
 	}
-
+    
 	fscc_port_execute_XF(port);
 	
     spin_unlock_irqrestore(&port->oframe_spinlock, flags);
