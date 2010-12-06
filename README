@@ -59,6 +59,7 @@ XIII.  Migrating from the 1.x driver to the 2.x driver
 XIV.   FAQ
        1) Ports are not created even though the driver has loaded
        2) What does poll() and select() base their information on
+       3) Executing a flush without a clock puts the card in a broken state
 
 
 I. Getting the latest driver
@@ -620,3 +621,14 @@ XIV. FAQ
        
        Whether or not you can write data will be based on if you have hit your
        output memory cap. (see section XI).
+       
+3)  Q: Why does executing a flush without a clock put the card in a broken
+       state?
+       
+    A: When executing a flush on either the transmitter or receiver there is
+       a TRES or RRES (command from the CMDR register) happening behind the 
+       scenes. If there is no clock available the command will stall until
+       a clock is available. This should work in theory but doesn't in 
+       practice. So whenever you need to execute a flush without a clock, first
+       put it into clock mode 7, execute your flush then return to your other
+       clock mode.
