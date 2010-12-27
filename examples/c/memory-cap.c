@@ -31,6 +31,10 @@ int main(void)
     struct fscc_memory_cap memory_cap;
 	int port_fd = 0;
 	
+	fprintf(stdout, "WARNING: This limited example is for illustrative use " \
+	        "only. Do not use this code in a production environment without " \
+	        "adding proper error checking.\n");
+	
 	/* Initializes memory cap values to -1 which means do nothing. */
     FSCC_MEMORY_CAP_INIT(memory_cap);
 

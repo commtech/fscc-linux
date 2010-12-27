@@ -32,7 +32,10 @@ int main(void)
 	                                0x00, 0x00, 0x00, 0x00, 0x9a, 0x4a, 0x41,
 	                                0x01, 0x84, 0x01, 0xff, 0xff, 0xff};
 	int port_fd = 0;
-
+	
+	fprintf(stdout, "WARNING: This limited example is for illustrative use " \
+	        "only. Do not use this code in a production environment without " \
+	        "adding proper error checking.\n");
 
 	port_fd = open("/dev/fscc0", O_WRONLY);
 

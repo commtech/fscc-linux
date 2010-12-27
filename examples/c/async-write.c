@@ -28,6 +28,10 @@ int main(void)
 	ssize_t bytes_written = 0;
 	int port_fd = 0;
 	char data[] = "Hello world!";
+	
+	fprintf(stdout, "WARNING: This limited example is for illustrative use " \
+	        "only. Do not use this code in a production environment without " \
+	        "adding proper error checking.\n");
 
 	port_fd = open("/dev/ttyS4", O_WRONLY);
 

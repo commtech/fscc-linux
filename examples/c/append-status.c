@@ -34,6 +34,10 @@ int main(void)
 	char data[] = "Hello world!";
 	char buffer[20];
 	unsigned status = 0;
+	
+	fprintf(stdout, "WARNING: This limited example is for illustrative use " \
+	        "only. Do not use this code in a production environment without " \
+	        "adding proper error checking.\n");
 
 	port_fd = open("/dev/fscc0", O_RDWR);
 
