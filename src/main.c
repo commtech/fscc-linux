@@ -173,8 +173,12 @@ unsigned fscc_poll(struct file *file, struct poll_table_struct *wait)
 	return mask;
 }
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 11)
+long fscc_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
+#else
 int fscc_ioctl(struct inode *inode, struct file *file, unsigned int cmd,
                unsigned long arg)
+#endif
 {
 	struct fscc_port *port = 0;
 	int error_code = 0;
@@ -240,7 +244,11 @@ static struct file_operations fscc_fops = {
 	.read = fscc_read,
 	.write = fscc_write,
 	.poll = fscc_poll,
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 11)
+	.unlocked_ioctl = fscc_ioctl,
+#else
 	.ioctl = fscc_ioctl,
+#endif
 };
 
 static int __devinit fscc_probe(struct pci_dev *pdev,
