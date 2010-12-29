@@ -53,7 +53,7 @@ int main(void)
 	bytes_read = read(port_fd, buffer, sizeof(buffer));
 
 	fprintf(stdout, "append_status = off\n");
-	fprintf(stdout, "bytes_read = %i\n", bytes_read);
+	fprintf(stdout, "bytes_read = %zi\n", bytes_read);
 	fprintf(stdout, "data = %s\n", buffer);
 	fprintf(stdout, "status = 0x????\n\n");
 
@@ -65,7 +65,7 @@ int main(void)
 	status = buffer[bytes_read - 2];
 
 	fprintf(stdout, "append_status = on\n");
-	fprintf(stdout, "bytes_read = %i\n", bytes_read);
+	fprintf(stdout, "bytes_read = %zi\n", bytes_read);
 	fprintf(stdout, "data = %s\n", buffer);
 	fprintf(stdout, "status = 0x%04x\n", status);
 
