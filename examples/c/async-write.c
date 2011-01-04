@@ -28,10 +28,12 @@ int main(void)
 	ssize_t bytes_written = 0;
 	int port_fd = 0;
 	char data[] = "Hello world!";
-	
-	fprintf(stdout, "WARNING: This limited example is for illustrative use " \
-	        "only. Do not use this code in a production environment without " \
-	        "adding proper error checking.\n");
+
+	fprintf(stdout, "WARNING (please read)\n");
+	fprintf(stdout, "--------------------------------------------------\n");
+	fprintf(stdout, "This limited example is for illustrative use only.\n" \
+	                "Do not use this code in a production environment\n" \
+	                "without adding proper error checking.\n\n");
 
 	port_fd = open("/dev/ttyS4", O_WRONLY);
 

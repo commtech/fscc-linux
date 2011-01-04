@@ -30,11 +30,13 @@ int main(void)
 {
     struct fscc_memory_cap memory_cap;
 	int port_fd = 0;
-	
-	fprintf(stdout, "WARNING: This limited example is for illustrative use " \
-	        "only. Do not use this code in a production environment without " \
-	        "adding proper error checking.\n");
-	
+
+	fprintf(stdout, "WARNING (please read)\n");
+	fprintf(stdout, "--------------------------------------------------\n");
+	fprintf(stdout, "This limited example is for illustrative use only.\n" \
+	                "Do not use this code in a production environment\n" \
+	                "without adding proper error checking.\n\n");
+
 	/* Initializes memory cap values to -1 which means do nothing. */
     FSCC_MEMORY_CAP_INIT(memory_cap);
 
@@ -44,7 +46,7 @@ int main(void)
 		perror("open");
 		return EXIT_FAILURE;
 	}
-	
+
 	memory_cap.input = 1000000;
 
 	ioctl(port_fd, FSCC_SET_MEMORY_CAP, &memory_cap);
