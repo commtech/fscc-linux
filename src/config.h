@@ -55,8 +55,5 @@
 #define SYSFS_WRITE_ONLY_MODE S_IWUGO
 #define SYSFS_READ_WRITE_MODE S_IWUGO | S_IRUGO
 
-/* Experimental */
-//#define EXPERIMENTAL_DMA
-
 #endif
 

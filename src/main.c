@@ -121,7 +121,7 @@ ssize_t fscc_write(struct file *file, const char *buf, size_t count,
 		dev_warn(port->device, "use /dev/ttySx nodes while in async mode\n");
 		return -EOPNOTSUPP;
 	}
-	
+
 	if (count > fscc_port_get_output_memory_cap(port))
 	    return -ENOBUFS;
 
@@ -142,7 +142,7 @@ ssize_t fscc_write(struct file *file, const char *buf, size_t count,
 		if (down_interruptible(&port->write_semaphore))
 			return -ERESTARTSYS;
 	}
-    
+
 	error_code = fscc_port_write(port, buf, count);
 
 	up(&port->write_semaphore);
@@ -221,11 +221,11 @@ int fscc_ioctl(struct inode *inode, struct file *file, unsigned int cmd,
 	case FSCC_SET_CLOCK_BITS:
 		fscc_port_set_clock_bits(port, (char *)arg);
 		break;
-		
+
     case FSCC_ENABLE_IGNORE_TIMEOUT:
         fscc_port_set_ignore_timeout(port, 1);
         break;
-        
+
     case FSCC_DISABLE_IGNORE_TIMEOUT:
         fscc_port_set_ignore_timeout(port, 0);
         break;

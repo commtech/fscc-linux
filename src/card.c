@@ -53,7 +53,6 @@ struct fscc_card *fscc_card_new(struct pci_dev *pdev,
 	card->pci_dev = pdev;
 	card->dma = 0;
 
-#ifdef EXPERIMENTAL_DMA
 	switch (pdev->device) {
 		case SFSCC_ID:
 		case SFSCC_4_ID:
@@ -69,7 +68,6 @@ struct fscc_card *fscc_card_new(struct pci_dev *pdev,
 
 			break;
 	}
-#endif
 
     if (pci_request_region(card->pci_dev, 0, DEVICE_NAME) != 0) {
         dev_err(&card->pci_dev->dev, "pci_request_regions failed\n");
@@ -97,6 +95,7 @@ struct fscc_card *fscc_card_new(struct pci_dev *pdev,
 
 	start_minor_number = minor_number;
 
+    /* There are three register sections. */
 	for (i = 0; i < 3; i++) {
 		card->bar[i] = pci_iomap(card->pci_dev, i, 0);
 
@@ -106,6 +105,7 @@ struct fscc_card *fscc_card_new(struct pci_dev *pdev,
 		}
 	}
 
+    /* There are two ports per card. */
 	for (i = 0; i < 2; i++) {
 		port_iter = fscc_port_new(card, i, major_number, minor_number,
 		                          &card->pci_dev->dev, class, fops);
@@ -128,9 +128,9 @@ void fscc_card_delete(struct fscc_card *card)
 
 	list_for_each_safe(current_node, temp_node, &card->ports) {
 		struct fscc_port *current_port = 0;
-		
+
 		current_port = list_entry(current_node, struct fscc_port, list);
-		
+
 		list_del(current_node);
 		fscc_port_delete(current_port);
 	}

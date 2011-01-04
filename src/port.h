@@ -123,10 +123,10 @@ struct fscc_port {
 	unsigned last_isr_value;
 
 	unsigned append_status;
-	
+
     spinlock_t oframe_spinlock;
     spinlock_t iframe_spinlock;
-    
+
     struct fscc_memory_cap memory_cap;
     unsigned ignore_timeout;
 
@@ -181,19 +181,19 @@ void fscc_port_resume(struct fscc_port *port);
 unsigned fscc_port_get_iframes_qty(struct fscc_port *port);
 unsigned fscc_port_get_oframes_qty(struct fscc_port *port);
 
-unsigned fscc_port_get_output_memory_usage(struct fscc_port *port, 
+unsigned fscc_port_get_output_memory_usage(struct fscc_port *port,
                                            unsigned lock);
-                                           
-unsigned fscc_port_get_input_memory_usage(struct fscc_port *port, 
+
+unsigned fscc_port_get_input_memory_usage(struct fscc_port *port,
                                           unsigned lock);
-                                          
+
 unsigned fscc_port_get_input_memory_cap(struct fscc_port *port);
 unsigned fscc_port_get_output_memory_cap(struct fscc_port *port);
 
 void fscc_port_set_memory_cap(struct fscc_port *port,
                               struct fscc_memory_cap *memory_cap);
 
-void fscc_port_set_ignore_timeout(struct fscc_port *port, 
+void fscc_port_set_ignore_timeout(struct fscc_port *port,
                                   unsigned ignore_timeout);
 
 void fscc_port_set_clock_bits(struct fscc_port *port,

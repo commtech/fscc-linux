@@ -338,7 +338,7 @@ static ssize_t input_memory_cap_store(struct kobject *kobj,
     char *end = 0;
 
 	port = (struct fscc_port *)dev_get_drvdata((struct device *)kobj);
-	
+
 	FSCC_MEMORY_CAP_INIT(memory_cap);
 
 	memory_cap.input = (int)simple_strtoul(buf, &end, 10);
@@ -367,7 +367,7 @@ static ssize_t output_memory_cap_store(struct kobject *kobj,
     char *end = 0;
 
 	port = (struct fscc_port *)dev_get_drvdata((struct device *)kobj);
-	
+
 	FSCC_MEMORY_CAP_INIT(memory_cap);
 
 	memory_cap.output = (int)simple_strtoul(buf, &end, 10);

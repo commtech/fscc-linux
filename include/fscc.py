@@ -220,16 +220,16 @@ class Port(io.FileIO):
             fcntl.ioctl(self, FSCC_DISABLE_APPEND_STATUS)
 
     append_status = property(fset=_set_append_status)
-    
+
     def _set_memory_cap(self, input_memory_cap, output_memory_cap):
         fcntl.ioctl(self, FSCC_SET_MEMORY_CAP,
                     struct.pack("i" * 2, input_memory_cap, output_memory_cap))
-    
+
     def _set_input_memory_cap(self, memory_cap):
         self._set_memory_cap(memory_cap, -1)
 
     input_memory_cap = property(fset=_set_input_memory_cap)
-    
+
     def _set_output_memory_cap(self, memory_cap):
         self._set_memory_cap(-1, memory_cap)
 
@@ -242,32 +242,32 @@ class Port(io.FileIO):
             fcntl.ioctl(self, FSCC_DISABLE_IGNORE_TIMEOUT)
 
     ignore_timeout = property(fset=_set_ignore_timeout)
-    
+
     def read(self, num_bytes):
         if num_bytes:
             return super(io.FileIO, self).read(num_bytes)
-            
+
     def check_POLLIN(self, timeout=100):
         poll_obj = select.poll()
         poll_obj.register(self, select.POLLIN)
-            
+
         poll_data = poll_obj.poll(timeout)
-    
+
         poll_obj.unregister(self)
-            
+
         if poll_data and (poll_data[0][1] | select.POLLIN):
             return True
         else:
             return False
-            
+
     def check_POLLOUT(self, timeout=100):
         poll_obj = select.poll()
         poll_obj.register(self, select.POLLOUT)
-            
+
         poll_data = poll_obj.poll(timeout)
-    
+
         poll_obj.unregister(self)
-            
+
         if poll_data and (poll_data[0][1] | select.POLLOUT):
             return True
         else:

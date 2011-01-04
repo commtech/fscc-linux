@@ -38,7 +38,7 @@ irqreturn_t fscc_isr(int irq, void *potential_port, struct pt_regs *regs)
 
 	if (!port_exists(potential_port))
 		return IRQ_NONE;
-    
+
 	port = (struct fscc_port *)potential_port;
 
 	isr_value = fscc_port_get_register(port, 0, ISR_OFFSET);
@@ -61,9 +61,6 @@ irqreturn_t fscc_isr(int irq, void *potential_port, struct pt_regs *regs)
 	if (isr_value & TFT && !fscc_port_has_dma(port))
 		tasklet_schedule(&port->oframe_tasklet);
 
-	if (isr_value & DT_STOP)
-		tasklet_schedule(&port->oframe_tasklet);
-	
 	/* We have to wait until an ALLS to delete a DMA frame because if we
 	   delete the frame right away the DMA engine will lose the data to
 	   transfer. */
@@ -72,7 +69,7 @@ irqreturn_t fscc_isr(int irq, void *potential_port, struct pt_regs *regs)
 		    fscc_frame_delete(port->pending_oframe);
 		    port->pending_oframe = 0;
 		}
-		
+
 		tasklet_schedule(&port->oframe_tasklet);
     }
 
@@ -98,6 +95,7 @@ void iframe_worker(unsigned long data)
     spin_lock_irqsave(&port->iframe_spinlock, flags);
 
 	if (!port->pending_iframe) {
+		//port->pending_iframe = fscc_frame_new(0, fscc_port_has_dma(port), port);
 		port->pending_iframe = fscc_frame_new(0, 0, port);
 
         if (!port->pending_iframe) {
@@ -126,10 +124,10 @@ void iframe_worker(unsigned long data)
 		receive_length = rxcnt - STATUS_LENGTH - MAX_LEFTOVER_BYTES;
 		receive_length -= receive_length % 4;
 	}
-	
+
 	if (receive_length > 0) {
 	    char *buffer = 0;
-	    
+
         /* Make sure we don't go over the user's memory constraint. */
         if (fscc_port_get_input_memory_usage(port, 0) + receive_length > fscc_port_get_input_memory_cap(port)) {
             dev_warn(port->device, "F#%i rejected (memory constraint)\n",
@@ -189,7 +187,7 @@ void iframe_worker(unsigned long data)
 	wake_up_interruptible(&port->input_queue);
 
 	port->pending_iframe = 0;
-	
+
 	spin_unlock_irqrestore(&port->iframe_spinlock, flags);
 }
 
@@ -211,16 +209,16 @@ void istream_worker(unsigned long data)
 
         /* Make sure the kernel gives us enough memory to receive the data. */
         if (buffer == NULL) {
-		    dev_warn(port->device, 
+		    dev_warn(port->device,
 		             "Stream receive rejected (kmalloc of %i bytes)\n",
 				     receive_length);
 
 			return;
 		}
 
-		fscc_port_get_register_rep(port, 0, FIFO_OFFSET, buffer, 
+		fscc_port_get_register_rep(port, 0, FIFO_OFFSET, buffer,
 		                           receive_length);
-		                           
+
 		fscc_stream_add_data(port->istream, buffer, receive_length);
 
 		kfree(buffer);
@@ -245,6 +243,8 @@ void istream_worker(unsigned long data)
 	wake_up_interruptible(&port->input_queue);
 }
 
+#include "card.h"
+
 void oframe_worker(unsigned long data)
 {
 	struct fscc_port *port = 0;
@@ -254,55 +254,69 @@ void oframe_worker(unsigned long data)
 	unsigned target_length = 0;
 	unsigned transmit_length = 0;
 	unsigned size_in_fifo = 0;
-	
+
 	unsigned long flags = 0;
 
 	port = (struct fscc_port *)data;
 
 	return_if_untrue(port);
-	
+
     spin_lock_irqsave(&port->oframe_spinlock, flags);
 
     /* Check if exists and if so, grabs the frame to transmit. */
 	if (!port->pending_oframe) {
 		if (fscc_port_has_oframes(port, 0)) {
 			port->pending_oframe = fscc_port_peek_front_frame(port, &port->oframes);
-			list_del(&port->pending_oframe->list);			
+			list_del(&port->pending_oframe->list);
 		} else {
 	        spin_unlock_irqrestore(&port->oframe_spinlock, flags);
 			return;
 		}
 	}
-	
+
 	if (fscc_port_has_dma(port)) {
-		fscc_port_set_register(port, 2, DMA_TX_BASE_OFFSET,
-		                       cpu_to_le32(port->pending_oframe->d1_handle));
-    
-		dev_dbg(port->device, "F#%i sending\n", port->pending_oframe->number);
-		
+	    dma_addr_t *d1_handle = 0;
+
+	    if (port->pending_oframe->handled) {
+		    spin_unlock_irqrestore(&port->oframe_spinlock, flags);
+	        return;
+	    }
+
+	    dev_dbg(port->device, "F#%i => %i byte%s%s\n",
+		        port->pending_oframe->number, fscc_frame_get_current_length(port->pending_oframe),
+		        (fscc_frame_get_current_length(port->pending_oframe) == 1) ? "" : "s",
+		        (fscc_frame_is_empty(port->pending_oframe)) ? " (starting)" : "");
+
+        d1_handle = &port->pending_oframe->d1_handle;
+
+	    fscc_port_set_register(port, 2, DMA_TX_BASE_OFFSET, *d1_handle);
 		fscc_port_execute_GO_T(port);
-		
+
+        /* TODO: Add a prettier way of doing this than manually editing the
+           frame structure. */
+		port->pending_oframe->handled = 1;
+
 		spin_unlock_irqrestore(&port->oframe_spinlock, flags);
 		return;
 	}
-	
+
 	current_length = fscc_frame_get_current_length(port->pending_oframe);
 	target_length = fscc_frame_get_target_length(port->pending_oframe);
 	size_in_fifo = current_length + (4 - current_length % 4);
-	
+
 	/* Subtracts 1 so a TDO overflow doesn't happen on the 4096th byte. */
 	fifo_space = TX_FIFO_SIZE - fscc_port_get_TXCNT(port) - 1;
 	fifo_space -= fifo_space % 4;
 
     /* Determine the maximum amount of data we can send this time around. */
 	transmit_length = (size_in_fifo > fifo_space) ? fifo_space : current_length;
-	
+
     if (transmit_length == 0) {
         spin_unlock_irqrestore(&port->oframe_spinlock, flags);
         return;
     }
-	    
-	fscc_port_set_register_rep(port, 0, FIFO_OFFSET, port->pending_oframe->data, transmit_length);	
+
+	fscc_port_set_register_rep(port, 0, FIFO_OFFSET, port->pending_oframe->data, transmit_length);
 
 	fscc_frame_remove_data(port->pending_oframe, transmit_length);
 
@@ -322,9 +336,9 @@ void oframe_worker(unsigned long data)
 		port->pending_oframe = 0;
         wake_up_interruptible(&port->output_queue);
 	}
-    
+
 	fscc_port_execute_XF(port);
-	
+
     spin_unlock_irqrestore(&port->oframe_spinlock, flags);
 }
 
