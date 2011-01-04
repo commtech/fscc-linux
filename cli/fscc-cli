@@ -32,37 +32,37 @@ import fscc
 
 def random_string(length):
     chars = []
-    
+
     for i in range(length):
         chars.append(random.choice(string.ascii_letters + string.digits))
-        
+
     return "".join(chars)
-    
-def random_write(args):
-    outgoing_data = random_string(args.length).encode()
+
+
+def write_worker(args, data):
+    outgoing_data = data
+
+    try:
+        if args.hex:
+            outgoing_data = binascii.b2a_hex(outgoing_data)
+    except:
+        pass
 
     for port_name in args.port:
         port = fscc.Port(port_name, "wb")
 
         for i in range(args.iterations):
             port.write(outgoing_data)
-            
+
         port.close()
+
+
+def random_write(args):
+    write_worker(args, random_string(args.length).encode())
 
 
 def write(args):
-    outgoing_data = args.data.encode()
-
-    if args.hex:
-        outgoing_data = binascii.b2a_hex(outgoing_data)
-
-    for port_name in args.port:
-        port = fscc.Port(port_name, "wb")
-
-        for i in range(args.iterations):
-            port.write(outgoing_data)
-
-        port.close()
+    write_worker(args, args.data.encode())
 
 
 def read(args):
@@ -73,12 +73,13 @@ def read(args):
     else:
         port.append_status = True
 
-    incoming_data = port.read(args.length)
+    for i in range(args.iterations):
+        incoming_data = port.read(args.length)
 
-    if args.hex:
-        incoming_data = binascii.a2b_hex(incoming_data)
+        if args.hex:
+            incoming_data = binascii.a2b_hex(incoming_data)
 
-    print(incoming_data)
+        print(incoming_data)
 
     port.close()
 
@@ -88,59 +89,59 @@ def loop(args):
     class WriteThread(threading.Thread):
         def __init__(self, port_name, data):
             super(WriteThread, self).__init__()
-            
+
             self.port = fscc.Port(port_name, "w+")
             self.data = data
-            
+
         def run(self):
             for packet in self.data:
                 self.port.write(packet)
-                
+
     class ReadThread(threading.Thread):
         def __init__(self, port_name, data):
             super(ReadThread, self).__init__()
-            
+
             self.port = fscc.Port(port_name, "w+")
             self.data = data
-            
+
         def run(self):
             failures = 0
-            
+
             for i, packet in enumerate(self.data, start=1):
                 if self.port.read(4096) != packet:
                     failures += 1
 
-                print("\b" * len(str(i - 1)), end="", file=sys.stdout)                    
+                print("\b" * len(str(i - 1)), end="", file=sys.stdout)
                 print(str(i), end="", file=sys.stdout)
                 sys.stdout.flush()
-                
+
             print("\b" * len(str(len(self.data))), end="", file=sys.stdout)
             sys.stdout.flush()
-            
+
             print("%i failure%s out of %i iteration%s (%2.1f%%)" % \
                   (failures, "s"[failures == 1:],
                   len(self.data), "s"[len(self.data) == 1:],
                   (float(failures)) / float(len(self.data)) * 100))
-                
+
     ports = [fscc.Port(name, "w+") for name in [args.port1, args.port2]]
-    
+
     for port in ports:
         port.flush_tx()
         port.flush_rx()
-    
+
     outgoing_data = [random_string(random.randint(1, args.max_length)).encode() for i in range(1, args.iterations + 1)]
-    
+
     threads = [ReadThread(args.port2, outgoing_data), WriteThread(args.port1, outgoing_data)]
-    
+
     for thread in threads:
         #thread.daemon = True
         thread.start()
     """
 
     ports = [fscc.Port(name, "w+") for name in [args.port1, args.port2]]
-    
+
     failures = 0
-    
+
     for i in range(1, args.iterations + 1):
         outgoing_data = random_string(random.randint(1, args.max_length)).encode()
         incoming_data = ""
@@ -168,7 +169,7 @@ def loop(args):
           (failures, "s"[failures == 1:],
           args.iterations, "s"[args.iterations == 1:],
           (float(failures)) / float(args.iterations) * 100))
-    
+
 
 
 def set_registers(args):
@@ -233,6 +234,7 @@ if __name__ == '__main__':
     parser_read.add_argument('--append_status', type=int, default=0, help='whether or not to append the status bytes to the data')
     parser_read.add_argument('--hex', type=int, default=0, help='whether or not the data is hexidecimal')
     parser_read.add_argument('--length', type=int, default=4096, help='the largest frame size in frame based mode or how much data to read in transparent')
+    parser_read.add_argument('--iterations', type=int, default=1, help='how many times to read in data')
     parser_read.set_defaults(func=read)
 
     parser_loop = subparsers.add_parser('loop', help='sends data back and forth between FSCC ports')
