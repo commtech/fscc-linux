@@ -1,5 +1,5 @@
 /*
-	Copyright (C) 2011  Commtech, Inc.
+	Copyright (C) 2011 Commtech, Inc.
 
 	This file is part of fscc-linux.
 
@@ -14,7 +14,7 @@
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with fscc-linux.  If not, see <http://www.gnu.org/licenses/>.
+	along with fscc-linux.	If not, see <http://www.gnu.org/licenses/>.
 
 */
 
@@ -29,15 +29,15 @@ int main(void)
 {
 	/* 10 MHz */
 	unsigned char clock_bits[20] = {0x01, 0xa0, 0x04, 0x00, 0x00, 0x00, 0x00,
-	                                0x00, 0x00, 0x00, 0x00, 0x9a, 0x4a, 0x41,
-	                                0x01, 0x84, 0x01, 0xff, 0xff, 0xff};
+					0x00, 0x00, 0x00, 0x00, 0x9a, 0x4a, 0x41,
+					0x01, 0x84, 0x01, 0xff, 0xff, 0xff};
 	int port_fd = 0;
 
 	fprintf(stdout, "WARNING (please read)\n");
 	fprintf(stdout, "--------------------------------------------------\n");
 	fprintf(stdout, "This limited example is for illustrative use only.\n" \
-	                "Do not use this code in a production environment\n" \
-	                "without adding proper error checking.\n\n");
+			"Do not use this code in a production environment\n" \
+			"without adding proper error checking.\n\n");
 
 	port_fd = open("/dev/fscc0", O_WRONLY);
 
@@ -53,8 +53,8 @@ int main(void)
 	   > gcc -lm set-clock-bits.c calculate-clock-bits.o
 
 	if (calculate_clock_bits(10000000, 10, &clock_bits) != 0) {
-	    fprintf(stderr, "Error calculating clock bits.\n");
-	    return EXIT_FAILURE;
+		fprintf(stderr, "Error calculating clock bits.\n");
+		return EXIT_FAILURE;
 	}
 	*/
 

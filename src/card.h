@@ -1,5 +1,5 @@
 /*
-	Copyright (C) 2011  Commtech, Inc.
+	Copyright (C) 2011 Commtech, Inc.
 
 	This file is part of fscc-linux.
 
@@ -14,7 +14,7 @@
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with fscc-linux.  If not, see <http://www.gnu.org/licenses/>.
+	along with fscc-linux.	If not, see <http://www.gnu.org/licenses/>.
 
 */
 
@@ -40,32 +40,32 @@ struct fscc_card {
 };
 
 struct fscc_card *fscc_card_new(struct pci_dev *pdev,
-                                unsigned major_number,
-                                struct class *class,
-                                struct file_operations *fops);
+								unsigned major_number,
+								struct class *class,
+								struct file_operations *fops);
 
 void fscc_card_delete(struct fscc_card *card);
 void fscc_card_suspend(struct fscc_card *card);
 void fscc_card_resume(struct fscc_card *card);
 
 struct fscc_card *fscc_card_find(struct pci_dev *pdev,
-                                 struct list_head *card_list);
+								 struct list_head *card_list);
 
 void __iomem *fscc_card_get_BAR(struct fscc_card *card, unsigned number);
 
 __u32 fscc_card_get_register(struct fscc_card *card, unsigned bar,
-                             unsigned offset);
+							 unsigned offset);
 
 void fscc_card_set_register(struct fscc_card *card, unsigned bar,
-                            unsigned offset, __u32 value);
+							unsigned offset, __u32 value);
 
 void fscc_card_get_register_rep(struct fscc_card *card, unsigned bar,
-                                unsigned offset, char *buf,
-                                unsigned byte_count);
+								unsigned offset, char *buf,
+								unsigned byte_count);
 
 void fscc_card_set_register_rep(struct fscc_card *card, unsigned bar,
-                                unsigned offset, const char *data,
-                                unsigned byte_count);
+								unsigned offset, const char *data,
+								unsigned byte_count);
 
 struct list_head *fscc_card_get_ports(struct fscc_card *card);
 unsigned fscc_card_get_irq(struct fscc_card *card);

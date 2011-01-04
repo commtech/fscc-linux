@@ -14,7 +14,7 @@
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with fscc-linux.  If not, see <http://www.gnu.org/licenses/>.
+	along with fscc-linux.	If not, see <http://www.gnu.org/licenses/>.
 
 */
 
@@ -42,9 +42,9 @@ void fscc_port_execute_STOP_T(struct fscc_port *port);
 void fscc_port_execute_RST_R(struct fscc_port *port);
 
 struct fscc_port *fscc_port_new(struct fscc_card *card, unsigned channel,
-                                unsigned major_number, unsigned minor_number,
-                                struct device *parent, struct class *class,
-                                struct file_operations *fops)
+								unsigned major_number, unsigned minor_number,
+								struct device *parent, struct class *class,
+								struct file_operations *fops)
 {
 	struct fscc_port *port = 0;
 	unsigned irq_num = 0;
@@ -69,8 +69,8 @@ struct fscc_port *fscc_port_new(struct fscc_card *card, unsigned channel,
 	port->pending_iframe = 0;
 	port->pending_oframe = 0;
 
-    spin_lock_init(&port->iframe_spinlock);
-    spin_lock_init(&port->oframe_spinlock);
+	spin_lock_init(&port->iframe_spinlock);
+	spin_lock_init(&port->oframe_spinlock);
 
 #ifdef DEBUG
 	port->interrupt_tracker = debug_interrupt_tracker_new();
@@ -79,18 +79,18 @@ struct fscc_port *fscc_port_new(struct fscc_card *card, unsigned channel,
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 18)
 
 	#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 27)
-		port->device = device_create(port->class, parent, port->dev_t, port, "%s",
-			                         port->name);
+		port->device = device_create(port->class, parent, port->dev_t, port, 
+									 "%s", port->name);
 	#else
 		port->device = device_create(port->class, parent, port->dev_t, "%s",
-			                         port->name);
+									 port->name);
 
 		dev_set_drvdata(port->device, port);
 	#endif
 
 #else
 	class_device_create(port->class, 0, port->dev_t, port->device, "%s",
-	                    port->name);
+						port->name);
 #endif
 
 	if (port->device <= 0) {
@@ -203,16 +203,16 @@ struct fscc_port *fscc_port_new(struct fscc_card *card, unsigned channel,
 #endif
 
 	dev_info(port->device, "%s (%x.%02x)\n", fscc_card_get_name(port->card),
-	         fscc_port_get_PREV(port), fscc_port_get_FREV(port));
+			 fscc_port_get_PREV(port), fscc_port_get_FREV(port));
 
 	fscc_port_set_clock_bits(port, clock_bits);
 
 	if (port->card->dma) {
-	    fscc_port_execute_RST_R(port);
-	    fscc_port_execute_RST_T(port);
+		fscc_port_execute_RST_R(port);
+		fscc_port_execute_RST_T(port);
 	}
 
-    /* Locks both iframe_spinlock & oframe_spinlock. */
+	/* Locks both iframe_spinlock & oframe_spinlock. */
 	fscc_port_execute_RRES(port);
 	fscc_port_execute_TRES(port);
 
@@ -229,19 +229,19 @@ void fscc_port_delete(struct fscc_port *port)
 	free_irq(irq_num, port);
 
 	if (port->card->dma) {
-	    fscc_port_execute_STOP_T(port);
-	    fscc_port_execute_STOP_R(port);
-	    fscc_port_execute_RST_T(port);
-	    fscc_port_execute_RST_R(port);
+		fscc_port_execute_STOP_T(port);
+		fscc_port_execute_STOP_R(port);
+		fscc_port_execute_RST_T(port);
+		fscc_port_execute_RST_R(port);
 
-	    fscc_port_set_register(port, 2, DMACCR_OFFSET, 0x00000000);
-	    fscc_port_set_register(port, 2, DMA_TX_BASE_OFFSET, 0x00000000);
+		fscc_port_set_register(port, 2, DMACCR_OFFSET, 0x00000000);
+		fscc_port_set_register(port, 2, DMA_TX_BASE_OFFSET, 0x00000000);
 	}
 
 	fscc_stream_delete(port->istream);
 
 	fscc_port_clear_iframes(port, 0);
-    fscc_port_clear_oframes(port, 0);
+	fscc_port_clear_oframes(port, 0);
 
 #ifdef DEBUG
 	debug_interrupt_tracker_delete(port->interrupt_tracker);
@@ -261,19 +261,19 @@ void fscc_port_delete(struct fscc_port *port)
 
 unsigned fscc_port_timed_out(struct fscc_port *port)
 {
-    __u32 star_value = 0;
-    unsigned i = 0;
+	__u32 star_value = 0;
+	unsigned i = 0;
 
 	return_val_if_untrue(port, 0);
 
-    for (i = 0; i < 5; i++) {
-        star_value = fscc_port_get_register(port, 0, STAR_OFFSET);
+	for (i = 0; i < 5; i++) {
+		star_value = fscc_port_get_register(port, 0, STAR_OFFSET);
 
-        if ((star_value & CE_BIT) == 0)
-            return 0;
-    }
+		if ((star_value & CE_BIT) == 0)
+			return 0;
+	}
 
-    return 1;
+	return 1;
 }
 
 int fscc_port_write(struct fscc_port *port, const char *data, unsigned length)
@@ -285,10 +285,10 @@ int fscc_port_write(struct fscc_port *port, const char *data, unsigned length)
 	return_val_if_untrue(port, 0);
 
 	/* Checks to make sure there is a clock present. */
-    if (port->ignore_timeout == 0 && fscc_port_timed_out(port)) {
-	    dev_dbg(port->device, "device stalled (wrong clock mode?)\n");
-	    return -ETIMEDOUT;
-    }
+	if (port->ignore_timeout == 0 && fscc_port_timed_out(port)) {
+		dev_dbg(port->device, "device stalled (wrong clock mode?)\n");
+		return -ETIMEDOUT;
+	}
 
 	temp_storage = kmalloc(length, GFP_KERNEL);
 	return_val_if_untrue(temp_storage != NULL, 0);
@@ -300,7 +300,7 @@ int fscc_port_write(struct fscc_port *port, const char *data, unsigned length)
 	//frame = fscc_frame_new(length, 0, port);
 
 	if (!frame)
-	    return 0; //TODO: Should return something more useful
+		return 0; //TODO: Should return something more useful
 
 	fscc_frame_add_data(frame, temp_storage, length);
 
@@ -333,7 +333,7 @@ ssize_t fscc_port_frame_read(struct fscc_port *port, char *buf, size_t count)
 		return -ENOBUFS;
 
 	uncopied_bytes = copy_to_user(buf, fscc_frame_get_remaining_data(frame),
-			                      data_length);
+								  data_length);
 
 	return_val_if_untrue(!uncopied_bytes, 0);
 
@@ -345,7 +345,7 @@ ssize_t fscc_port_frame_read(struct fscc_port *port, char *buf, size_t count)
 
 ssize_t fscc_port_stream_read(struct fscc_port *port, char *buf, size_t count)
 {
-    unsigned data_length = 0;
+	unsigned data_length = 0;
 	unsigned uncopied_bytes = 0;
 
 	return_val_if_untrue(port, 0);
@@ -353,7 +353,7 @@ ssize_t fscc_port_stream_read(struct fscc_port *port, char *buf, size_t count)
 	data_length = min(count, (size_t)fscc_stream_get_length(port->istream));
 
 	uncopied_bytes = copy_to_user(buf, fscc_stream_get_data(port->istream),
-	                              data_length);
+								  data_length);
 
 	return_val_if_untrue(!uncopied_bytes, 0);
 
@@ -367,9 +367,9 @@ ssize_t fscc_port_stream_read(struct fscc_port *port, char *buf, size_t count)
 ssize_t fscc_port_read(struct fscc_port *port, char *buf, size_t count)
 {
 	if (fscc_port_using_transparent(port))
-	    return fscc_port_stream_read(port, buf, count);
+		return fscc_port_stream_read(port, buf, count);
 	else
-	    return fscc_port_frame_read(port, buf, count);
+		return fscc_port_frame_read(port, buf, count);
 }
 
 void empty_frame_list(struct list_head *frames)
@@ -390,7 +390,7 @@ void empty_frame_list(struct list_head *frames)
 }
 
 struct fscc_frame *fscc_port_peek_front_frame(struct fscc_port *port,
-                                              struct list_head *frames)
+											  struct list_head *frames)
 {
 	struct fscc_frame *current_frame = 0;
 
@@ -406,25 +406,25 @@ struct fscc_frame *fscc_port_peek_front_frame(struct fscc_port *port,
 
 unsigned has_frames(struct list_head *frames, spinlock_t *spinlock)
 {
-    unsigned long flags = 0;
-    unsigned empty = 0;
+	unsigned long flags = 0;
+	unsigned empty = 0;
 
 	return_val_if_untrue(frames, 0);
 
-    if (spinlock)
-        spin_lock_irqsave(spinlock, flags);
+	if (spinlock)
+		spin_lock_irqsave(spinlock, flags);
 
-    empty = list_empty(frames);
+	empty = list_empty(frames);
 
-    if (spinlock)
-        spin_unlock_irqrestore(spinlock, flags);
+	if (spinlock)
+		spin_unlock_irqrestore(spinlock, flags);
 
 	return !empty;
 }
 
 unsigned fscc_port_has_iframes(struct fscc_port *port, unsigned lock)
 {
-    spinlock_t *spinlock = 0;
+	spinlock_t *spinlock = 0;
 
 	return_val_if_untrue(port, 0);
 
@@ -435,7 +435,7 @@ unsigned fscc_port_has_iframes(struct fscc_port *port, unsigned lock)
 
 unsigned fscc_port_has_oframes(struct fscc_port *port, unsigned lock)
 {
-    spinlock_t *spinlock = 0;
+	spinlock_t *spinlock = 0;
 
 	return_val_if_untrue(port, 0);
 
@@ -455,15 +455,15 @@ unsigned fscc_port_has_incoming_data(struct fscc_port *port)
 	return_val_if_untrue(port, 0);
 
 	if (fscc_port_using_transparent(port))
-	    return (fscc_stream_is_empty(port->istream)) ? 0 : 1;
+		return (fscc_stream_is_empty(port->istream)) ? 0 : 1;
 	else if (fscc_port_has_iframes(port, 1))
-	    return 1;
+		return 1;
 
 	return 0;
 }
 
 __u32 fscc_port_get_register(struct fscc_port *port, unsigned bar,
-                             unsigned register_offset)
+							 unsigned register_offset)
 {
 	unsigned offset = 0;
 
@@ -476,7 +476,7 @@ __u32 fscc_port_get_register(struct fscc_port *port, unsigned bar,
 }
 
 int fscc_port_set_register(struct fscc_port *port, unsigned bar,
-                            unsigned register_offset, __u32 value)
+						   unsigned register_offset, __u32 value)
 {
 	unsigned offset = 0;
 
@@ -485,11 +485,11 @@ int fscc_port_set_register(struct fscc_port *port, unsigned bar,
 
 	offset = port_offset(port, bar, register_offset);
 
-    /* Checks to make sure there is a clock present. */
-    if (register_offset == CMDR_OFFSET && port->ignore_timeout == 0
-        && fscc_port_timed_out(port)) {
-        return -ETIMEDOUT;
-    }
+	/* Checks to make sure there is a clock present. */
+	if (register_offset == CMDR_OFFSET && port->ignore_timeout == 0
+		&& fscc_port_timed_out(port)) {
+		return -ETIMEDOUT;
+	}
 
 	fscc_card_set_register(port->card, bar, offset, value);
 
@@ -498,12 +498,12 @@ int fscc_port_set_register(struct fscc_port *port, unsigned bar,
 	else if (register_offset == FCR_OFFSET)
 		port->register_storage.FCR = value;
 
-    return 1;
+	return 1;
 }
 
 void fscc_port_get_register_rep(struct fscc_port *port, unsigned bar,
-                                unsigned register_offset, char *buf,
-                                unsigned byte_count)
+								unsigned register_offset, char *buf,
+								unsigned byte_count)
 {
 	unsigned offset = 0;
 
@@ -518,8 +518,8 @@ void fscc_port_get_register_rep(struct fscc_port *port, unsigned bar,
 }
 
 void fscc_port_set_register_rep(struct fscc_port *port, unsigned bar,
-                                unsigned register_offset, const char *data,
-                                unsigned byte_count)
+								unsigned register_offset, const char *data,
+								unsigned byte_count)
 {
 	unsigned offset = 0;
 
@@ -534,29 +534,29 @@ void fscc_port_set_register_rep(struct fscc_port *port, unsigned bar,
 }
 
 int fscc_port_set_registers(struct fscc_port *port,
-                             const struct fscc_registers *regs)
+							const struct fscc_registers *regs)
 {
-    unsigned stalled = 0;
+	unsigned stalled = 0;
 	unsigned i = 0;
 
 	return_val_if_untrue(port, 0);
 	return_val_if_untrue(regs, 0);
 
 	for (i = 0; i < sizeof(*regs) / sizeof(fscc_register); i++) {
-	    unsigned register_offset = i * 4;
+		unsigned register_offset = i * 4;
 
 		if (is_read_only_register(register_offset)
-		    || ((fscc_register *)regs)[i] < 0) {
+			|| ((fscc_register *)regs)[i] < 0) {
 			continue;
-	    }
+		}
 
 		if (register_offset <= DPLLR_OFFSET) {
 			if (fscc_port_set_register(port, 0, register_offset, ((fscc_register *)regs)[i]) == -ETIMEDOUT)
-			    stalled = 1;
+				stalled = 1;
 		}
 		else {
 			fscc_port_set_register(port, 2, FCR_OFFSET,
-			                       ((fscc_register *)regs)[i]);
+								   ((fscc_register *)regs)[i]);
 		}
 	}
 
@@ -564,7 +564,7 @@ int fscc_port_set_registers(struct fscc_port *port,
 }
 
 void fscc_port_get_registers(struct fscc_port *port,
-                             struct fscc_registers *regs)
+							 struct fscc_registers *regs)
 {
 	unsigned i = 0;
 
@@ -580,7 +580,7 @@ void fscc_port_get_registers(struct fscc_port *port,
 		}
 		else {
 			((fscc_register *)regs)[i] = fscc_port_get_register(port, 2,
-			                                                    FCR_OFFSET);
+																FCR_OFFSET);
 		}
 	}
 }
@@ -665,12 +665,12 @@ void fscc_port_resume(struct fscc_port *port)
 }
 
 void clear_frames(struct fscc_frame **pending_frame,
-                  struct list_head *frame_list, spinlock_t *spinlock)
+				  struct list_head *frame_list, spinlock_t *spinlock)
 {
-    unsigned long flags = 0;
+	unsigned long flags = 0;
 
-    if (spinlock)
-        spin_lock_irqsave(spinlock, flags);
+	if (spinlock)
+		spin_lock_irqsave(spinlock, flags);
 
 	if (*pending_frame) {
 		fscc_frame_delete(*pending_frame);
@@ -680,51 +680,51 @@ void clear_frames(struct fscc_frame **pending_frame,
 	empty_frame_list(frame_list);
 
 	if (spinlock)
-        spin_unlock_irqrestore(spinlock, flags);
+		spin_unlock_irqrestore(spinlock, flags);
 }
 
 void fscc_port_clear_iframes(struct fscc_port *port, unsigned lock)
 {
-    spinlock_t *spinlock = 0;
+	spinlock_t *spinlock = 0;
 
 	return_if_untrue(port);
 
 	spinlock = (lock) ? &port->iframe_spinlock : 0;
 
-    clear_frames(&port->pending_iframe, &port->iframes,
-                 spinlock);
+	clear_frames(&port->pending_iframe, &port->iframes,
+				 spinlock);
 }
 
 void fscc_port_clear_oframes(struct fscc_port *port, unsigned lock)
 {
-    spinlock_t *spinlock = 0;
+	spinlock_t *spinlock = 0;
 
 	return_if_untrue(port);
 
 	spinlock = (lock) ? &port->oframe_spinlock : 0;
 
-    clear_frames(&port->pending_oframe, &port->oframes,
-                 spinlock);
+	clear_frames(&port->pending_oframe, &port->oframes,
+				 spinlock);
 }
 
 /* Locks iframe_spinlock. */
 int fscc_port_flush_rx(struct fscc_port *port)
 {
-    int error_code = 0;
+	int error_code = 0;
 
 	return_val_if_untrue(port, 0);
 
 	dev_dbg(port->device, "flush_rx\n");
 
-    /* Locks iframe_spinlock. */
+	/* Locks iframe_spinlock. */
 	if ((error_code = fscc_port_execute_RRES(port)) < 0)
-	    return error_code;
+		return error_code;
 
 	/* Locks iframe_spinlock. */
 	fscc_port_clear_iframes(port, 1);
 
 	fscc_stream_remove_data(port->istream,
-	                        fscc_stream_get_length(port->istream));
+							fscc_stream_get_length(port->istream));
 
 	return 1;
 }
@@ -732,15 +732,15 @@ int fscc_port_flush_rx(struct fscc_port *port)
 /* Locks oframe_spinlock. */
 int fscc_port_flush_tx(struct fscc_port *port)
 {
-    int error_code = 0;
+	int error_code = 0;
 
 	return_val_if_untrue(port, 0);
 
 	dev_dbg(port->device, "flush_tx\n");
 
-    /* Locks oframe_spinlock. */
+	/* Locks oframe_spinlock. */
 	if ((error_code = fscc_port_execute_TRES(port)) < 0)
-	    return error_code;
+		return error_code;
 
 	/* Locks oframe_spinlock. */
 	fscc_port_clear_oframes(port, 1);
@@ -751,7 +751,7 @@ int fscc_port_flush_tx(struct fscc_port *port)
 }
 
 unsigned get_frames_qty(struct list_head *frames,
-                                  spinlock_t *spinlock)
+						spinlock_t *spinlock)
 {
 	struct list_head *iter = 0;
 	struct list_head *temp = 0;
@@ -761,13 +761,13 @@ unsigned get_frames_qty(struct list_head *frames,
 	return_val_if_untrue(frames, 0);
 	return_val_if_untrue(spinlock, 0);
 
-    spin_lock_irqsave(spinlock, flags);
+	spin_lock_irqsave(spinlock, flags);
 
 	list_for_each_safe(iter, temp, frames) {
 		qty++;
 	}
 
-    spin_unlock_irqrestore(spinlock, flags);
+	spin_unlock_irqrestore(spinlock, flags);
 
 	return qty;
 }
@@ -775,32 +775,32 @@ unsigned get_frames_qty(struct list_head *frames,
 /* Locks iframe_spinlock. */
 unsigned fscc_port_get_iframes_qty(struct fscc_port *port)
 {
-    unsigned qty = 0;
+	unsigned qty = 0;
 
 	return_val_if_untrue(port, 0);
 
 	if (port->pending_iframe)
-	    qty++;
+		qty++;
 
-    return qty + get_frames_qty(&port->iframes, &port->iframe_spinlock);
+	return qty + get_frames_qty(&port->iframes, &port->iframe_spinlock);
 }
 
 /* Locks oframe_spinlock. */
 unsigned fscc_port_get_oframes_qty(struct fscc_port *port)
 {
-    unsigned qty = 0;
+	unsigned qty = 0;
 
 	return_val_if_untrue(port, 0);
 
 	if (port->pending_oframe)
-	    qty++;
+		qty++;
 
-    return qty + get_frames_qty(&port->oframes, &port->oframe_spinlock);
+	return qty + get_frames_qty(&port->oframes, &port->oframe_spinlock);
 }
 
 unsigned calculate_memory_usage(struct fscc_frame *pending_frame,
-                                struct list_head *frame_list,
-                                spinlock_t *spinlock)
+								struct list_head *frame_list,
+								spinlock_t *spinlock)
 {
 	struct fscc_frame *current_frame = 0;
 	unsigned long flags = 0;
@@ -808,8 +808,8 @@ unsigned calculate_memory_usage(struct fscc_frame *pending_frame,
 
 	return_val_if_untrue(frame_list, 0);
 
-    if (spinlock)
-        spin_lock_irqsave(spinlock, flags);
+	if (spinlock)
+		spin_lock_irqsave(spinlock, flags);
 
 	list_for_each_entry(current_frame, frame_list, list) {
 		memory += fscc_frame_get_current_length(current_frame);
@@ -818,75 +818,75 @@ unsigned calculate_memory_usage(struct fscc_frame *pending_frame,
 	if (pending_frame)
 		memory += fscc_frame_get_current_length(pending_frame);
 
-    if (spinlock)
-        spin_unlock_irqrestore(spinlock, flags);
+	if (spinlock)
+		spin_unlock_irqrestore(spinlock, flags);
 
 	return memory;
 }
 
 unsigned fscc_port_get_input_memory_usage(struct fscc_port *port,
-                                          unsigned lock)
+										  unsigned lock)
 {
-    spinlock_t *spinlock = 0;
-    unsigned memory = 0;
+	spinlock_t *spinlock = 0;
+	unsigned memory = 0;
 
 	return_val_if_untrue(port, 0);
 
 	spinlock = (lock) ? &port->iframe_spinlock : 0;
 
 	memory = calculate_memory_usage(port->pending_iframe, &port->iframes,
-	                                spinlock);
+									spinlock);
 
-    memory += fscc_stream_get_length(port->istream);
+	memory += fscc_stream_get_length(port->istream);
 
-    return memory;
+	return memory;
 }
 
 unsigned fscc_port_get_output_memory_usage(struct fscc_port *port,
-                                           unsigned lock)
+										   unsigned lock)
 {
-    spinlock_t *spinlock = 0;
+	spinlock_t *spinlock = 0;
 
 	return_val_if_untrue(port, 0);
 
 	spinlock = (lock) ? &port->oframe_spinlock : 0;
 
 	return calculate_memory_usage(port->pending_oframe, &port->oframes,
-	                              spinlock);
+								  spinlock);
 }
 
 unsigned fscc_port_get_input_memory_cap(struct fscc_port *port)
 {
 	return_val_if_untrue(port, 0);
 
-    return port->memory_cap.input;
+	return port->memory_cap.input;
 }
 
 unsigned fscc_port_get_output_memory_cap(struct fscc_port *port)
 {
 	return_val_if_untrue(port, 0);
 
-    return port->memory_cap.output;
+	return port->memory_cap.output;
 }
 
 void fscc_port_set_memory_cap(struct fscc_port *port,
-                              struct fscc_memory_cap *memory_cap)
+							  struct fscc_memory_cap *memory_cap)
 {
 	return_if_untrue(port);
 	return_if_untrue(memory_cap);
 
 	if (memory_cap->input >= 0) {
-        dev_dbg(port->device, "changing input memory cap %i => %i\n",
-                port->memory_cap.input, memory_cap->input);
+		dev_dbg(port->device, "changing input memory cap %i => %i\n",
+				port->memory_cap.input, memory_cap->input);
 
-	    port->memory_cap.input = memory_cap->input;
+		port->memory_cap.input = memory_cap->input;
 	}
 
 	if (memory_cap->output >= 0) {
-        dev_dbg(port->device, "changing output memory cap %i => %i\n",
-                port->memory_cap.output, memory_cap->output);
+		dev_dbg(port->device, "changing output memory cap %i => %i\n",
+				port->memory_cap.output, memory_cap->output);
 
-	    port->memory_cap.output = memory_cap->output;
+		port->memory_cap.output = memory_cap->output;
 	}
 }
 
@@ -894,7 +894,8 @@ void fscc_port_set_memory_cap(struct fscc_port *port,
 #define DTA_BASE 0x00000001
 #define CLK_BASE 0x00000002
 
-void fscc_port_set_clock_bits(struct fscc_port *port, const unsigned char *clock_data)
+void fscc_port_set_clock_bits(struct fscc_port *port, 
+							  const unsigned char *clock_data)
 {
 	__u32 orig_fcr_value = 0;
 	__u32 new_fcr_value = 0;
@@ -930,8 +931,8 @@ void fscc_port_set_clock_bits(struct fscc_port *port, const unsigned char *clock
 			else
 				new_fcr_value &= ~dta_value; /* Clear clock bit */
 
-	        data[data_index++] = new_fcr_value |= clk_value; /* Set clock bit */
-	        data[data_index++] = new_fcr_value &= ~clk_value; /* Clear clock bit */
+			data[data_index++] = new_fcr_value |= clk_value; /* Set clock bit */
+			data[data_index++] = new_fcr_value &= ~clk_value; /* Clear clock bit */
 		}
 	}
 
@@ -956,7 +957,7 @@ void fscc_port_set_append_status(struct fscc_port *port, unsigned value)
 }
 
 void fscc_port_set_ignore_timeout(struct fscc_port *port,
-                                  unsigned ignore_timeout)
+								  unsigned ignore_timeout)
 {
 	return_if_untrue(port);
 
@@ -978,11 +979,11 @@ int fscc_port_execute_TRES(struct fscc_port *port)
 
 	return_val_if_untrue(port, 0);
 
-    spin_lock_irqsave(&port->oframe_spinlock, flags);
+	spin_lock_irqsave(&port->oframe_spinlock, flags);
 
-    error_code = fscc_port_set_register(port, 0, CMDR_OFFSET, 0x08000000);
+	error_code = fscc_port_set_register(port, 0, CMDR_OFFSET, 0x08000000);
 
-    spin_unlock_irqrestore(&port->oframe_spinlock, flags);
+	spin_unlock_irqrestore(&port->oframe_spinlock, flags);
 
 	return error_code;
 }
@@ -995,11 +996,11 @@ int fscc_port_execute_RRES(struct fscc_port *port)
 
 	return_val_if_untrue(port, 0);
 
-    spin_lock_irqsave(&port->iframe_spinlock, flags);
+	spin_lock_irqsave(&port->iframe_spinlock, flags);
 
 	error_code = fscc_port_set_register(port, 0, CMDR_OFFSET, 0x00020000);
 
-    spin_unlock_irqrestore(&port->iframe_spinlock, flags);
+	spin_unlock_irqrestore(&port->iframe_spinlock, flags);
 
 	return error_code;
 }
@@ -1085,7 +1086,7 @@ unsigned fscc_port_has_dma(struct fscc_port *port)
 {
 	return_val_if_untrue(port, 0);
 
-    return port->card->dma;
+	return port->card->dma;
 }
 
 #ifdef DEBUG
@@ -1096,7 +1097,8 @@ unsigned fscc_port_get_interrupt_count(struct fscc_port *port, __u32 isr_bit)
 	return debug_interrupt_tracker_get_count(port->interrupt_tracker, isr_bit);
 }
 
-void fscc_port_increment_interrupt_counts(struct fscc_port *port, __u32 isr_value)
+void fscc_port_increment_interrupt_counts(struct fscc_port *port, 
+										  __u32 isr_value)
 {
 	return_if_untrue(port);
 

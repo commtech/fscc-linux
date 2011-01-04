@@ -1,5 +1,5 @@
 /*
-	Copyright (C) 2011  Commtech, Inc.
+	Copyright (C) 2011 Commtech, Inc.
 
 	This file is part of fscc-linux.
 
@@ -14,7 +14,7 @@
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with fscc-linux.  If not, see <http://www.gnu.org/licenses/>.
+	along with fscc-linux.	If not, see <http://www.gnu.org/licenses/>.
 
 */
 

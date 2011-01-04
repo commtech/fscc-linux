@@ -1,5 +1,5 @@
 /*
-	Copyright (C) 2011  Commtech, Inc.
+	Copyright (C) 2011 Commtech, Inc.
 
 	This file is part of fscc-linux.
 
@@ -14,7 +14,7 @@
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with fscc-linux.  If not, see <http://www.gnu.org/licenses/>.
+	along with fscc-linux.	If not, see <http://www.gnu.org/licenses/>.
 
 */
 
@@ -98,7 +98,7 @@ struct fscc_port {
 	unsigned channel;
 	char *name;
 
-    /* Prevents simultaneous read(), write() and poll() calls. */
+	/* Prevents simultaneous read(), write() and poll() calls. */
 	struct semaphore read_semaphore;
 	struct semaphore write_semaphore;
 	struct semaphore poll_semaphore;
@@ -124,11 +124,11 @@ struct fscc_port {
 
 	unsigned append_status;
 
-    spinlock_t oframe_spinlock;
-    spinlock_t iframe_spinlock;
+	spinlock_t oframe_spinlock;
+	spinlock_t iframe_spinlock;
 
-    struct fscc_memory_cap memory_cap;
-    unsigned ignore_timeout;
+	struct fscc_memory_cap memory_cap;
+	unsigned ignore_timeout;
 
 #ifdef DEBUG
 	struct debug_interrupt_tracker *interrupt_tracker;
@@ -137,9 +137,9 @@ struct fscc_port {
 };
 
 struct fscc_port *fscc_port_new(struct fscc_card *card, unsigned channel,
-                                unsigned major_number, unsigned minor_number,
-                                struct device *parent, struct class *class,
-                                struct file_operations *fops);
+								unsigned major_number, unsigned minor_number,
+								struct device *parent, struct class *class,
+								struct file_operations *fops);
 
 void fscc_port_delete(struct fscc_port *port);
 
@@ -150,18 +150,18 @@ unsigned fscc_port_has_iframes(struct fscc_port *port, unsigned lock);
 unsigned fscc_port_has_oframes(struct fscc_port *port, unsigned lock);
 
 __u32 fscc_port_get_register(struct fscc_port *port, unsigned bar,
-                             unsigned register_offset);
+							 unsigned register_offset);
 
 void fscc_port_get_register_rep(struct fscc_port *port, unsigned bar,
-                                unsigned register_offset, char *buf,
-                                unsigned byte_count);
+								unsigned register_offset, char *buf,
+								unsigned byte_count);
 
 int fscc_port_set_register(struct fscc_port *port, unsigned bar,
-                            unsigned register_offset, __u32 value);
+							unsigned register_offset, __u32 value);
 
 void fscc_port_set_register_rep(struct fscc_port *port, unsigned bar,
-                                unsigned register_offset, const char *data,
-                                unsigned byte_count);
+								unsigned register_offset, const char *data,
+								unsigned byte_count);
 
 int fscc_port_flush_tx(struct fscc_port *port);
 int fscc_port_flush_rx(struct fscc_port *port);
@@ -182,34 +182,34 @@ unsigned fscc_port_get_iframes_qty(struct fscc_port *port);
 unsigned fscc_port_get_oframes_qty(struct fscc_port *port);
 
 unsigned fscc_port_get_output_memory_usage(struct fscc_port *port,
-                                           unsigned lock);
+										   unsigned lock);
 
 unsigned fscc_port_get_input_memory_usage(struct fscc_port *port,
-                                          unsigned lock);
+										  unsigned lock);
 
 unsigned fscc_port_get_input_memory_cap(struct fscc_port *port);
 unsigned fscc_port_get_output_memory_cap(struct fscc_port *port);
 
 void fscc_port_set_memory_cap(struct fscc_port *port,
-                              struct fscc_memory_cap *memory_cap);
+							  struct fscc_memory_cap *memory_cap);
 
 void fscc_port_set_ignore_timeout(struct fscc_port *port,
-                                  unsigned ignore_timeout);
+								  unsigned ignore_timeout);
 
 void fscc_port_set_clock_bits(struct fscc_port *port,
-                              const unsigned char *clock_data);
+							  const unsigned char *clock_data);
 
 void fscc_port_set_append_status(struct fscc_port *port, unsigned value);
 unsigned fscc_port_get_append_status(struct fscc_port *port);
 
 int fscc_port_set_registers(struct fscc_port *port,
-                             const struct fscc_registers *regs);
+							 const struct fscc_registers *regs);
 
 void fscc_port_get_registers(struct fscc_port *port,
-                             struct fscc_registers *regs);
+							 struct fscc_registers *regs);
 
 struct fscc_frame *fscc_port_peek_front_frame(struct fscc_port *port,
-                                              struct list_head *frames);
+											  struct list_head *frames);
 
 unsigned fscc_port_using_async(struct fscc_port *port);
 unsigned fscc_port_using_transparent(struct fscc_port *port);
@@ -227,7 +227,8 @@ void fscc_port_execute_RST_T(struct fscc_port *port);
 
 #ifdef DEBUG
 unsigned fscc_port_get_interrupt_count(struct fscc_port *port, __u32 isr_bit);
-void fscc_port_increment_interrupt_counts(struct fscc_port *port, __u32 isr_value);
+void fscc_port_increment_interrupt_counts(struct fscc_port *port, 
+										  __u32 isr_value);
 #endif /* DEBUG */
 
 #endif

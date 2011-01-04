@@ -1,5 +1,5 @@
 /*
-	Copyright (C) 2011  Commtech, Inc.
+	Copyright (C) 2011 Commtech, Inc.
 
 	This file is part of fscc-linux.
 
@@ -14,7 +14,7 @@
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with fscc-linux.  If not, see <http://www.gnu.org/licenses/>.
+	along with fscc-linux.	If not, see <http://www.gnu.org/licenses/>.
 
 */
 
@@ -28,7 +28,7 @@
 
 /*
    NOTE: You may need to link against the retail time library to use the aio_*
-         functions e.g. gcc -lrt aio_read.c
+	 functions e.g. gcc -lrt aio_read.c
 
 */
 
@@ -42,8 +42,8 @@ int main(void)
 	fprintf(stdout, "WARNING (please read)\n");
 	fprintf(stdout, "--------------------------------------------------\n");
 	fprintf(stdout, "This limited example is for illustrative use only.\n" \
-	                "Do not use this code in a production environment\n" \
-	                "without adding proper error checking.\n\n");
+			"Do not use this code in a production environment\n" \
+			"without adding proper error checking.\n\n");
 
 	port_fd = open("/dev/fscc0", O_RDONLY);
 

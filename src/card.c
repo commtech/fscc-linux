@@ -14,7 +14,7 @@
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with fscc-linux.  If not, see <http://www.gnu.org/licenses/>.
+	along with fscc-linux.	If not, see <http://www.gnu.org/licenses/>.
 
 */
 
@@ -34,9 +34,9 @@ struct pciserial_board pci_board = {
 };
 
 struct fscc_card *fscc_card_new(struct pci_dev *pdev,
-                                unsigned major_number,
-                                struct class *class,
-                                struct file_operations *fops)
+								unsigned major_number,
+								struct class *class,
+								struct file_operations *fops)
 {
 	struct fscc_card *card = 0;
 	struct fscc_port *port_iter = 0;
@@ -69,15 +69,15 @@ struct fscc_card *fscc_card_new(struct pci_dev *pdev,
 			break;
 	}
 
-    if (pci_request_region(card->pci_dev, 0, DEVICE_NAME) != 0) {
-        dev_err(&card->pci_dev->dev, "pci_request_regions failed\n");
-        return 0;
-    }
+	if (pci_request_region(card->pci_dev, 0, DEVICE_NAME) != 0) {
+		dev_err(&card->pci_dev->dev, "pci_request_regions failed\n");
+		return 0;
+	}
 
-    if (pci_request_region(card->pci_dev, 2, DEVICE_NAME) != 0) {
-        dev_err(&card->pci_dev->dev, "pci_request_regions failed\n");
-        return 0;
-    }
+	if (pci_request_region(card->pci_dev, 2, DEVICE_NAME) != 0) {
+		dev_err(&card->pci_dev->dev, "pci_request_regions failed\n");
+		return 0;
+	}
 
 	card->serial_priv = pciserial_init_ports(pdev, &pci_board);
 
@@ -95,7 +95,7 @@ struct fscc_card *fscc_card_new(struct pci_dev *pdev,
 
 	start_minor_number = minor_number;
 
-    /* There are three register sections. */
+	/* There are three register sections. */
 	for (i = 0; i < 3; i++) {
 		card->bar[i] = pci_iomap(card->pci_dev, i, 0);
 
@@ -105,13 +105,13 @@ struct fscc_card *fscc_card_new(struct pci_dev *pdev,
 		}
 	}
 
-    /* There are two ports per card. */
+	/* There are two ports per card. */
 	for (i = 0; i < 2; i++) {
 		port_iter = fscc_port_new(card, i, major_number, minor_number,
-		                          &card->pci_dev->dev, class, fops);
+								  &card->pci_dev->dev, class, fops);
 
 		if (port_iter)
-	        list_add_tail(&port_iter->list, &card->ports);
+			list_add_tail(&port_iter->list, &card->ports);
 
 		minor_number += 1;
 	}
@@ -171,7 +171,7 @@ void fscc_card_resume(struct fscc_card *card)
 }
 
 struct fscc_card *fscc_card_find(struct pci_dev *pdev,
-                                 struct list_head *card_list)
+								 struct list_head *card_list)
 {
 	struct fscc_card *current_card = 0;
 
@@ -197,7 +197,7 @@ void __iomem *fscc_card_get_BAR(struct fscc_card *card, unsigned number)
 }
 
 __u32 fscc_card_get_register(struct fscc_card *card, unsigned bar,
-                             unsigned offset)
+							 unsigned offset)
 {
 	void __iomem *address = 0;
 	__u32 value = 0;
@@ -214,7 +214,7 @@ __u32 fscc_card_get_register(struct fscc_card *card, unsigned bar,
 }
 
 void fscc_card_set_register(struct fscc_card *card, unsigned bar,
-                            unsigned offset, __u32 value)
+							unsigned offset, __u32 value)
 {
 	void __iomem *address = 0;
 
@@ -229,8 +229,8 @@ void fscc_card_set_register(struct fscc_card *card, unsigned bar,
 }
 
 void fscc_card_get_register_rep(struct fscc_card *card, unsigned bar,
-                                unsigned offset, char *buf,
-                                unsigned byte_count)
+								unsigned offset, char *buf,
+								unsigned byte_count)
 {
 	void __iomem *address = 0;
 	unsigned leftover_count = 0;
@@ -252,35 +252,35 @@ void fscc_card_get_register_rep(struct fscc_card *card, unsigned bar,
 		incoming_data = ioread32(address + offset);
 
 		memmove(buf + (byte_count - leftover_count),
-		        (char *)(&incoming_data), leftover_count);
+				(char *)(&incoming_data), leftover_count);
 	}
 
 #ifdef __BIG_ENDIAN
-    {
-        unsigned i = 0;
+	{
+		unsigned i = 0;
 
-        for (i = 0; i < (int)(byte_count / 2); i++) {
-            char first, last;
+		for (i = 0; i < (int)(byte_count / 2); i++) {
+			char first, last;
 
-            first = buf[i];
-            last = buf[byte_count - i - 1];
+			first = buf[i];
+			last = buf[byte_count - i - 1];
 
-            buf[i] = last;
-            buf[byte_count - i - 1] = first;
-        }
-    }
+			buf[i] = last;
+			buf[byte_count - i - 1] = first;
+		}
+	}
 #endif
 }
 
 void fscc_card_set_register_rep(struct fscc_card *card, unsigned bar,
-                                unsigned offset, const char *data,
-                                unsigned byte_count)
+								unsigned offset, const char *data,
+								unsigned byte_count)
 {
 	void __iomem *address = 0;
 	unsigned leftover_count = 0;
 	unsigned chunks = 0;
-    char *reversed_data = 0;
-    const char *outgoing_data = 0;
+	char *reversed_data = 0;
+	const char *outgoing_data = 0;
 
 	return_if_untrue(card);
 	return_if_untrue(bar <= 2);
@@ -294,25 +294,25 @@ void fscc_card_set_register_rep(struct fscc_card *card, unsigned bar,
 	outgoing_data = data;
 
 #ifdef __BIG_ENDIAN
-    {
-        unsigned i = 0;
+	{
+		unsigned i = 0;
 
-        reversed_data = kmalloc(byte_count, GFP_KERNEL);
+		reversed_data = kmalloc(byte_count, GFP_KERNEL);
 
-        for (i = 0; i < byte_count; i++)
-            reversed_data[i] = data[byte_count - i - 1];
+		for (i = 0; i < byte_count; i++)
+			reversed_data[i] = data[byte_count - i - 1];
 
-        outgoing_data = reversed_data;
-    }
+		outgoing_data = reversed_data;
+	}
 #endif
 
-    iowrite32_rep(address + offset, outgoing_data, chunks);
+	iowrite32_rep(address + offset, outgoing_data, chunks);
 
-    if (leftover_count)
-	    iowrite32(chars_to_u32(outgoing_data + (byte_count - leftover_count)), address + offset);
+	if (leftover_count)
+		iowrite32(chars_to_u32(outgoing_data + (byte_count - leftover_count)), address + offset);
 
-    if (reversed_data)
-        kfree(reversed_data);
+	if (reversed_data)
+		kfree(reversed_data);
 }
 
 struct list_head *fscc_card_get_ports(struct fscc_card *card)

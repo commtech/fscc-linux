@@ -1,5 +1,5 @@
 /*
-	Copyright (C) 2011  Commtech, Inc.
+	Copyright (C) 2011 Commtech, Inc.
 
 	This file is part of fscc-linux.
 
@@ -14,7 +14,7 @@
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with fscc-linux.  If not, see <http://www.gnu.org/licenses/>.
+	along with fscc-linux.	If not, see <http://www.gnu.org/licenses/>.
 
 */
 
@@ -48,8 +48,8 @@
 #define DEFAULT_FCR_VALUE 0x00000000
 
 #define DEFAULT_CLOCK_BITS {0x0f, 0x61, 0xe5, 0x00, 0x00, 0x00, 0x00, 0x00, \
-                            0x00, 0x00, 0x00, 0x18, 0x16, 0x40, 0x01, 0x04, \
-                            0x00, 0xff, 0xff, 0xff} /* 18.432 MHz */
+							0x00, 0x00, 0x00, 0x18, 0x16, 0x40, 0x01, 0x04, \
+							0x00, 0xff, 0xff, 0xff} /* 18.432 MHz */
 
 #define SYSFS_READ_ONLY_MODE S_IRUGO
 #define SYSFS_WRITE_ONLY_MODE S_IWUGO

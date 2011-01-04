@@ -1,5 +1,5 @@
 /*
-	Copyright (C) 2011  Commtech, Inc.
+	Copyright (C) 2011 Commtech, Inc.
 
 	This file is part of fscc-linux.
 
@@ -14,7 +14,7 @@
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with fscc-linux.  If not, see <http://www.gnu.org/licenses/>.
+	along with fscc-linux.	If not, see <http://www.gnu.org/licenses/>.
 
 */
 
@@ -30,7 +30,7 @@ struct fscc_stream *fscc_stream_new(void);
 void fscc_stream_delete(struct fscc_stream *stream);
 
 void fscc_stream_add_data(struct fscc_stream *stream, const char *data,
-                          unsigned length);
+						  unsigned length);
 char *fscc_stream_get_data(struct fscc_stream *stream);
 unsigned fscc_stream_get_length(struct fscc_stream *stream);
 void fscc_stream_remove_data(struct fscc_stream *stream, unsigned length);

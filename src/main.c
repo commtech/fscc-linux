@@ -14,7 +14,7 @@
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with fscc-linux.  If not, see <http://www.gnu.org/licenses/>.
+	along with fscc-linux.	If not, see <http://www.gnu.org/licenses/>.
 
 */
 
@@ -25,11 +25,11 @@
 #include "utils.h" /* is_fscc_device */
 
 #if defined(__BIG_ENDIAN) && defined(__LITTLE_ENDIAN)
-    #error Both __BIG_ENDIAN and __LITTLE_ENDIAN are defined
+	#error Both __BIG_ENDIAN and __LITTLE_ENDIAN are defined
 #endif
 
 #if !defined(__BIG_ENDIAN) && !defined(__LITTLE_ENDIAN)
-    #error Neither __BIG_ENDIAN or __LITTLE_ENDIAN are defined
+	#error Neither __BIG_ENDIAN or __LITTLE_ENDIAN are defined
 #endif
 
 static int fscc_major_number;
@@ -60,8 +60,8 @@ int fscc_open(struct inode *inode, struct file *file)
 }
 
 /*
-    Returns -ENOBUFS if read size is smaller than next frame
-    Returns -EOPNOTSUPP if in async mode
+	Returns -ENOBUFS if read size is smaller than next frame
+	Returns -EOPNOTSUPP if in async mode
 */
 ssize_t fscc_read(struct file *file, char *buf, size_t count, loff_t *ppos)
 {
@@ -88,7 +88,7 @@ ssize_t fscc_read(struct file *file, char *buf, size_t count, loff_t *ppos)
 			return -EAGAIN;
 
 		if (wait_event_interruptible(port->input_queue,
-		                             fscc_port_has_incoming_data(port))) {
+									 fscc_port_has_incoming_data(port))) {
 			return -ERESTARTSYS;
 		}
 
@@ -104,10 +104,10 @@ ssize_t fscc_read(struct file *file, char *buf, size_t count, loff_t *ppos)
 }
 
 /*
-    Returns -ENOBUFS if write size is larger than memory_cap
+	Returns -ENOBUFS if write size is larger than memory_cap
 */
 ssize_t fscc_write(struct file *file, const char *buf, size_t count,
-                   loff_t *ppos)
+				   loff_t *ppos)
 {
 	struct fscc_port *port = 0;
 	int error_code = 0;
@@ -123,7 +123,7 @@ ssize_t fscc_write(struct file *file, const char *buf, size_t count,
 	}
 
 	if (count > fscc_port_get_output_memory_cap(port))
-	    return -ENOBUFS;
+		return -ENOBUFS;
 
 	if (down_interruptible(&port->write_semaphore))
 		return -ERESTARTSYS;
@@ -135,7 +135,7 @@ ssize_t fscc_write(struct file *file, const char *buf, size_t count,
 			return -EAGAIN;
 
 		if (wait_event_interruptible(port->output_queue,
-		        fscc_port_get_output_memory_usage(port, 1) + count <= fscc_port_get_output_memory_cap(port))) {
+				fscc_port_get_output_memory_usage(port, 1) + count <= fscc_port_get_output_memory_cap(port))) {
 			return -ERESTARTSYS;
 		}
 
@@ -165,8 +165,8 @@ unsigned fscc_poll(struct file *file, struct poll_table_struct *wait)
 	if (fscc_port_has_incoming_data(port))
 		mask |= POLLIN | POLLRDNORM;
 
-    if (fscc_port_get_output_memory_usage(port, 1) < fscc_port_get_output_memory_cap(port))
-	    mask |= POLLOUT | POLLWRNORM;
+	if (fscc_port_get_output_memory_usage(port, 1) < fscc_port_get_output_memory_cap(port))
+		mask |= POLLOUT | POLLWRNORM;
 
 	up(&port->poll_semaphore);
 
@@ -177,7 +177,7 @@ unsigned fscc_poll(struct file *file, struct poll_table_struct *wait)
 long fscc_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 #else
 int fscc_ioctl(struct inode *inode, struct file *file, unsigned int cmd,
-               unsigned long arg)
+			   unsigned long arg)
 #endif
 {
 	struct fscc_port *port = 0;
@@ -196,13 +196,13 @@ int fscc_ioctl(struct inode *inode, struct file *file, unsigned int cmd,
 
 	case FSCC_FLUSH_TX:
 		if ((error_code = fscc_port_flush_tx(port)) < 0)
-		    return error_code;
+			return error_code;
 
 		break;
 
 	case FSCC_FLUSH_RX:
 		if ((error_code = fscc_port_flush_rx(port)) < 0)
-		    return error_code;
+			return error_code;
 
 		break;
 
@@ -222,13 +222,13 @@ int fscc_ioctl(struct inode *inode, struct file *file, unsigned int cmd,
 		fscc_port_set_clock_bits(port, (char *)arg);
 		break;
 
-    case FSCC_ENABLE_IGNORE_TIMEOUT:
-        fscc_port_set_ignore_timeout(port, 1);
-        break;
+	case FSCC_ENABLE_IGNORE_TIMEOUT:
+		fscc_port_set_ignore_timeout(port, 1);
+		break;
 
-    case FSCC_DISABLE_IGNORE_TIMEOUT:
-        fscc_port_set_ignore_timeout(port, 0);
-        break;
+	case FSCC_DISABLE_IGNORE_TIMEOUT:
+		fscc_port_set_ignore_timeout(port, 0);
+		break;
 
 	default:
 		dev_dbg(port->device, "unknown ioctl 0x%x\n", cmd);
@@ -252,7 +252,7 @@ static struct file_operations fscc_fops = {
 };
 
 static int __devinit fscc_probe(struct pci_dev *pdev,
-                                const struct pci_device_id *id)
+								const struct pci_device_id *id)
 {
 	struct fscc_card *new_card = 0;
 
@@ -260,7 +260,7 @@ static int __devinit fscc_probe(struct pci_dev *pdev,
 		return -EIO;
 
 	new_card = fscc_card_new(pdev, fscc_major_number, fscc_class,
-                                 &fscc_fops);
+							 &fscc_fops);
 
 	if (new_card)
 		list_add_tail(&new_card->list, &fscc_cards);

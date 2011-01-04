@@ -1,5 +1,5 @@
 /*
-	Copyright (C) 2011  Commtech, Inc.
+	Copyright (C) 2011 Commtech, Inc.
 
 	This file is part of fscc-linux.
 
@@ -14,7 +14,7 @@
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with fscc-linux.  If not, see <http://www.gnu.org/licenses/>.
+	along with fscc-linux.	If not, see <http://www.gnu.org/licenses/>.
 
 */
 
@@ -41,11 +41,12 @@ struct fscc_frame {
 
 	struct fscc_port *port;
 
-    /* Used for DMA to signify the frame has been sent but not cleared. */
+	/* Used for DMA to signify the frame has been sent but not cleared. */
 	unsigned handled;
 };
 
-struct fscc_frame *fscc_frame_new(unsigned target_length, unsigned dma, struct fscc_port *port);
+struct fscc_frame *fscc_frame_new(unsigned target_length, unsigned dma, 
+								  struct fscc_port *port);
 void fscc_frame_delete(struct fscc_frame *frame);
 
 unsigned fscc_frame_get_target_length(struct fscc_frame *frame);
@@ -53,7 +54,7 @@ unsigned fscc_frame_get_current_length(struct fscc_frame *frame);
 unsigned fscc_frame_get_missing_length(struct fscc_frame *frame);
 
 void fscc_frame_add_data(struct fscc_frame *frame, const char *data,
-                         unsigned length);
+						 unsigned length);
 
 void fscc_frame_remove_data(struct fscc_frame *frame, unsigned length);
 unsigned fscc_frame_is_empty(struct fscc_frame *frame);

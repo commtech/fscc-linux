@@ -14,7 +14,7 @@
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with fscc-linux.  If not, see <http://www.gnu.org/licenses/>.
+	along with fscc-linux.	If not, see <http://www.gnu.org/licenses/>.
 
 */
 
@@ -24,14 +24,15 @@
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25)
 
-static ssize_t register_store(struct kobject *kobj, struct kobj_attribute *attr,
-                              const char *buf, size_t count,
-                              unsigned bar_number)
+static ssize_t register_store(struct kobject *kobj, 
+							  struct kobj_attribute *attr, const char *buf, 
+							  size_t count,
+							  unsigned bar_number)
 {
 	struct fscc_port *port = 0;
 	int register_offset = 0;
 	unsigned value = 0;
-    char *end = 0;
+	char *end = 0;
 
 	port = (struct fscc_port *)dev_get_drvdata((struct device *)kobj);
 
@@ -40,7 +41,7 @@ static ssize_t register_store(struct kobject *kobj, struct kobj_attribute *attr,
 
 	if (register_offset >= 0) {
 		dev_dbg(port->device, "setting register 0x%02x to 0x%08x\n",
-		        register_offset, value);
+				register_offset, value);
 
 		fscc_port_set_register(port, bar_number, register_offset, value);
 		return count;
@@ -50,7 +51,7 @@ static ssize_t register_store(struct kobject *kobj, struct kobj_attribute *attr,
 }
 
 static ssize_t register_show(struct kobject *kobj, struct kobj_attribute *attr,
-                             char *buf, unsigned bar_number)
+							 char *buf, unsigned bar_number)
 
 {
 	struct fscc_port *port = 0;
@@ -70,27 +71,27 @@ static ssize_t register_show(struct kobject *kobj, struct kobj_attribute *attr,
 }
 
 static ssize_t bar0_register_store(struct kobject *kobj,
-                                   struct kobj_attribute *attr, const char *buf,
-                                   size_t count)
+								   struct kobj_attribute *attr, const char *buf,
+								   size_t count)
 {
 	return register_store(kobj, attr, buf, count, 0);
 }
 
 static ssize_t bar0_register_show(struct kobject *kobj,
-                                  struct kobj_attribute *attr, char *buf)
+								  struct kobj_attribute *attr, char *buf)
 {
 	return register_show(kobj, attr, buf, 0);
 }
 
 static ssize_t bar2_register_store(struct kobject *kobj,
-                                   struct kobj_attribute *attr, const char *buf,
-                                   size_t count)
+								   struct kobj_attribute *attr, const char *buf,
+								   size_t count)
 {
 	return register_store(kobj, attr, buf, count, 2);
 }
 
 static ssize_t bar2_register_show(struct kobject *kobj,
-                                  struct kobj_attribute *attr, char *buf)
+								  struct kobj_attribute *attr, char *buf)
 {
 	return register_show(kobj, attr, buf, 2);
 }
@@ -184,7 +185,7 @@ struct attribute_group port_registers_attr_group = {
 
 
 static ssize_t flush_tx(struct kobject *kobj, struct kobj_attribute *attr,
-                              const char *buf, size_t count)
+							  const char *buf, size_t count)
 {
 	struct fscc_port *port = 0;
 
@@ -196,7 +197,7 @@ static ssize_t flush_tx(struct kobject *kobj, struct kobj_attribute *attr,
 }
 
 static ssize_t flush_rx(struct kobject *kobj, struct kobj_attribute *attr,
-                              const char *buf, size_t count)
+							  const char *buf, size_t count)
 {
 	struct fscc_port *port = 0;
 
@@ -233,7 +234,7 @@ struct attribute_group port_commands_attr_group = {
 
 
 static ssize_t output_memory(struct kobject *kobj, struct kobj_attribute *attr,
-                             char *buf)
+							 char *buf)
 {
 	struct fscc_port *port = 0;
 
@@ -243,7 +244,7 @@ static ssize_t output_memory(struct kobject *kobj, struct kobj_attribute *attr,
 }
 
 static ssize_t input_memory(struct kobject *kobj, struct kobj_attribute *attr,
-                                  char *buf)
+								  char *buf)
 {
 	struct fscc_port *port = 0;
 
@@ -253,7 +254,7 @@ static ssize_t input_memory(struct kobject *kobj, struct kobj_attribute *attr,
 }
 
 static ssize_t output_frames(struct kobject *kobj, struct kobj_attribute *attr,
-                            char *buf)
+							char *buf)
 {
 	struct fscc_port *port = 0;
 
@@ -263,7 +264,7 @@ static ssize_t output_frames(struct kobject *kobj, struct kobj_attribute *attr,
 }
 
 static ssize_t input_frames(struct kobject *kobj, struct kobj_attribute *attr,
-                            char *buf)
+							char *buf)
 {
 	struct fscc_port *port = 0;
 
@@ -303,12 +304,12 @@ struct attribute_group port_info_attr_group = {
 
 
 static ssize_t append_status_store(struct kobject *kobj,
-                                   struct kobj_attribute *attr, const char *buf,
-                                   size_t count)
+								   struct kobj_attribute *attr, const char *buf,
+								   size_t count)
 {
 	struct fscc_port *port = 0;
 	unsigned value = 0;
-    char *end = 0;
+	char *end = 0;
 
 	port = (struct fscc_port *)dev_get_drvdata((struct device *)kobj);
 
@@ -320,7 +321,7 @@ static ssize_t append_status_store(struct kobject *kobj,
 }
 
 static ssize_t append_status_show(struct kobject *kobj,
-                                  struct kobj_attribute *attr, char *buf)
+								  struct kobj_attribute *attr, char *buf)
 {
 	struct fscc_port *port = 0;
 
@@ -330,12 +331,12 @@ static ssize_t append_status_show(struct kobject *kobj,
 }
 
 static ssize_t input_memory_cap_store(struct kobject *kobj,
-                                   struct kobj_attribute *attr, const char *buf,
-                                   size_t count)
+								   struct kobj_attribute *attr, const char *buf,
+								   size_t count)
 {
 	struct fscc_port *port = 0;
 	struct fscc_memory_cap memory_cap;
-    char *end = 0;
+	char *end = 0;
 
 	port = (struct fscc_port *)dev_get_drvdata((struct device *)kobj);
 
@@ -349,7 +350,7 @@ static ssize_t input_memory_cap_store(struct kobject *kobj,
 }
 
 static ssize_t input_memory_cap_show(struct kobject *kobj,
-                                  struct kobj_attribute *attr, char *buf)
+								  struct kobj_attribute *attr, char *buf)
 {
 	struct fscc_port *port = 0;
 
@@ -359,12 +360,12 @@ static ssize_t input_memory_cap_show(struct kobject *kobj,
 }
 
 static ssize_t output_memory_cap_store(struct kobject *kobj,
-                                   struct kobj_attribute *attr, const char *buf,
-                                   size_t count)
+								   struct kobj_attribute *attr, const char *buf,
+								   size_t count)
 {
 	struct fscc_port *port = 0;
 	struct fscc_memory_cap memory_cap;
-    char *end = 0;
+	char *end = 0;
 
 	port = (struct fscc_port *)dev_get_drvdata((struct device *)kobj);
 
@@ -378,7 +379,7 @@ static ssize_t output_memory_cap_store(struct kobject *kobj,
 }
 
 static ssize_t output_memory_cap_show(struct kobject *kobj,
-                                  struct kobj_attribute *attr, char *buf)
+								  struct kobj_attribute *attr, char *buf)
 {
 	struct fscc_port *port = 0;
 
@@ -415,7 +416,7 @@ struct attribute_group port_settings_attr_group = {
 
 #ifdef DEBUG
 static ssize_t interrupt_count(struct kobject *kobj, struct kobj_attribute *attr,
-                               char *buf)
+							   char *buf)
 
 {
 	struct fscc_port *port = 0;

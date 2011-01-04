@@ -1,5 +1,5 @@
 /*
-	Copyright (C) 2011  Commtech, Inc.
+	Copyright (C) 2011 Commtech, Inc.
 
 	This file is part of fscc-linux.
 
@@ -14,7 +14,7 @@
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with fscc-linux.  If not, see <http://www.gnu.org/licenses/>.
+	along with fscc-linux.	If not, see <http://www.gnu.org/licenses/>.
 
 */
 
@@ -61,11 +61,11 @@ struct debug_interrupt_tracker {
 struct debug_interrupt_tracker *debug_interrupt_tracker_new(void);
 void debug_interrupt_tracker_delete(struct debug_interrupt_tracker *tracker);
 void debug_interrupt_tracker_increment_single(struct debug_interrupt_tracker *tracker,
-                                       __u32 isr_bit);
+									   __u32 isr_bit);
 void debug_interrupt_tracker_increment_all(struct debug_interrupt_tracker *tracker,
-                                       __u32 isr_value);
+									   __u32 isr_value);
 unsigned debug_interrupt_tracker_get_count(struct debug_interrupt_tracker *tracker,
-                                           __u32 isr_bit);
+										   __u32 isr_bit);
 
 void debug_interrupt_display(unsigned long data);
 

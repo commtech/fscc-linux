@@ -14,7 +14,7 @@
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with fscc-linux.  If not, see <http://www.gnu.org/licenses/>.
+	along with fscc-linux.	If not, see <http://www.gnu.org/licenses/>.
 
 */
 
@@ -40,7 +40,7 @@ void debug_interrupt_tracker_delete(struct debug_interrupt_tracker *tracker)
 }
 
 void debug_interrupt_tracker_increment_single(struct debug_interrupt_tracker *tracker,
-                                       __u32 isr_bit)
+											  __u32 isr_bit)
 {
 	unsigned i = 0;
 
@@ -60,7 +60,7 @@ void debug_interrupt_tracker_increment_single(struct debug_interrupt_tracker *tr
 }
 
 void debug_interrupt_tracker_increment_all(struct debug_interrupt_tracker *tracker,
-                                       __u32 isr_value)
+									       __u32 isr_value)
 {
 	unsigned i = 0;
 
@@ -78,7 +78,7 @@ void debug_interrupt_tracker_increment_all(struct debug_interrupt_tracker *track
 }
 
 unsigned debug_interrupt_tracker_get_count(struct debug_interrupt_tracker *tracker,
-                                           __u32 isr_bit)
+										   __u32 isr_bit)
 {
 	unsigned i = 0;
 
