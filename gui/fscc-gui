@@ -122,8 +122,8 @@ class Toolbar(gtk.Toolbar):
             "Export settings to file"),
             (gtk.STOCK_GO_BACK, self.import_clicked, "Import Settings",
             "Import settings from file"),
-            (gtk.STOCK_NETWORK, self.terminal_clicked, "Send/Receive Data",
-            "Send/receive data to/from port"),
+            (gtk.STOCK_NETWORK, self.terminal_clicked, "Terminal",
+            "Open terminal to port"),
         )
 
         for stock_id, callback, label, tooltip_text in button_data:
