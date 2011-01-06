@@ -130,6 +130,8 @@ class RegisterGUI(gtk.VBox):
                 
                 if name in bit_field_names:
                     bits = self.bit_fields[bit_field_names.index(name)][1]
+                else:
+                    continue
             except:
                 continue
                 
@@ -151,6 +153,10 @@ class RegisterGUI(gtk.VBox):
                 widget.connect("activate", self._sub_entry_activate, bits)
                 widget.connect("focus-out-event", self._sub_entry_focus_out_event, bits)
                 group = self.entries
+                
+            if type(widget) is gtk.RadioButton:
+                widget.connect("toggled", self._radio_button_toggled, bits)
+                group = self.radio_buttons
                 
             if group is not None:
                 group.append((widget, bits))
@@ -213,6 +219,7 @@ class RegisterGUI(gtk.VBox):
         self._update_entry_value(int(widget.get_text(), 16), bits)
 
     def _radio_button_toggled(self, widget, bits):
+        print("A")
         self._update_entry_value(not widget.get_active(), bits)
 
     def _update_entry_value(self, widget_value, bits):
@@ -221,25 +228,6 @@ class RegisterGUI(gtk.VBox):
         new_entry_value = (mask | ( widget_value << bits[0]))
 
         self.entry.set_text("%08x" % new_entry_value)
-
-    """
-    def add_radio_buttons(self, bits, label, options):
-        hbox = gtk.HBox(False, 25)
-        hbox.show()
-
-        for i, option in enumerate(options):
-            if i == 0:
-                radio_button = gtk.RadioButton(label=option)
-                radio_button.connect("toggled", self._radio_button_toggled, bits)
-            else:
-                radio_button = gtk.RadioButton(label=option, group=self.radio_buttons[-1][0])
-
-            radio_button.show()
-            hbox.pack_start(radio_button)
-            self.radio_buttons.append((radio_button, bits))
-
-        self._add_widget(hbox, label)
-    """     
         
         
 class RegisterGUILegacy(gtk.VBox):
