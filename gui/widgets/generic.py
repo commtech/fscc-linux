@@ -17,6 +17,7 @@
         along with fscc-linux.  If not, see <http://www.gnu.org/licenses/>.
 
 """
+import os
 
 import gtk
 import pango
@@ -104,7 +105,7 @@ class RegisterGUI(gtk.VBox):
         self.entry.connect("focus-out-event", self.entry_changed_base)
                 
         builder = gtk.Builder()
-        builder.add_from_file("/home/will/repos/fscc-linux-gui/gui/widgets/" + self.glade_file) #TODO: Fix this
+        builder.add_from_file(os.path.dirname(__file__) + "/" + self.glade_file) #TODO: Fix this
         
         container = builder.get_object("register")
         self._add_widget(container)
