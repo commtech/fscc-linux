@@ -87,9 +87,164 @@ class RegisterEntry(gtk.Entry):
 
 
 class RegisterGUI(gtk.VBox):
-
+    bit_fields = []
+    glade_file = ""
+    
     def __init__(self, entry):
         super(RegisterGUI, self).__init__(False, 10)
+
+        self.spin_buttons = []
+        self.entries = []
+        self.combo_boxes = []
+        self.check_buttons = []
+        self.radio_buttons = []
+
+        self.entry = entry
+        self.entry.connect("activate", self.entry_changed_base)
+        self.entry.connect("focus-out-event", self.entry_changed_base)
+                
+        builder = gtk.Builder()
+        builder.add_from_file("/home/will/repos/fscc-linux-gui/gui/widgets/" + self.glade_file) #TODO: Fix this
+        
+        container = builder.get_object("register")
+        self._add_widget(container)
+        
+        self._setup_widgets(builder.get_objects())
+
+    def clear_bits(self, old_value, bits):
+        mask = old_value
+
+        for bit in bits:
+            mask &= ~(1 << bit);
+
+        return mask
+               
+    def _setup_widgets(self, widgets):
+        bit_field_names = [name for name, bits in self.bit_fields]
+        bit_field_bits = [bits for name, bits in self.bit_fields]
+        
+        for widget in widgets:
+            try:
+                name = gtk.Buildable.get_name(widget)
+                
+                if name in bit_field_names:
+                    bits = self.bit_fields[bit_field_names.index(name)][1]
+            except:
+                continue
+                
+            group = None
+                
+            if type(widget) is gtk.SpinButton:
+                widget.connect("value-changed", self._spin_button_value_changed, bits)
+                group = self.spin_buttons
+                
+            if type(widget) is gtk.ComboBox:
+                widget.connect("changed", self._combo_box_changed, bits)
+                group = self.combo_boxes
+                
+            if type(widget) is gtk.CheckButton:
+                widget.connect("toggled", self._check_button_toggled, bits)
+                group = self.check_buttons
+                
+            if type(widget) is gtk.Entry:
+                widget.connect("activate", self._sub_entry_activate, bits)
+                widget.connect("focus-out-event", self._sub_entry_focus_out_event, bits)
+                group = self.entries
+                
+            if group is not None:
+                group.append((widget, bits))
+
+    def _add_widget(self, widget):
+        if widget:
+            self.pack_start(widget, False, False)
+
+    def entry_changed_base(self, widget, data=None):
+        if self.entry and self.entry.get_text():
+            entry_value = int(self.entry.get_text(), 16)
+
+            for spin_button, bits in self.spin_buttons:
+                opposite_bits = [i for i in range(32) if i not in bits]
+                mask = self.clear_bits(entry_value, opposite_bits)
+                spin_button.set_value(mask >> bits[0])
+
+            for entry, bits in self.entries:
+                opposite_bits = [i for i in range(32) if i not in bits]
+                mask = self.clear_bits(entry_value, opposite_bits)
+                entry.set_text("%02x" % (mask >> bits[0]))
+
+            for combo_box, bits in self.combo_boxes:
+                opposite_bits = [i for i in range(32) if i not in bits]
+                mask = self.clear_bits(entry_value, opposite_bits)
+                combo_box.set_active(mask >> bits[0])
+
+            for check_button, bits in self.check_buttons:
+                opposite_bits = [i for i in range(32) if i not in bits]
+                mask = self.clear_bits(entry_value, opposite_bits)
+                check_button.set_active(mask >> bits[0])
+
+            for j, (radio_button, bits) in enumerate(self.radio_buttons, start=2):
+                opposite_bits = [i for i in range(32) if i not in bits]
+                mask = self.clear_bits(entry_value, opposite_bits)
+
+                if j % 2 == 0:
+                    radio_button.set_active(not (mask >> bits[0]))
+                else:
+                    radio_button.set_active(mask >> bits[0])
+
+        self.entry_changed(widget, data)
+
+    def entry_changed(self, widget, data=None):
+        pass
+
+    def _combo_box_changed(self, widget, bits):
+        self._update_entry_value(widget.get_active(), bits)
+
+    def _spin_button_value_changed(self, widget, bits):
+        self._update_entry_value(widget.get_value_as_int(), bits)
+
+    def _check_button_toggled(self, widget, bits):
+        self._update_entry_value(widget.get_active(), bits)
+
+    def _sub_entry_activate(self, widget, bits):
+        self._update_entry_value(int(widget.get_text(), 16), bits)
+
+    def _sub_entry_focus_out_event(self, widget, event, bits):
+        self._update_entry_value(int(widget.get_text(), 16), bits)
+
+    def _radio_button_toggled(self, widget, bits):
+        self._update_entry_value(not widget.get_active(), bits)
+
+    def _update_entry_value(self, widget_value, bits):
+        old_entry_value = int(self.entry.get_text(), 16)
+        mask = self.clear_bits(old_entry_value, bits)
+        new_entry_value = (mask | ( widget_value << bits[0]))
+
+        self.entry.set_text("%08x" % new_entry_value)
+
+    """
+    def add_radio_buttons(self, bits, label, options):
+        hbox = gtk.HBox(False, 25)
+        hbox.show()
+
+        for i, option in enumerate(options):
+            if i == 0:
+                radio_button = gtk.RadioButton(label=option)
+                radio_button.connect("toggled", self._radio_button_toggled, bits)
+            else:
+                radio_button = gtk.RadioButton(label=option, group=self.radio_buttons[-1][0])
+
+            radio_button.show()
+            hbox.pack_start(radio_button)
+            self.radio_buttons.append((radio_button, bits))
+
+        self._add_widget(hbox, label)
+    """     
+        
+        
+class RegisterGUILegacy(gtk.VBox):
+
+    def __init__(self, entry):
+        super(RegisterGUILegacy, self).__init__(False, 10)
 
         self.spin_buttons = []
         self.entries = []
@@ -144,13 +299,32 @@ class RegisterGUI(gtk.VBox):
 
         self.entry_changed(widget, data)
 
-    def _add_widget(self, widget, label):
-        frame = gtk.Frame(label)
-        frame.add(widget)
+    def _add_widget(self, widget, label_text):
+        hbox = gtk.HBox()
+        hbox.pack_start(widget, False, False)
+        hbox.show()
+        
+        label = gtk.Label()
+        
+        try:
+            label.set_markup(label_text)
+        except:
+            label.set_markup("<b>%s</b> <i>(%s)</i>" % (label_text[0], label_text[1]))
+            
+        label.show()
+        
+        frame = gtk.Frame()
+        frame.set_label_widget(label)
+        frame.add(hbox)
         frame.set_shadow_type(gtk.SHADOW_NONE)
         frame.show()
-
-        self.pack_start(frame)
+        
+        try:
+            frame.set_tooltip_text(label_text[2])
+        except:
+            pass
+        
+        self.pack_start(frame, False, False)
 
     def _update_entry_value(self, widget_value, bits):
         old_entry_value = int(self.entry.get_text(), 16)
@@ -241,7 +415,7 @@ class RegisterGUI(gtk.VBox):
         self._update_entry_value(widget.get_value_as_int(), bits)
 
 
-class RegisterSequence(RegisterGUI):
+class RegisterSequence(RegisterGUILegacy):
 
     def __init__(self, entry, labels):
         super(RegisterSequence, self).__init__(entry)

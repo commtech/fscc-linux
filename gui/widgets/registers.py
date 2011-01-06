@@ -21,10 +21,10 @@
 import gtk
 import pango
 
-from generic import RegisterSequence, RegisterGUI
+from generic import RegisterSequence, RegisterGUILegacy, RegisterGUI
 
 
-class FIFOT(RegisterGUI):
+class FIFOT(RegisterGUILegacy):
 
     def __init__(self, entry):
         super(FIFOT, self).__init__(entry)
@@ -34,57 +34,61 @@ class FIFOT(RegisterGUI):
 
 
 class CCR0(RegisterGUI):
-    modes = [
-        "HDLC",
-        "X-Sync",
-        "Transparent",
+    bit_fields = [
+        ("mode", range(0, 2)),
+        ("cm", range(2, 5)),
+        ("le", range(5, 8)),
+        ("fsc", range(8, 11)),
+        ("sflag", range(11, 12)),
+        ("itf", range(12, 13)),
+        ("nsb", range(13, 16)),
+        ("ntb", range(16, 19)),
+        ("vis", range(19, 20)),
+        ("crc", range(20, 22)),
+        ("obt", range(22, 23)),
+        ("adm", range(23, 25)),
+        ("recd", range(25, 26)),
+        ("exts", range(28, 30)),
     ]
-
-    les = [
-        "NRZ",
-        "NRZI",
-        "FM0",
-        "FM1",
-        "Manchester",
-        "Differential Manchester",
+    
+    glade_file = "ccr0.glade"
+    
+class CCR1(RegisterGUI):
+    bit_fields = [
+        ("rts", range(0, 1)),
+        ("dtr", range(1, 2)),
+        ("rtsc", range(2, 3)),
+        ("ctsc", range(3, 4)),
+        ("zins", range(4, 5)),
+        ("oins", range(5, 6)),
+        ("dps", range(6, 7)),
+        ("sync2f", range(7, 8)),
+        ("term2f", range(8, 9)),
+        ("add2f", range(9, 10)),
+        ("crc2f", range(10, 11)),
+        ("crcr", range(11, 12)),
+        ("drcrc", range(12, 13)),
+        ("dtcrc", range(13, 14)),
+        ("dterm", range(14, 15)),
+        ("rip", range(16, 17)),
+        ("cdp", range(17, 18)),
+        ("rtsp", range(18, 19)),
+        ("ctsp", range(19, 20)),
+        ("dtrp", range(20, 21)),
+        ("dsrp", range(21, 22)),
+        ("fsrp", range(22, 23)),
+        ("fstp", range(23, 24)),
+        ("tcop", range(24, 25)),
+        ("tcip", range(25, 26)),
+        ("rcp", range(26, 27)),
+        ("tdp", range(27, 28)),
+        ("rdp", range(28, 29)),
     ]
-
-    fscs = [
-        "None",
-        "Mode 1",
-        "Mode 2",
-        "Mode 3",
-        "Mode 2 & 3",
-    ]
-
-    itfs = [
-        "Logical 1's",
-        "SYNC Sequences",
-    ]
-
-    crcs = [
-        "CRC-8",
-        "CRC-CCITT",
-        "CRC-16",
-        "CRC-32",
-    ]
-
-    def __init__(self, entry):
-        super(CCR0, self).__init__(entry)
-
-        self.add_combo_box(range(0, 2), "Operating Mode (MODE)", CCR0.modes)
-        self.add_spin_button(range(2, 5), "Clock Mode (CM)", 7)
-        self.add_combo_box(range(5, 8), "Line Encoding (LE)", CCR0.les)
-        self.add_combo_box(range(8, 11), "Frame Sync Control (FSC)", CCR0.fscs)
-        self.add_check_button(range(11, 12), "Shared Flags (SFLAG)")
-        self.add_radio_buttons(range(12, 13), "Inter-frame Time Fill (ITF)", CCR0.itfs)
-        self.add_spin_button(range(13, 16), "Number of Sync Bytes (NSB)", 4)
-        self.add_spin_button(range(16, 19), "Number of Termination Bytes (NTB)", 4)
-        self.add_check_button(range(19, 20), "Masked Interrupts Visible (VIS)")
-        self.add_combo_box(range(20, 22), "CRC Frame Check Mode (CRC)", CCR0.crcs)
+    
+    glade_file = "ccr1.glade"
 
 
-class BGR(RegisterGUI):
+class BGR(RegisterGUILegacy):
 
     def __init__(self, entry):
         super(BGR, self).__init__(entry)
@@ -134,7 +138,7 @@ class RAMR(RegisterSequence):
         super(RAMR, self).__init__(entry, labels)
 
 
-class PPR(RegisterGUI):
+class PPR(RegisterGUILegacy):
 
     def __init__(self, entry):
         super(PPR, self).__init__(entry)
@@ -145,7 +149,7 @@ class PPR(RegisterGUI):
         self.add_entry(range(0, 8), "Postamble (POST)")
 
 
-class TCR(RegisterGUI):
+class TCR(RegisterGUILegacy):
     tsrcs = [
         "OSC Input",
         "Transmit Clock",
@@ -166,7 +170,7 @@ class TCR(RegisterGUI):
         self.add_spin_button(range(3, 32), "Timer Expiration Count (TCNT)", 2 ** 29 - 1)
 
 
-class FCR(RegisterGUI):
+class FCR(RegisterGUILegacy):
 
     def __init__(self, entry):
         super(FCR, self).__init__(entry)
