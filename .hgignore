@@ -1,5 +1,4 @@
 syntax: glob
-
 *.o
 *.order
 *.cmd
