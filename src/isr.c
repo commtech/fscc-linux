@@ -316,8 +316,8 @@ void oframe_worker(unsigned long data)
 		return;
 	}
 
-	fscc_port_set_register_rep(port, 0, FIFO_OFFSET, 
-							   port->pending_oframe->data, 
+	fscc_port_set_register_rep(port, 0, FIFO_OFFSET,
+							   port->pending_oframe->data,
 							   transmit_length);
 
 	fscc_frame_remove_data(port->pending_oframe, transmit_length);

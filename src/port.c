@@ -79,7 +79,7 @@ struct fscc_port *fscc_port_new(struct fscc_card *card, unsigned channel,
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 18)
 
 	#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 27)
-		port->device = device_create(port->class, parent, port->dev_t, port, 
+		port->device = device_create(port->class, parent, port->dev_t, port,
 									 "%s", port->name);
 	#else
 		port->device = device_create(port->class, parent, port->dev_t, "%s",
@@ -894,7 +894,7 @@ void fscc_port_set_memory_cap(struct fscc_port *port,
 #define DTA_BASE 0x00000001
 #define CLK_BASE 0x00000002
 
-void fscc_port_set_clock_bits(struct fscc_port *port, 
+void fscc_port_set_clock_bits(struct fscc_port *port,
 							  const unsigned char *clock_data)
 {
 	__u32 orig_fcr_value = 0;
@@ -1097,7 +1097,7 @@ unsigned fscc_port_get_interrupt_count(struct fscc_port *port, __u32 isr_bit)
 	return debug_interrupt_tracker_get_count(port->interrupt_tracker, isr_bit);
 }
 
-void fscc_port_increment_interrupt_counts(struct fscc_port *port, 
+void fscc_port_increment_interrupt_counts(struct fscc_port *port,
 										  __u32 isr_value)
 {
 	return_if_untrue(port);

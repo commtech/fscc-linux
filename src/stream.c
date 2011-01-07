@@ -98,7 +98,7 @@ char *fscc_stream_get_data(struct fscc_stream *stream)
 	return stream->data;
 }
 
-void fscc_stream_update_buffer_size(struct fscc_stream *stream, 
+void fscc_stream_update_buffer_size(struct fscc_stream *stream,
 									unsigned length)
 {
 	char *new_data = 0;

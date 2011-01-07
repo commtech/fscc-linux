@@ -30,7 +30,7 @@ static unsigned frame_counter = 1;
 void fscc_frame_update_buffer_size(struct fscc_frame *frame, unsigned length);
 int fscc_frame_setup_descriptors(struct fscc_frame *frame, struct pci_dev *pci_dev);
 
-struct fscc_frame *fscc_frame_new(unsigned target_length, unsigned dma, 
+struct fscc_frame *fscc_frame_new(unsigned target_length, unsigned dma,
 								  struct fscc_port *port)
 {
 	struct fscc_frame *frame = 0;
@@ -63,7 +63,7 @@ struct fscc_frame *fscc_frame_new(unsigned target_length, unsigned dma,
 }
 
 //Returns 0 on failure. 1 on success
-int fscc_frame_setup_descriptors(struct fscc_frame *frame, 
+int fscc_frame_setup_descriptors(struct fscc_frame *frame,
 								 struct pci_dev *pci_dev)
 {
 	frame->d1 = kmalloc(sizeof(*frame->d1), GFP_ATOMIC | GFP_DMA);
@@ -184,7 +184,7 @@ unsigned fscc_frame_is_full(struct fscc_frame *frame)
 	return fscc_frame_get_current_length(frame) == fscc_frame_get_target_length(frame);
 }
 
-void fscc_frame_add_data(struct fscc_frame *frame, const char *data, 
+void fscc_frame_add_data(struct fscc_frame *frame, const char *data,
 						 unsigned length)
 {
 	return_if_untrue(frame);

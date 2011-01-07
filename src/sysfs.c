@@ -24,8 +24,8 @@
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25)
 
-static ssize_t register_store(struct kobject *kobj, 
-							  struct kobj_attribute *attr, const char *buf, 
+static ssize_t register_store(struct kobject *kobj,
+							  struct kobj_attribute *attr, const char *buf,
 							  size_t count,
 							  unsigned bar_number)
 {
