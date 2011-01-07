@@ -1,4 +1,4 @@
-I.     Getting the latest driver
+I.     Getting the latest driver software
        1) Switching between driver versions
       
 II.    Compiling the driver
@@ -8,7 +8,10 @@ II.    Compiling the driver
 III.   Loading the driver
        1) Enabling hot plugging support
       
-IV.    Installing the header files
+IV.    Installing the application files
+       1) C headers
+       2) Python API
+       3) GUI/CLI
 
 V.     Changing a port's register values
        1) Using sysfs from the command line
@@ -62,7 +65,7 @@ XIV.   FAQ
        3) Executing a flush without a clock puts the card in a broken state
 
 
-I. Getting the latest driver
+I. Getting the latest driver software
 -------------------------------------------------------------------------------
 The source code for the FSCC driver is hosted on google code hosting. To check 
 out the latest code you will need Mercurial and to run the following in a 
@@ -75,7 +78,8 @@ NOTE: This revision of code is likely unstable. You are recommended to switch
    
 1) Now that you have the latest code checked out you will more than likely want 
    to switch to a stable version within the code directory. To do this browse 
-   the various tags for one you would like to switch to.
+   the various tags for one you would like to switch to. Version 2.1 is only
+   listed here as an example.
 
    > hg tags
    > hg update 2.1
@@ -131,14 +135,35 @@ card is configured for your specific situation. There are multiple ways of
 doing this as outlined in section V. 
 
 If you decide you need to modify the driver while in your application's code 
-you will need a header file (.h) that allows you to interact with the FSCC 
-driver. To install the header file use the headers_install option to the make 
-command.
+you will need a header file (.h) or that allows you to interact with the FSCC 
+driver. 
+
+1) To install the header file use the headers_install option to the make 
+   command.
 
    > make headers_install
    
-After doing this you will have access to <fscc/fscc.h> which you can use in
-your C program.
+   After doing this you will have access to <fscc/fscc.h> which you can use in
+   your C program.
+   
+2) If instead you would like to use Python or our GUI and/or CLI you will need 
+   to install pyfscc. The same procedure of downloading the driver (see section 
+   I) applies to downloading pyfscc.
+
+   > hg clone https://pyfscc.googlecode.com/hg/ pyfscc
+   
+   Or manually downloading the tarball from the following location.
+   
+   http://code.google.com/p/pyfscc/downloads/list
+   
+3) As a convenience there is both a GUI and CLI for configuring the card that can
+   be found at the following locations.
+
+   > hg clone https://fscc-gui.googlecode.com/hg/ fscc-gui
+   > hg clone https://fscc-cli.googlecode.com/hg/ fscc-cli
+   
+   http://code.google.com/p/fscc-gui/downloads/list
+   http://code.google.com/p/fscc-cli/downloads/list
 
 
 V. Changing a port's register values
@@ -475,7 +500,8 @@ There are multiple ways of setting this value.
    cat /sys/class/fscc/fscc0/settings/input_memory_cap
    
 2) Use the FSCC_SET_MEMORY_CAP ioctl to set the memory cap values from within C 
-   code. This ioctl can be found within <fscc/fscc.h> after you install the header files (see section IV).
+   code. This ioctl can be found within <fscc/fscc.h> after you install the 
+   header files (see section IV).
    
    struct fscc_memory_cap memory_cap;
    
