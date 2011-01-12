@@ -195,15 +195,26 @@ void istream_worker(unsigned long data)
 {
 	struct fscc_port *port = 0;
 	int receive_length = 0; /* Needs to be signed */
+	unsigned long flags = 0;
 
 	port = (struct fscc_port *)data;
 
 	return_if_untrue(port);
 
+	spin_lock_irqsave(&port->iframe_spinlock, flags);
+
 	receive_length = fscc_port_get_RXCNT(port);
 
 	if (receive_length > 0) {
 		char *buffer = 0;
+
+		/* Make sure we don't go over the user's memory constraint. */
+		if (fscc_port_get_input_memory_usage(port, 0) + receive_length > fscc_port_get_input_memory_cap(port)) {
+			dev_warn(port->device, "Stream rejected (memory constraint)\n");
+
+			spin_unlock_irqrestore(&port->iframe_spinlock, flags);
+			return;
+		}
 
 		buffer = kmalloc(receive_length, GFP_ATOMIC);
 
@@ -213,6 +224,8 @@ void istream_worker(unsigned long data)
 					 "Stream receive rejected (kmalloc of %i bytes)\n",
 					 receive_length);
 
+
+            spin_unlock_irqrestore(&port->iframe_spinlock, flags);
 			return;
 		}
 
@@ -241,6 +254,8 @@ void istream_worker(unsigned long data)
 	}
 
 	wake_up_interruptible(&port->input_queue);
+
+	spin_unlock_irqrestore(&port->iframe_spinlock, flags);
 }
 
 #include "card.h"
