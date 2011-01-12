@@ -74,7 +74,7 @@ void fscc_stream_add_data(struct fscc_stream *stream, const char *data,
 	old_length = stream->length;
 
 	fscc_stream_update_buffer_size(stream, stream->length + length);
-
+	
 	memmove(stream->data + old_length, data, length);
 }
 
@@ -102,6 +102,7 @@ void fscc_stream_update_buffer_size(struct fscc_stream *stream,
 									unsigned length)
 {
 	char *new_data = 0;
+	int malloc_flags = 0;
 
 	return_if_untrue(stream);
 
@@ -115,7 +116,9 @@ void fscc_stream_update_buffer_size(struct fscc_stream *stream,
 		return;
 	}
 
-	new_data = kmalloc(length, GFP_KERNEL);
+	malloc_flags |= GFP_ATOMIC;
+
+	new_data = kmalloc(length, malloc_flags);
 
 	return_if_untrue(new_data);
 
