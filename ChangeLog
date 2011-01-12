@@ -1,3 +1,11 @@
+version 2.0.1 (01/12/2010)
+--------------------------------------------------------------------------------
+Bugfix release targeting transparent mode.
+
+	* Add memory constraint checks when in transparent mode
+	* Use atomic memory allocation when in transparent mode
+
+
 version 2.0.0 (01/07/2010)
 --------------------------------------------------------------------------------
 This is the initial release of the 2.0 driver series.
