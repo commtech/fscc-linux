@@ -395,16 +395,17 @@ are only a couple ways.
    length of multiple frames in queue you will still only receive one frame per 
    read() call.
    
-   In transparent mode the length argument specifies the maximum amount of 
-   data to return. If there is 100 bytes of transparent data in the card and
-   you read() with a length of 50, you will receive 50 bytes. If you were to do
-   a read() of 200 bytes you will receive the 100 bytes available.
+   In streaming mode (no frame termination) the length argument specifies the 
+   maximum amount of data to return. If there is 100 bytes of streaming data 
+   in the card and you read() with a length of 50, you will receive 50 bytes. 
+   If you were to do a read() of 200 bytes you will receive the 100 bytes 
+   available.
    
-   Frame based data and transparent data are kept separate within the driver.
+   Frame based data and streaming data are kept separate within the driver.
    To understand what this means first imagine this scenario. You are in a 
    frame based mode and receive a couple of frames. You then switch to 
-   transparent mode and receive a stream of data. When calling read() you will 
-   receive the the transparent data until you switch back into a frame based 
+   streaming mode and receive a stream of data. When calling read() you will 
+   receive the the streaming data until you switch back into a frame based 
    mode then do a read().
    
    In in addition to the standard errors that the read() function returns
@@ -642,7 +643,7 @@ XIV. FAQ
 
     A: Whether or not you can read data will be based on if there is at least 1 
        byte of data available to be read in your current mode of operation. For 
-       example, if there is transparent data it will not be considered when in 
+       example, if there is streaming data it will not be considered when in 
        a frame based mode.
        
        Whether or not you can write data will be based on if you have hit your

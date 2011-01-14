@@ -212,7 +212,7 @@ struct fscc_frame *fscc_port_peek_front_frame(struct fscc_port *port,
 											  struct list_head *frames);
 
 unsigned fscc_port_using_async(struct fscc_port *port);
-unsigned fscc_port_using_transparent(struct fscc_port *port);
+unsigned fscc_port_is_streaming(struct fscc_port *port);
 
 void fscc_port_execute_XF(struct fscc_port *port);
 void fscc_port_execute_GO_T(struct fscc_port *port);

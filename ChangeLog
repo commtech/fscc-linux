@@ -1,3 +1,11 @@
+version 2.0.3 (01/13/2010)
+--------------------------------------------------------------------------------
+Bugfix release clarifying what should be considered "streaming" data.
+
+	* Don't consider being in transparent mode as necessarily being streaming
+	  data
+	
+
 version 2.0.2 (01/12/2010)
 --------------------------------------------------------------------------------
 Version number update.

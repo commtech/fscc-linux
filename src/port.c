@@ -366,7 +366,7 @@ ssize_t fscc_port_stream_read(struct fscc_port *port, char *buf, size_t count)
 //Buf needs to be a user buffer
 ssize_t fscc_port_read(struct fscc_port *port, char *buf, size_t count)
 {
-	if (fscc_port_using_transparent(port))
+	if (fscc_port_is_streaming(port))
 		return fscc_port_stream_read(port, buf, count);
 	else
 		return fscc_port_frame_read(port, buf, count);
@@ -444,8 +444,8 @@ unsigned fscc_port_has_oframes(struct fscc_port *port, unsigned lock)
 	return has_frames(&port->oframes, spinlock);
 }
 
-/* Count is for transparent mode where we need to check there is enough
-   transparent data.
+/* Count is for streaming mode where we need to check there is enough
+   streaming data.
 
    Locks iframe_spinlock.
 */
@@ -454,7 +454,7 @@ unsigned fscc_port_has_incoming_data(struct fscc_port *port)
 {
 	return_val_if_untrue(port, 0);
 
-	if (fscc_port_using_transparent(port))
+	if (fscc_port_is_streaming(port))
 		return (fscc_stream_is_empty(port->istream)) ? 0 : 1;
 	else if (fscc_port_has_iframes(port, 1))
 		return 1;
@@ -1075,11 +1075,21 @@ unsigned fscc_port_using_async(struct fscc_port *port)
 	return 0;
 }
 
-unsigned fscc_port_using_transparent(struct fscc_port *port)
+/* TODO: Test whether termination bytes will frame data. If so add the
+   scenario here. */
+unsigned fscc_port_is_streaming(struct fscc_port *port)
 {
+	unsigned transparent_mode = 0;
+	unsigned rlc_mode = 0;
+	unsigned fsc_mode = 0;
+	
 	return_val_if_untrue(port, 0);
 
-	return ((port->register_storage.CCR0 & 0x3) == 0x2) ? 1 : 0;
+	transparent_mode = ((port->register_storage.CCR0 & 0x3) == 0x2) ? 1 : 0;
+	rlc_mode = (port->register_storage.CCR2 & 0xffff0000) ? 1 : 0;
+	fsc_mode = (port->register_storage.CCR0 & 0x700) ? 1 : 0;
+	
+	return (transparent_mode && !(rlc_mode || fsc_mode)) ? 1 : 0;
 }
 
 unsigned fscc_port_has_dma(struct fscc_port *port)

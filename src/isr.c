@@ -34,7 +34,7 @@ irqreturn_t fscc_isr(int irq, void *potential_port, struct pt_regs *regs)
 {
 	struct fscc_port *port = 0;
 	unsigned isr_value = 0;
-	unsigned transparent_mode = 0;
+	unsigned streaming = 0;
 
 	if (!port_exists(potential_port))
 		return IRQ_NONE;
@@ -47,9 +47,9 @@ irqreturn_t fscc_isr(int irq, void *potential_port, struct pt_regs *regs)
 		return IRQ_NONE;
 
 	port->last_isr_value |= isr_value;
-	transparent_mode = fscc_port_using_transparent(port);
+	streaming = fscc_port_is_streaming(port);
 
-	if (transparent_mode) {
+	if (streaming) {
 		if (isr_value & (RFT | RFS))
 			tasklet_schedule(&port->istream_tasklet);
 	}
