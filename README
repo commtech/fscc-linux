@@ -72,17 +72,20 @@ out the latest code you will need Mercurial and to run the following in a
 terminal.
 
    > hg clone https://fscc-linux.googlecode.com/hg/ fscc-linux
+
+NOTE: We prefer you use the above method for downloading the driver (because it 
+      is the easiest way to stay up to date) but you can also download a 
+      tarball from the following location.
    
-NOTE: This revision of code is likely unstable. You are recommended to switch
-      to a stable version which is shown below.
+   http://code.google.com/p/fscc-linux/downloads/list
    
 1) Now that you have the latest code checked out you will more than likely want 
    to switch to a stable version within the code directory. To do this browse 
-   the various tags for one you would like to switch to. Version 2.1 is only
+   the various tags for one you would like to switch to. Version v2.0.3 is only
    listed here as an example.
 
    > hg tags
-   > hg update 2.1
+   > hg update v2.0.3
    
    
 II. Compiling the driver
@@ -102,9 +105,9 @@ simply running the make command from within the source code directory.
    
 2) If the kernel header files you would like to build against are not in the
    default location '/lib/modules/$(shell uname -r)/build' then you can specify
-   the location with the KERNEL_PATH option while building the driver.
+   the location with the KDIR option while building the driver.
 
-   > make KERNEL_PATH="/location/to/kernel_headers/"
+   > make KDIR="/location/to/kernel_headers/"
 
 III. Loading the driver
 -------------------------------------------------------------------------------
@@ -113,6 +116,8 @@ now ready to load the driver so you can begin using it. To do this you insert
 the driver's kernel object file (fscc.ko) into the kernel.
 
    > insmod fscc.ko
+
+NOTE: You will more than likely need administrator privileges for this command.
    
 1) By default if there are no cards present when the driver is loaded the
    insmod will fail with a 'No such device' error. To allow the driver to load
@@ -129,13 +134,13 @@ the driver's kernel object file (fscc.ko) into the kernel.
     
 IV. Installing the header files
 -------------------------------------------------------------------------------
-While the card will boot up in what we consider the most general configuration
-for the majority of our users you will more than likely need to tweak how the 
-card is configured for your specific situation. There are multiple ways of 
-doing this as outlined in section V. 
+While the card will boot up in what we consider the most general configuration,
+the majority of our users will more than likely need to tweak how the card is 
+configured for your specific situation. There are multiple ways of doing this 
+outlined in section V. 
 
 If you decide you need to modify the driver while in your application's code 
-you will need a header file (.h) or that allows you to interact with the FSCC 
+you will need a header file (.h) that allows you to interact with the FSCC 
 driver. 
 
 1) To install the header file use the headers_install option to the make 

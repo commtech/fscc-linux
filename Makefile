@@ -9,10 +9,6 @@ ifeq ($(DEBUG),1)
 	EXTRA_CFLAGS += -DDEBUG
 endif
              
-ifdef KERNEL_PATH 
-	KDIR := $(KERNEL_PATH)
-endif
-	
 default:
 	$(MAKE) -C $(KDIR) SUBDIRS=$(PWD) modules
 	
