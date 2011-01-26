@@ -54,19 +54,19 @@ struct fscc_card *fscc_card_new(struct pci_dev *pdev,
 	card->dma = 0;
 
 	switch (pdev->device) {
-		case SFSCC_ID:
-		case SFSCC_4_ID:
-		case SFSCC_4_LVDS_ID:
-		case SFSCCe_4_ID:
-			if (pci_set_dma_mask(pdev, 0xffffffff)) {
-				dev_warn(&card->pci_dev->dev, "no suitable DMA available\n");
-			}
-			else {
-				card->dma = 1;
-				pci_set_master(card->pci_dev);
-			}
+	case SFSCC_ID:
+	case SFSCC_4_ID:
+	case SFSCC_4_LVDS_ID:
+	case SFSCCe_4_ID:
+		if (pci_set_dma_mask(pdev, 0xffffffff)) {
+			dev_warn(&card->pci_dev->dev, "no suitable DMA available\n");
+		}
+		else {
+			card->dma = 1;
+			pci_set_master(card->pci_dev);
+		}
 
-			break;
+		break;
 	}
 
 	if (pci_request_region(card->pci_dev, 0, DEVICE_NAME) != 0) {

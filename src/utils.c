@@ -150,28 +150,28 @@ unsigned is_read_only_register(unsigned offset)
 unsigned port_offset(struct fscc_port *port, unsigned bar, unsigned offset)
 {
 	switch (bar) {
-		case 0:
-			return (port->channel == 0) ? offset : offset + 0x80;
+	case 0:
+		return (port->channel == 0) ? offset : offset + 0x80;
 
-		case 2:
-			switch (offset) {
-				case DMACCR_OFFSET:
-					return (port->channel == 0) ? offset : offset + 0x04;
+	case 2:
+		switch (offset) {
+			case DMACCR_OFFSET:
+				return (port->channel == 0) ? offset : offset + 0x04;
 
-				case DMA_RX_BASE_OFFSET:
-				case DMA_TX_BASE_OFFSET:
-				case DMA_CURRENT_RX_BASE_OFFSET:
-				case DMA_CURRENT_TX_BASE_OFFSET:
-					return (port->channel == 0) ? offset : offset + 0x08;
+			case DMA_RX_BASE_OFFSET:
+			case DMA_TX_BASE_OFFSET:
+			case DMA_CURRENT_RX_BASE_OFFSET:
+			case DMA_CURRENT_TX_BASE_OFFSET:
+				return (port->channel == 0) ? offset : offset + 0x08;
 
-				default:
-					break;
-			}
+			default:
+				break;
+		}
 
-			break;
+		break;
 
-		default:
-			break;
+	default:
+		break;
 	}
 
 	return offset;
