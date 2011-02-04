@@ -41,6 +41,12 @@ void fscc_port_execute_STOP_R(struct fscc_port *port);
 void fscc_port_execute_STOP_T(struct fscc_port *port);
 void fscc_port_execute_RST_R(struct fscc_port *port);
 
+
+/* 
+    This handles initialization on a port level. So things that each port have
+    will be initialized in this function. /dev/ nodes, registers, clock,
+    and interrupts all happen here because it is specific to the port.
+*/
 struct fscc_port *fscc_port_new(struct fscc_card *card, unsigned channel,
 								unsigned major_number, unsigned minor_number,
 								struct device *parent, struct class *class,
@@ -259,6 +265,7 @@ void fscc_port_delete(struct fscc_port *port)
 	kfree(port);
 }
 
+/* Basic check to see if the CE bit is set. */
 unsigned fscc_port_timed_out(struct fscc_port *port)
 {
 	__u32 star_value = 0;
@@ -276,6 +283,7 @@ unsigned fscc_port_timed_out(struct fscc_port *port)
 	return 1;
 }
 
+/* Create the data structures the work horse functions use to send data. */
 int fscc_port_write(struct fscc_port *port, const char *data, unsigned length)
 {
 	struct fscc_frame *frame = 0;
@@ -297,10 +305,9 @@ int fscc_port_write(struct fscc_port *port, const char *data, unsigned length)
 	return_val_if_untrue(!uncopied_bytes, 0);
 
 	frame = fscc_frame_new(length, port->card->dma, port);
-	//frame = fscc_frame_new(length, 0, port);
 
 	if (!frame)
-		return 0; //TODO: Should return something more useful
+		return 0; //TODO: Should return something more informative
 
 	fscc_frame_add_data(frame, temp_storage, length);
 
@@ -313,6 +320,10 @@ int fscc_port_write(struct fscc_port *port, const char *data, unsigned length)
 	return 0;
 }
 
+/* 
+    Handles taking the frames already retrieved from the card and giving them
+    to the user. This is purely a helper for the fscc_port_read function.
+*/    
 ssize_t fscc_port_frame_read(struct fscc_port *port, char *buf, size_t count)
 {
 	struct fscc_frame *frame = 0;
@@ -343,6 +354,10 @@ ssize_t fscc_port_frame_read(struct fscc_port *port, char *buf, size_t count)
 	return data_length;
 }
 
+/* 
+    Handles taking the streams already retrieved from the card and giving them
+    to the user. This is purely a helper for the fscc_port_read function.
+*/ 
 ssize_t fscc_port_stream_read(struct fscc_port *port, char *buf, size_t count)
 {
 	unsigned data_length = 0;
@@ -362,8 +377,10 @@ ssize_t fscc_port_stream_read(struct fscc_port *port, char *buf, size_t count)
 	return data_length;
 }
 
-//Returns -ENOBUFS if count is smaller than pending frame size
-//Buf needs to be a user buffer
+/*
+    Returns -ENOBUFS if count is smaller than pending frame size
+    Buf needs to be a user buffer
+*/
 ssize_t fscc_port_read(struct fscc_port *port, char *buf, size_t count)
 {
 	if (fscc_port_is_streaming(port))
@@ -449,7 +466,6 @@ unsigned fscc_port_has_oframes(struct fscc_port *port, unsigned lock)
 
    Locks iframe_spinlock.
 */
-
 unsigned fscc_port_has_incoming_data(struct fscc_port *port)
 {
 	return_val_if_untrue(port, 0);
@@ -462,6 +478,11 @@ unsigned fscc_port_has_incoming_data(struct fscc_port *port)
 	return 0;
 }
 
+
+/* 
+    At the port level the offset will automatically be converted to the port
+    specific offset.
+*/
 __u32 fscc_port_get_register(struct fscc_port *port, unsigned bar,
 							 unsigned register_offset)
 {
@@ -475,6 +496,10 @@ __u32 fscc_port_get_register(struct fscc_port *port, unsigned bar,
 	return fscc_card_get_register(port->card, bar, offset);
 }
 
+/* 
+    At the port level the offset will automatically be converted to the port
+    specific offset.
+*/
 int fscc_port_set_register(struct fscc_port *port, unsigned bar,
 						   unsigned register_offset, __u32 value)
 {
@@ -501,6 +526,10 @@ int fscc_port_set_register(struct fscc_port *port, unsigned bar,
 	return 1;
 }
 
+/* 
+    At the port level the offset will automatically be converted to the port
+    specific offset.
+*/
 void fscc_port_get_register_rep(struct fscc_port *port, unsigned bar,
 								unsigned register_offset, char *buf,
 								unsigned byte_count)
@@ -517,6 +546,10 @@ void fscc_port_get_register_rep(struct fscc_port *port, unsigned bar,
 	fscc_card_get_register_rep(port->card, bar, offset, buf, byte_count);
 }
 
+/* 
+    At the port level the offset will automatically be converted to the port
+    specific offset.
+*/
 void fscc_port_set_register_rep(struct fscc_port *port, unsigned bar,
 								unsigned register_offset, const char *data,
 								unsigned byte_count)
@@ -533,6 +566,10 @@ void fscc_port_set_register_rep(struct fscc_port *port, unsigned bar,
 	fscc_card_set_register_rep(port->card, bar, offset, data, byte_count);
 }
 
+/* 
+    At the port level the offset will automatically be converted to the port
+    specific offset.
+*/
 int fscc_port_set_registers(struct fscc_port *port,
 							const struct fscc_registers *regs)
 {
