@@ -25,6 +25,12 @@
 #include <sys/ioctl.h> /* ioctl */
 #include <fscc/fscc.h> /* FSCC_FLUSH_RX */
 
+/*
+	This is a simple example showing how to empty all of the unread data out of 
+	a port.
+
+*/
+
 int main(void)
 {
 	int port_fd = 0;

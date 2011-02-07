@@ -666,3 +666,14 @@ XIV. FAQ
        practice. So whenever you need to execute a flush without a clock, first
        put it into clock mode 7, execute your flush then return to your other
        clock mode.
+       
+4)  Q: Why am I receiving the error message 'Couldn't register serial port' 
+       when loading the driver.
+       
+    A: When loading, the driver will attempt to register the board's UARTs with
+       the built in serial driver. The serial driver statically defines how 
+       many UARTs can be registered and will report this error if there isn't 
+       enough room.
+       
+       There are multiple ways of allowing more available UART room which can 
+       be found in section VII.

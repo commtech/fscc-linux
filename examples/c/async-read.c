@@ -24,6 +24,12 @@
 #include <stdlib.h> /* EXIT_SUCCESS, EXIT_FAILURE */
 #include <string.h> /* memset */
 
+/*
+	This is a simple example showing how to read asynchronous data from a 
+	port's UART.
+
+*/
+
 int main(void)
 {
 	ssize_t bytes_read = 0;

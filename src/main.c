@@ -369,9 +369,17 @@ static int __init fscc_init(void)
 			pci_unregister_driver(&fscc_pci_driver);
 			unregister_chrdev(fscc_major_number, "fscc");
 			class_destroy(fscc_class);
+			
 			return -ENODEV;
 		}
 	}
+	
+#ifdef DEBUG
+	printk(KERN_INFO DEVICE_NAME " setting: debug (on)\n");
+
+	printk(KERN_DEBUG DEVICE_NAME " setting: hot plug (%s)\n", 
+	       (hot_plug) ? "on" : "off");
+#endif
 
 	return 0;
 }

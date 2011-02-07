@@ -25,6 +25,11 @@
 #include <sys/ioctl.h> /* ioctl */
 #include <fscc/fscc.h> /* FSCC_REGISTERS_INIT, FSCC_SET_REGISTERS */
 
+/*
+	This is a simple example showing how to change register values of a port.
+
+*/
+
 int main(void)
 {
 	struct fscc_registers regs;

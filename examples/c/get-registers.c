@@ -25,6 +25,11 @@
 #include <sys/ioctl.h> /* ioctl */
 #include <fscc/fscc.h> /* FSCC_REGISTERS_INIT, FSCC_UPDATE_VALUE, FSCC_GET_REGISTERS */
 
+/*
+	This is a simple example showing how to read register values from a port.
+
+*/
+
 int main(void)
 {
 	struct fscc_registers regs;

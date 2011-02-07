@@ -26,6 +26,11 @@
 #include <sys/ioctl.h> /* ioctl */
 #include <fscc/fscc.h> /* FSCC_SET_APPEND_STATUS */
 
+/*
+	This is a simple example showing how to enable/disable status messages.
+
+*/
+
 int main(void)
 {
 	ssize_t bytes_written = 0;
