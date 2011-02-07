@@ -16,6 +16,9 @@ headers_install:
 	mkdir -p /usr/local/include/fscc
 	cp include/fscc.h /usr/local/include/fscc/
 
+headers_remove:
+	rm -rf /usr/local/include/fscc
+
 clean:
 	@find . $(IGNORE) \
 	\( -name '*.[oas]' -o -name '*.ko' -o -name '.*.cmd' \
