@@ -203,7 +203,7 @@ NOTE: For a listing of all of the configuration options please see the manual.
    ioctl(port_fd, FSCC_SET_REGISTERS, &regs);
    
    NOTE: A complete example of how to do this can be found in the file 
-         set-registers.c.
+         fscc-linux/examples/c/set-registers.c.
          
 3) Use the Python API to easily set the values of any registers you need to
    modify from within Python code.
@@ -212,7 +212,7 @@ NOTE: For a listing of all of the configuration options please see the manual.
    >>> port.registers.FCR = 0x00000000
    
    NOTE: A complete example of how to do this can be found in the file 
-         set-registers.py.
+         fscc-linux/examples/python/set-registers.py.
    
 4) Modify the '#define DEFAULT_[BGR|CCR0|...]_VALUE 0x030000ff' lines within 
    the config.h file to be whatever you would like the card to boot up as. You 
@@ -251,7 +251,7 @@ doing this.
    values.
    
    NOTE: A complete example of how to do this can be found in the file 
-         get-registers.c.
+         fscc-linux/examples/c/get-registers.c.
          
 3) Use the Python API to easily get the values of any registers you need to
    read from within Python code.
@@ -263,7 +263,7 @@ doing this.
    "0x00000000"
    
    NOTE: A complete example of how to do this can be found in the file 
-         get-registers.py.
+         fscc-linux/examples/python/get-registers.py.
 
 
 VII. Asynchronous communication
@@ -276,12 +276,13 @@ time.
 Prior to and after loading the FSCC driver (see section III) there are a few 
 steps needed to get the card ready for asynchronous communication.
 
-a) Most distributions have the default number of serial ports that Linux allows
-   to a smaller number than allowed. You will more than likely need to change
-   this value to something larger. 
+1) Some Linux distributions have the default number of serial ports that are
+   available at boot set to a small number (usually 4). The first four serial
+   ports are reserved so you will need to change this value to something larger
+   to be able to configure more serial ports.
    
    There are a couple ways of doing this. The easiest method is by appending 
-   '8250.nr_uarts=x' to your grub boot line.
+   '8250.nr_uarts=x' to your grub boot line. Something like this:
    
    kernel /boot/vmlinuz-2.6.20-15-generic ro quiet splash 8250.nr_uarts=16
    
@@ -294,27 +295,28 @@ a) Most distributions have the default number of serial ports that Linux allows
    need to recompile the kernel for it to take effect. The line you need to
    change in the .config file is SERIAL_8250_RUNTIME_UARTS.
 
-b) Load the FSCC driver. This will handle registering our UARTs with the serial
+2) Load the FSCC driver. This will handle registering our UARTs with the serial
    driver (see section III). Our UART's will now appear as ttyS nodes in the 
    /dev/ directory.
 
-c) By default the FSCC driver boots up in synchronous communication mode. To
+3) By default the FSCC driver boots up in synchronous communication mode. To
    switch to the asynchronous mode you must modify the FSCC card's FCR register 
    to allow for asynchronous communication. There are multiple ways of doing 
    this (see section V). Possibly the simplest method is using sysfs and the
    command line.
    
-   > echo 030000ff > /sys/class/fscc/fscc0/registers/bgr
+   > echo 03000000 > /sys/class/fscc/fscc0/registers/fcr
 
 
 VIII. Setting the clock frequency
 -------------------------------------------------------------------------------
 The FSCC device has a programmable clock that can be set anywhere from
-20 kbit to 200 Mbit. However, this is not a fully operational range. 
+20 kbit to 200 Mbit. However, this is not the fully operational range an
+FSCC port.  This is the range that the onboard clock can be set to.
 
-Using a synchronous mode you can only receive data consistently up to 30 Mbit 
-(when you are using a external clock). If you are transmitting data using an 
-internal clock you can safely go up 50 Mbit.
+Using one of the synchronous modes you can only receive data consistently 
+up to 30 Mbit (when you are using a external clock). If you are transmitting 
+data using an internal clock you can safely go up 50 Mbit.
 
 1) Use the FSCC_SET_CLOCK_BITS ioctl to set the frequency from within code.
    
@@ -326,24 +328,25 @@ internal clock you can safely go up 50 Mbit.
    ioctl(port_fd, FSCC_SET_CLOCK_BITS, &clock_bits);
    
    NOTE: A complete example of how to do this along with how to calculate
-         these clock bits can be found in the file set-clock-bits.c.
+         these clock bits can be found in the file 
+         fscc-linux/examples/c/set-clock-bits.c.
 
 
 IX.  Operating the driver
 -------------------------------------------------------------------------------
-The FSCC driver typically but not always works in "frames". This means that 
+The FSCC driver typically (but not always) works in "frames". This means that 
 data typically is packaged together in permanent chunks. If the card received
 two frames of data prior to you retrieving the data you will only get one chunk
 of data back at a time when you interface with the driver to get the data.
 
 There are multiple ways of reading/writing data to/from the card. Listed below
-are only a couple ways.
+are only the most common.
 
 1) Writing data will typically be done within C code using the write()
    function found within the <unistd.h> file. You can find a more in depth
-   example named "sync-write.c within the examples directory. You will need
-   to look online for a more in depth explanation of the parameters and return
-   value.
+   example named sync-write.c within the examples/c directory. You will need
+   to look elsewhere for a more in depth explanation of the parameters and 
+   return values.
    
    bytes_written = write(port_fd, data, sizeof(data));
    
@@ -364,7 +367,7 @@ are only a couple ways.
              driver will block instead of returning this error.
    
    NOTE: A complete example of how to do this can be found in the file 
-         sync-write.c.
+         fscc-linux/examples/c/sync-write.c.
    
 2) A simpler but not nearly as useful way of sending data out of a FSCC port is
    by using the built-in linux program echo. This is mainly useful while
@@ -381,12 +384,12 @@ are only a couple ways.
    an IOError exception with the appropriate errno value set.
    
    NOTE: A complete example of how to do this can be found in the file 
-         write.py.
+         fscc-linux/examples/python/write.py.
    
 4) Reading data will typically be done within C code using the read() function
    found within the <unistd.h> file. You can find a more in depth example named
-   "sync-read.c" within the examples directory. You will need to look online
-   for a more in depth explanation of the parameters and return value.
+   sync-read.c within the examples/c directory. You will need to look elsewhere
+   for a more in depth explanation of the parameters and return values.
       
    bytes_read = read(port_fd, data, sizeof(data));
    
@@ -394,7 +397,7 @@ are only a couple ways.
    on the mode you are using. 
    
    In a frame based mode the length argument specifies the maximum frame size 
-   to return. If the next frame in queue is larger than the size you specified 
+   to return. If the next queued frame is larger than the size you specified 
    the error -ENOBUFS is returned and the data will remain waiting for a read() 
    of a larger value. If a read() length is specified that is larger than the
    length of multiple frames in queue you will still only receive one frame per 
@@ -425,7 +428,7 @@ are only a couple ways.
                
    
    NOTE: A complete example of how to do this can be found in the file 
-         sync-read.c.
+         fscc-linux/examples/c/sync-read.c.
    
 5) A simpler but not nearly as useful way of reading data out of a FSCC port is
    by using the built-in linux program cat. This is mainly useful while
@@ -442,7 +445,7 @@ are only a couple ways.
    an IOError exception with the appropriate errno value set.
    
    NOTE: A complete example of how to do this can be found in the file 
-         read.py.
+         fscc-linux/examples/python/read.py.
    
 NOTE: fread/fwrite are not allowable ways of interfacing with the card. They
       make assumptions about the data that doesn't hold up with our "frame"
@@ -453,15 +456,12 @@ NOTE: fread/fwrite are not allowable ways of interfacing with the card. They
         
 X. Viewing/setting frame status data
 -------------------------------------------------------------------------------
-More than likely when you are receiving frames of data from the card which
-you trust the data coming in was correctly formatted to whatever protocol
-you are expecting but occasionally that isn't the case. In this situation you
-might want to view the status of each frame. For example if you want to see
-if the frame's CRC check succeeded or failed. 
+It is a good idea to pay attention to the status of each frame. For example if 
+you want to see if the frame's CRC check succeeded or failed. 
    
-The way the FSCC driver reports this data to you is by appending two 
-additional bytes to each frame you read from the card if you opt in to see 
-this data. There are a couple of ways of enabling this additional data.
+The way the FSCC reports this data to you is by appending two additional bytes 
+to each frame you read from the card if you opt in to see this data. There are 
+a couple of ways of enabling this additional data.
    
 1) The simplest method of doing this is by writing a value of 1 to the
    append_status file in sysfs from the command line.
@@ -478,7 +478,7 @@ this data. There are a couple of ways of enabling this additional data.
    ioctl(port_fd, FSCC_ENABLE_APPEND_STATUS);
    
    NOTE: A complete example of how to do this can be found in the file 
-         append-status.c.
+         fscc-linux/examples/c/append-status.c.
    
 3) Modify the '#define DEFAULT_APPEND_STATUS_VALUE 1' lines within the config.h 
    file to be whatever you would like the card to boot up as. You will need to 
@@ -524,7 +524,7 @@ There are multiple ways of setting this value.
          values to -1 which will be ignored in the driver.
    
    NOTE: A complete example of how to do this can be found in the file 
-         memory-cap.c.
+         fscc-linux/examples/c/memory-cap.c.
    
 3) Modify the '#define DEFAULT_{INPUT, OUTPUT}_MEMORY_CAP 100000' lines within 
    the config.h file to be whatever you would like the card to boot up as. You
@@ -552,7 +552,7 @@ clear this data out and start out fresh there are a couple ways of doing this.
    ioctl(port_fd, FSCC_FLUSH_RX);
    
    NOTE: A complete example of how to do this can be found in the files 
-         flush_tx.c and flush_rx.c.
+         fscc-linux/examples/c/flush_tx.c and flush_rx.c.
    
    In in addition to the standard errors that the ioctl() function returns
    there is an error specific to the FSCC you might run into.
