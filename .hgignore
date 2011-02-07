@@ -14,3 +14,4 @@ syntax: glob
 *.bak
 *.o.d
 *.orig
+sysfs
