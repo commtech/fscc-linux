@@ -26,6 +26,12 @@
 #include <sys/ioctl.h> /* ioctl */
 #include <fscc/fscc.h> /* FSCC_FLUSH_RX, FSCC_FLUSH_TX */
 
+/*
+	This is a simple example showing more thorough error checking than the 
+	other examples.
+
+*/
+
 int main(void)
 {
 	ssize_t bytes_written = 0;

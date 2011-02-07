@@ -26,6 +26,12 @@
 #include <sys/ioctl.h> /* ioctl */
 #include <fscc/fscc.h> /* FSCC_SET_APPEND_STATUS */
 
+/*
+	This is a simple example showing how to change the memory cap for each 
+	port.
+
+*/
+
 int main(void)
 {
 	struct fscc_memory_cap memory_cap;

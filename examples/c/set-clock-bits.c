@@ -25,6 +25,12 @@
 #include <sys/ioctl.h> /* ioctl */
 #include <fscc/fscc.h> /* FSCC_SET_CLOCK_BITS */
 
+/*
+	This is a simple example showing how to change the clock speed cap for each 
+	port.
+
+*/
+
 int main(void)
 {
 	/* 10 MHz */

@@ -23,6 +23,11 @@
 #include <stdio.h> /* perror */
 #include <stdlib.h> /* EXIT_SUCCESS, EXIT_FAILURE */
 
+/*
+	This is a simple example showing how to write synchronous data to a port.
+
+*/
+
 int main(void)
 {
 	ssize_t bytes_written = 0;
