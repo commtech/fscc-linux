@@ -150,6 +150,8 @@ driver.
    
    After doing this you will have access to <fscc/fscc.h> which you can use in
    your C program.
+
+   NOTE: Headers can be removed with: make headers_remove
    
 2) If instead you would like to use Python or our GUI and/or CLI you will need 
    to install pyfscc. The same procedure of downloading the driver (see section 
