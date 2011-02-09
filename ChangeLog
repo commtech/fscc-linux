@@ -1,3 +1,15 @@
+version 2.0.4 (02/09/2010)
+--------------------------------------------------------------------------------
+Bugfix release targeting old DMA APIs.
+
+	* Fix a build error with kernels prior to 2.6.27 that used an older dma 
+	  mapping function than we currently use
+	* Added a makefile command for removing the C headers
+	* Added a script to soft link against our sysfs directory
+	* Added a script to easily download related software
+	* Updated the README to address some confusing sections
+	  
+
 version 2.0.3 (01/13/2010)
 --------------------------------------------------------------------------------
 Bugfix release clarifying what should be considered "streaming" data.
