@@ -23,6 +23,7 @@ clean:
 	@find . $(IGNORE) \
 	\( -name '*.[oas]' -o -name '*.ko' -o -name '.*.cmd' \
 		-o -name '.*.d' -o -name '.*.tmp' -o -name '*.mod.c' \
-		-o -name '*.markers' -o -name '*.symvers' -o -name '*.order' \) \
+		-o -name '*.markers' -o -name '*.symvers' -o -name '*.order' \
+		-o -name '*.tmp_versions' \) \
 		-type f -print | xargs rm -f
 
