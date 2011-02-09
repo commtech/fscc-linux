@@ -84,8 +84,12 @@ int fscc_frame_setup_descriptors(struct fscc_frame *frame,
 	frame->d1_handle = pci_map_single(pci_dev, frame->d1, sizeof(*frame->d1),
 									  DMA_TO_DEVICE);
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 27)
 	if (dma_mapping_error(&pci_dev->dev, frame->d1_handle)) {
-		printk("a\n");
+#else
+	if (dma_mapping_error(frame->d1_handle)) {
+#endif
+		dev_err(frame->port->device, "dma_mapping_error failed\n");
 
 		kfree(frame->d1);
 		kfree(frame->d2);
@@ -99,8 +103,12 @@ int fscc_frame_setup_descriptors(struct fscc_frame *frame,
 	frame->d2_handle = pci_map_single(pci_dev, frame->d2, sizeof(*frame->d2),
 									  DMA_TO_DEVICE);
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 27)
 	if (dma_mapping_error(&pci_dev->dev, frame->d2_handle)) {
-		printk("b\n");
+#else
+	if (dma_mapping_error(frame->d2_handle)) {
+#endif
+		dev_err(frame->port->device, "dma_mapping_error failed\n");
 
 		pci_unmap_single(frame->port->card->pci_dev, frame->d1_handle,
 						 sizeof(*frame->d1), DMA_TO_DEVICE);
