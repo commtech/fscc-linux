@@ -19,10 +19,9 @@
 */
 
 #include <fcntl.h> /* open, O_RDWR */
-#include <unistd.h> /* read, write, close */
+#include <unistd.h> /* close */
 #include <stdio.h> /* fprintf, perror */
 #include <stdlib.h> /* EXIT_SUCCESS, EXIT_FAILURE */
-#include <string.h> /* memset */
 #include <sys/ioctl.h> /* ioctl */
 #include <fscc/fscc.h> /* FSCC_SET_APPEND_STATUS */
 
