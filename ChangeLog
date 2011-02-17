@@ -1,3 +1,11 @@
+version 2.0.5 (02/17/2010)
+--------------------------------------------------------------------------------
+
+	* Add a force_fifo option that prevents DMA operation
+	* Add a simple example showing how to use the select() function to 
+	  determine how much data is available in the card
+	  
+
 version 2.0.4 (02/09/2010)
 --------------------------------------------------------------------------------
 Bugfix release targeting old DMA APIs.
