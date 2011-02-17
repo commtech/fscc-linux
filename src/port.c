@@ -41,6 +41,7 @@ void fscc_port_execute_STOP_R(struct fscc_port *port);
 void fscc_port_execute_STOP_T(struct fscc_port *port);
 void fscc_port_execute_RST_R(struct fscc_port *port);
 
+extern unsigned force_fifo;
 
 /* 
     This handles initialization on a port level. So things that each port have
@@ -1132,7 +1133,10 @@ unsigned fscc_port_is_streaming(struct fscc_port *port)
 unsigned fscc_port_has_dma(struct fscc_port *port)
 {
 	return_val_if_untrue(port, 0);
-
+	
+	if (force_fifo)
+		return 0;
+		
 	return port->card->dma;
 }
 

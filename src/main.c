@@ -34,8 +34,10 @@
 
 static int fscc_major_number;
 static struct class *fscc_class = 0;
-unsigned hot_plug = DEFAULT_HOT_PLUG_VALUE;
 
+unsigned hot_plug = DEFAULT_HOT_PLUG_VALUE;
+unsigned force_fifo = DEFAULT_FORCE_FIFO_VALUE;
+	
 LIST_HEAD(fscc_cards);
 
 struct pci_device_id fscc_id_table[] __devinitdata = {
@@ -379,6 +381,9 @@ static int __init fscc_init(void)
 
 	printk(KERN_DEBUG DEVICE_NAME " setting: hot plug (%s)\n", 
 	       (hot_plug) ? "on" : "off");
+
+	printk(KERN_DEBUG DEVICE_NAME " setting: force_fifo (%s)\n", 
+	       (force_fifo) ? "on" : "off");
 #endif
 
 	return 0;
@@ -401,6 +406,9 @@ MODULE_DESCRIPTION("Driver for the FSCC series of cards from Commtech, Inc.");
 
 module_param(hot_plug, int, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
 MODULE_PARM_DESC(hot_plug, "Let's the driver load even if no devices exist.");
+
+module_param(force_fifo, int, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
+MODULE_PARM_DESC(force_fifo, "Disables DMA (SuperFSCC* series), forcing FIFO operation.");
 
 module_init(fscc_init);
 module_exit(fscc_exit);
