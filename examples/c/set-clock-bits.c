@@ -62,6 +62,10 @@ int main(void)
 		fprintf(stderr, "Error calculating clock bits.\n");
 		return EXIT_FAILURE;
 	}
+	printf("calculate_clock_bits() returned successfully.\n");
+	printf("programming word:\n");
+	for(i=19;i>=0;i--) printf("%x:",clock_bits[i]);
+	printf("\n");
 	*/
 
 	ioctl(port_fd, FSCC_SET_CLOCK_BITS, &clock_bits);
