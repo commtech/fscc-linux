@@ -66,9 +66,9 @@ int calculate_clock_bits(unsigned long freq,unsigned long ppm, unsigned char *pr
 		{
 		case 0: 
 			//printf("ICS30703: GetICS30703Data returned successfully.\n");
-            //printf("programming word:\n");
-            //for(i=19;i>=0;i--) printf("%x:",progwords[i]);
-            //printf("\n");
+			//printf("programming word:\n");
+			//for(i=19;i>=0;i--) printf("%x:",progwords[i]);
+			//printf("\n");
 			break;
 		case 1:
 			printf("ICS30703: Rs case error\n");
@@ -847,7 +847,6 @@ finished:
 				if( OutputDividerOut1 == ((((i+3)*2)+0)*(1)) )
 				{
 					//					printf("1 x=%d, y=0, z=0\n",i);
-					printf("outputdivider1\n");
 					temp = (i<< 5);
 					progdata[12]|=(temp & 0xff);
 					progdata[13]|=(temp >> 8)&0xff;
@@ -895,7 +894,6 @@ finished:
 				else if( OutputDividerOut1 == ((((i+3)*2)+1)*(1)) )
 				{
 					//					printf("5 x=%d, y=1, z=0\n",i);
-					printf("outputdivider5\n");
 					temp = (i<< 5);
 					progdata[12]|=(temp & 0xff);
 					progdata[13]|=(temp >> 8)&0xff;
