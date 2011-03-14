@@ -27,3 +27,10 @@ clean:
 		-o -name '*.tmp_versions' \) \
 		-type f -print | xargs rm -f
 
+help:
+	@echo 'Build targets:'
+	@echo '  make clean - Remove most generated files'
+	@echo '  make all - Build driver module'
+	@echo '  make headers_install - Copy fscc header file to /usr/local/include/fscc'
+	@echo '  make headers_remove - Remove fscc header file from /usr/loca/linclude/fscc'
+
