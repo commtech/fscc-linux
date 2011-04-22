@@ -68,18 +68,18 @@ XIV.   FAQ
 
 I. Getting the latest driver software
 -------------------------------------------------------------------------------
-The source code for the FSCC driver is hosted on google code hosting. To check 
+The source code for the FSCC driver is hosted on bitbucket code hosting. To check 
 out the latest code you will need Mercurial and to run the following in a 
 terminal.
 
-   > hg clone https://fscc-linux.googlecode.com/hg/ fscc-linux
+   > hg clone https://bitbucket.org/fastcom/fscc-linux fscc-linux
 
 NOTE: We prefer you use the above method for downloading the driver (because it 
       is the easiest way to stay up to date) but you can also download a 
-      tarball from the following location.
+      tarball from the following location:
    
-   http://code.google.com/p/fscc-linux/downloads/list
-   
+      http://hg.commtech-fastcom.com/fscc-linux/downloads 
+
 1) Now that you have the latest code checked out you will more than likely want 
    to switch to a stable version within the code directory. To do this browse 
    the various tags for one you would like to switch to. Version v2.0.3 is only
@@ -164,20 +164,20 @@ driver.
    to install pyfscc. The same procedure of downloading the driver (see section 
    I) applies to downloading pyfscc.
 
-   > hg clone https://pyfscc.googlecode.com/hg/ pyfscc
+   > hg clone https://bitbucket.org/fastcom/pyfscc/ pyfscc
    
-   Or manually downloading the tarball from the following location.
+   Or manually downloading the tarball from the following location:
    
-   http://code.google.com/p/pyfscc/downloads/list
+   http://hg.commtech-fastcom.com/pyfscc/downloads
    
 3) As a convenience there is both a GUI and CLI for configuring the card that can
    be found at the following locations.
 
-   > hg clone https://fscc-gui.googlecode.com/hg/ fscc-gui
-   > hg clone https://fscc-cli.googlecode.com/hg/ fscc-cli
+   > hg clone https://bitbucket.org/fastcom/fscc-gui/ fscc-gui
+   > hg clone https://bitbucket.org/fastcom/fscc-cli/ fscc-cli
    
-   http://code.google.com/p/fscc-gui/downloads/list
-   http://code.google.com/p/fscc-cli/downloads/list
+   http://hg.commtech-fastcom.com/fscc-gui/downloads
+   http://hg.commtech-fastcom.com/fscc-cli/downloads
 
 
 V. Changing a port's register values
@@ -297,7 +297,7 @@ steps needed to get the card ready for asynchronous communication.
    
    This can be done temporarily by pressing 'e' at the grub menu during boot or 
    by permanently modifying this value which is grub version specific. To do
-   this please check google for one of it's numerous guides on the subject.
+   this please search google for one of the numerous guides on the subject.
    
    Another method is by editing the .config file of you kernel before compiling
    it to allow for more serial ports. This is not preferred because you will
