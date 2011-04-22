@@ -215,9 +215,6 @@ struct fscc_frame *fscc_port_peek_front_frame(struct fscc_port *port,
 unsigned fscc_port_using_async(struct fscc_port *port);
 unsigned fscc_port_is_streaming(struct fscc_port *port);
 
-void fscc_port_execute_XF(struct fscc_port *port);
-void fscc_port_execute_GO_T(struct fscc_port *port);
-
 unsigned fscc_port_has_dma(struct fscc_port *port);
 
 unsigned fscc_port_has_incoming_data(struct fscc_port *port);
@@ -233,5 +230,6 @@ void fscc_port_increment_interrupt_counts(struct fscc_port *port,
 #endif /* DEBUG */
 
 int fscc_port_set_transmit_modifiers(struct fscc_port *port, int transmit_modifiers);
+void fscc_port_execute_transmit(struct fscc_port *port);
 
 #endif

@@ -1044,27 +1044,12 @@ int fscc_port_execute_RRES(struct fscc_port *port)
 	return error_code;
 }
 
-void fscc_port_execute_XF(struct fscc_port *port)
-{
-	return_if_untrue(port);
-
-	fscc_port_set_register(port, 0, CMDR_OFFSET, 0x01000000);
-}
-
 void fscc_port_execute_GO_R(struct fscc_port *port)
 {
 	return_if_untrue(port);
 	return_if_untrue(port->card->dma == 1);
 
 	fscc_port_set_register(port, 2, DMACCR_OFFSET, 0x00000001);
-}
-
-void fscc_port_execute_GO_T(struct fscc_port *port)
-{
-	return_if_untrue(port);
-	return_if_untrue(port->card->dma == 1);
-
-	fscc_port_set_register(port, 2, DMACCR_OFFSET, 0x00000002);
 }
 
 void fscc_port_execute_RST_R(struct fscc_port *port)
@@ -1180,3 +1165,44 @@ int fscc_port_set_transmit_modifiers(struct fscc_port *port, int transmit_modifi
 
 	return 1;
 }
+
+void fscc_port_execute_transmit(struct fscc_port *port)
+{
+	unsigned command_register = 0;
+	unsigned command_value = 0;
+	unsigned command_bar = 0;
+
+	return_if_untrue(port);
+
+	if (fscc_port_has_dma(port)) {
+		command_bar = 2;
+		command_register = DMACCR_OFFSET;
+		command_value = 0x00000002;
+
+		if (port->transmit_modifiers & XREP)
+			command_value |= 0x40000000;
+
+		if (port->transmit_modifiers & TXT)
+			command_value |= 0x10000000;
+
+		if (port->transmit_modifiers & TXEXT)
+			command_value |= 0x20000000;
+	}
+	else {
+		command_bar = 0;
+		command_register = CMDR_OFFSET;
+		command_value = 0x01000000;
+
+		if (port->transmit_modifiers & XREP)
+			command_value |= 0x02000000;	
+
+		if (port->transmit_modifiers & TXT)
+			command_value |= 0x10000000;
+		
+		if (port->transmit_modifiers & TXEXT)	
+			command_value |= 0x20000000;
+	}
+
+	fscc_port_set_register(port, command_bar, command_register, command_value);
+}
+

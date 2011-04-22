@@ -305,7 +305,7 @@ void oframe_worker(unsigned long data)
 		d1_handle = &port->pending_oframe->d1_handle;
 
 		fscc_port_set_register(port, 2, DMA_TX_BASE_OFFSET, *d1_handle);
-		fscc_port_execute_GO_T(port);
+		fscc_port_execute_transmit(port);
 
 		/* TODO: Add a prettier way of doing this than manually editing the
 		   frame structure. */
@@ -354,7 +354,7 @@ void oframe_worker(unsigned long data)
 		wake_up_interruptible(&port->output_queue);
 	}
 
-	fscc_port_execute_XF(port);
+	fscc_port_execute_transmit(port);
 
 	spin_unlock_irqrestore(&port->oframe_spinlock, flags);
 }
