@@ -129,6 +129,7 @@ struct fscc_port {
 
 	struct fscc_memory_cap memory_cap;
 	unsigned ignore_timeout;
+	int transmit_modifiers;
 
 #ifdef DEBUG
 	struct debug_interrupt_tracker *interrupt_tracker;
@@ -230,5 +231,7 @@ unsigned fscc_port_get_interrupt_count(struct fscc_port *port, __u32 isr_bit);
 void fscc_port_increment_interrupt_counts(struct fscc_port *port,
 										  __u32 isr_value);
 #endif /* DEBUG */
+
+int fscc_port_set_transmit_modifiers(struct fscc_port *port, int transmit_modifiers);
 
 #endif

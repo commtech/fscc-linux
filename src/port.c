@@ -69,6 +69,7 @@ struct fscc_port *fscc_port_new(struct fscc_card *card, unsigned channel,
 	port->dev_t = MKDEV(major_number, minor_number);
 	port->append_status = DEFAULT_APPEND_STATUS_VALUE;
 	port->ignore_timeout = DEFAULT_IGNORE_TIMEOUT_VALUE;
+	port->transmit_modifiers = 0;
 
 	port->memory_cap.input = DEFAULT_INPUT_MEMORY_CAP_VALUE;
 	port->memory_cap.output = DEFAULT_OUTPUT_MEMORY_CAP_VALUE;
@@ -1157,3 +1158,25 @@ void fscc_port_increment_interrupt_counts(struct fscc_port *port,
 }
 #endif
 
+/* Returns -EINVAL if you set an incorrect transmit modifier */
+int fscc_port_set_transmit_modifiers(struct fscc_port *port, int transmit_modifiers)
+{
+	return_val_if_untrue(port, 0);
+	
+	port->transmit_modifiers = transmit_modifiers;
+
+	switch (port->transmit_modifiers) {
+		case XF|XREP|TXT|TXEXT:
+			dev_info(port->device, "transmit modifiers 0x%x\n",
+				port->transmit_modifiers);
+			break;
+			
+		default:
+			dev_warn(port->device, "invalid transmit modifiers 0x%x\n",
+			         port->transmit_modifiers);
+			
+			return -EINVAL;
+	}
+
+	return 1;
+}

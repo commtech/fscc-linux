@@ -46,6 +46,9 @@
 #define FSCC_ENABLE_IGNORE_TIMEOUT _IO(FSCC_IOCTL_MAGIC, 10)
 #define FSCC_DISABLE_IGNORE_TIMEOUT _IO(FSCC_IOCTL_MAGIC, 11)
 
+#define FSCC_SET_TX_MODIFIERS _IOW(FSCC_IOCTL_MAGIC, 12, int)
+
+enum transmit_modifiers { XF=0, XREP=1, TXT=2, TXEXT=4 };
 typedef __s64 fscc_register;
 
 struct fscc_registers {

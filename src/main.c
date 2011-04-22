@@ -231,6 +231,12 @@ int fscc_ioctl(struct inode *inode, struct file *file, unsigned int cmd,
 	case FSCC_DISABLE_IGNORE_TIMEOUT:
 		fscc_port_set_ignore_timeout(port, 0);
 		break;
+		
+	case FSCC_SET_TX_MODIFIERS:
+		if ((error_code = fscc_port_set_transmit_modifiers(port, (int)arg)) < 0)
+			return error_code;
+
+		break;
 
 	default:
 		dev_dbg(port->device, "unknown ioctl 0x%x\n", cmd);

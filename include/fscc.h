@@ -29,6 +29,7 @@
 #define FSCC_MEMORY_CAP_INIT(memory_cap) memset(&memory_cap, -1, sizeof(memory_cap))
 #define FSCC_UPDATE_VALUE -2
 
+enum transmit_type { XF=0, XREP=1, TXT=2, TXEXT=4 };
 typedef int64_t fscc_register;
 
 struct fscc_registers {
@@ -87,6 +88,8 @@ struct fscc_memory_cap {
 
 #define FSCC_ENABLE_IGNORE_TIMEOUT _IO(FSCC_IOCTL_MAGIC, 10)
 #define FSCC_DISABLE_IGNORE_TIMEOUT _IO(FSCC_IOCTL_MAGIC, 11)
+
+#define FSCC_SET_TX_MODIFIERS _IOW(FSCC_IOCTL_MAGIC, 12, int)
 
 #endif
 
