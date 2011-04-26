@@ -602,8 +602,11 @@ int fscc_port_set_registers(struct fscc_port *port,
 	return (stalled) ? -ETIMEDOUT : 1;
 }
 
-void fscc_port_get_registers(struct fscc_port *port,
-							 struct fscc_registers *regs)
+/*
+  fscc_port_get_registers reads only the registers that are specified with FSCC_UPDATE_VALUE.
+  If the requested register is larger than the maximum FCore register it jumps to the FCR register.
+*/
+void fscc_port_get_registers(struct fscc_port *port, struct fscc_registers *regs)
 {
 	unsigned i = 0;
 
@@ -618,8 +621,7 @@ void fscc_port_get_registers(struct fscc_port *port,
 			((fscc_register *)regs)[i] = fscc_port_get_register(port, 0, i * 4);
 		}
 		else {
-			((fscc_register *)regs)[i] = fscc_port_get_register(port, 2,
-																FCR_OFFSET);
+			((fscc_register *)regs)[i] = fscc_port_get_register(port, 2,FCR_OFFSET);
 		}
 	}
 }
