@@ -133,10 +133,10 @@ NOTE: You will more than likely need administrator privileges for this command.
    insmod: error inserting 'fscc.ko': -1 No such device
    
 2) If you would like to disable DMA for cards (SuperFSCC* line) that have that
-   capability you can do so by using the 'disable_dma' option. This option will
+   capability you can do so by using the 'force_fifo' option. This option will
    disable DMA and allow you to operate in the FIFO based mode.
    
-   > insmod fscc.ko disable_dma=1
+   > insmod fscc.ko force_fifo=1
     
     
 IV. Installing the header files
