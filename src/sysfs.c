@@ -141,6 +141,9 @@ static struct kobj_attribute tcr_attribute =
 static struct kobj_attribute vstr_attribute =
 	__ATTR(vstr, SYSFS_READ_ONLY_MODE, bar0_register_show, 0);
 
+static struct kobj_attribute star_attribute =
+	__ATTR(star, SYSFS_READ_ONLY_MODE, bar0_register_show, 0);
+
 static struct kobj_attribute imr_attribute =
 	__ATTR(imr, SYSFS_READ_WRITE_MODE, bar0_register_show, bar0_register_store);
 
@@ -166,6 +169,7 @@ static struct attribute *register_attrs[] = {
 	&ppr_attribute.attr,
 	&tcr_attribute.attr,
 	&vstr_attribute.attr,
+	&star_attribute.attr,
 	&imr_attribute.attr,
 	&dpllr_attribute.attr,
 	&fcr_attribute.attr,
