@@ -385,10 +385,10 @@ static int __init fscc_init(void)
 #ifdef DEBUG
 	printk(KERN_INFO DEVICE_NAME " setting: debug (on)\n");
 
-	printk(KERN_DEBUG DEVICE_NAME " setting: hot plug (%s)\n", 
+	printk(KERN_INFO DEVICE_NAME " setting: hot plug (%s)\n", 
 	       (hot_plug) ? "on" : "off");
 
-	printk(KERN_DEBUG DEVICE_NAME " setting: force_fifo (%s)\n", 
+	printk(KERN_INFO DEVICE_NAME " setting: force_fifo (%s)\n", 
 	       (force_fifo) ? "on" : "off");
 #endif
 
