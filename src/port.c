@@ -589,7 +589,7 @@ int fscc_port_set_registers(struct fscc_port *port,
 			continue;
 		}
 
-		if (register_offset <= DPLLR_OFFSET) {
+		if (register_offset <= MAX_OFFSET) {
 			if (fscc_port_set_register(port, 0, register_offset, ((fscc_register *)regs)[i]) == -ETIMEDOUT)
 				stalled = 1;
 		}
@@ -614,7 +614,7 @@ void fscc_port_get_registers(struct fscc_port *port,
 		if (((fscc_register *)regs)[i] != FSCC_UPDATE_VALUE)
 			continue;
 
-		if (i * 4 <= DPLLR_OFFSET) {
+		if (i * 4 <= MAX_OFFSET) {
 			((fscc_register *)regs)[i] = fscc_port_get_register(port, 0, i * 4);
 		}
 		else {
