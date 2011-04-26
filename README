@@ -103,6 +103,9 @@ simply running the make command from within the source code directory.
    the DEBUG option while building the driver.
 
    > make DEBUG=1
+
+   Once debugging is enabled you will find extra kernel prints in the
+   /var/log/messages and /var/log/debug log files.
    
 2) If the kernel header files you would like to build against are not in the
    default location '/lib/modules/$(shell uname -r)/build' then you can specify
