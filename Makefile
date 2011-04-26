@@ -26,6 +26,7 @@ clean:
 		-o -name '*.markers' -o -name '*.symvers' -o -name '*.order' \
 		-o -name '*.tmp_versions' \) \
 		-type f -print | xargs rm -f
+	rm -rf .tmp_versions
 
 help:
 	@echo 'Build targets:'
