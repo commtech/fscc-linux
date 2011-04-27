@@ -48,6 +48,7 @@ struct pci_device_id fscc_id_table[] __devinitdata = {
 	{ COMMTECH_VENDOR_ID, SFSCC_4_ID, PCI_ANY_ID, 0, 0, 0 },
 	{ COMMTECH_VENDOR_ID, SFSCC_4_LVDS_ID, PCI_ANY_ID, 0, 0, 0 },
 	{ COMMTECH_VENDOR_ID, SFSCCe_4_ID, PCI_ANY_ID, 0, 0, 0 },
+	{ COMMTECH_VENDOR_ID, SFSCC_NO950_ID, PCI_ANY_ID, 0, 0, 0 },
 	{ 0, },
 };
 
