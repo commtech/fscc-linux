@@ -1,4 +1,14 @@
-version 2.0.5 (02/17/2010)
+version 2.1.0 (05/02/2011)
+--------------------------------------------------------------------------------
+	* Fix comments in code
+	* Add make help target
+	* Migrate from google code to bitbucket
+	* Added code and examples for various transmit modes
+	* Fixed dma insmod parameter
+	* Add SuperFSCC-LVDS and SuperFSCC/104 to the driver
+	* See changesets for full list of changes
+
+version 2.0.5 (02/17/2011)
 --------------------------------------------------------------------------------
 
 	* Add a force_fifo option that prevents DMA operation
@@ -6,7 +16,7 @@ version 2.0.5 (02/17/2010)
 	  determine how much data is available in the card
 	  
 
-version 2.0.4 (02/09/2010)
+version 2.0.4 (02/09/2011)
 --------------------------------------------------------------------------------
 Bugfix release targeting old DMA APIs.
 
@@ -18,7 +28,7 @@ Bugfix release targeting old DMA APIs.
 	* Updated the README to address some confusing sections
 	  
 
-version 2.0.3 (01/13/2010)
+version 2.0.3 (01/13/2011)
 --------------------------------------------------------------------------------
 Bugfix release clarifying what should be considered "streaming" data.
 
@@ -26,14 +36,14 @@ Bugfix release clarifying what should be considered "streaming" data.
 	  data
 	
 
-version 2.0.2 (01/12/2010)
+version 2.0.2 (01/12/2011)
 --------------------------------------------------------------------------------
 Version number update.
 
 	* Synchronize version number of module with repo.
 	
 
-version 2.0.1 (01/12/2010)
+version 2.0.1 (01/12/2011)
 --------------------------------------------------------------------------------
 Bugfix release targeting transparent mode.
 
@@ -41,6 +51,6 @@ Bugfix release targeting transparent mode.
 	* Use atomic memory allocation when in transparent mode
 
 
-version 2.0.0 (01/07/2010)
+version 2.0.0 (01/07/2011)
 --------------------------------------------------------------------------------
 This is the initial release of the 2.0 driver series.
