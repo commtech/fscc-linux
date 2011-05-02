@@ -200,6 +200,7 @@ unsigned is_fscc_device(struct pci_dev *pdev)
 {
 	if (pdev->device == FSCC_ID ||
 		pdev->device == SFSCC_ID ||
+		pdev->device == SFSCC_LVDS_ID ||
 		pdev->device == FSCC_232_ID ||
 		pdev->device == SFSCC_NO950_ID ||
 		pdev->device == SFSCC_4_ID ||
