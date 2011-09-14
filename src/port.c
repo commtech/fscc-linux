@@ -122,9 +122,15 @@ struct fscc_port *fscc_port_new(struct fscc_card *card, unsigned channel,
 	INIT_LIST_HEAD(&port->oframes);
 	INIT_LIST_HEAD(&port->iframes);
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 37)
+	sema_init(&port->read_semaphore,1);
+	sema_init(&port->write_semaphore,1);
+	sema_init(&port->poll_semaphore,1);
+#else
 	init_MUTEX(&port->read_semaphore);
 	init_MUTEX(&port->write_semaphore);
 	init_MUTEX(&port->poll_semaphore);
+#endif
 
 	init_waitqueue_head(&port->input_queue);
 	init_waitqueue_head(&port->output_queue);
