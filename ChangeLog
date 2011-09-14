@@ -1,4 +1,8 @@
-version 2.1.1 (07/19/2001)
+version 2.1.2 (09/14/2011)
+--------------------------------------------------------------------------------
+	* init_MUTEX(x) removed in 2.6.37, I replaced it with sema_init(x,1)
+
+version 2.1.1 (07/19/2011)
 --------------------------------------------------------------------------------
 	* Fix bug that caused the SuperFSCC/4-LVDS to not install correctly
 
