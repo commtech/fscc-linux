@@ -1,1 +1,24 @@
+#The GROUP assignment allows you to define which Unix group should own
+#the device node. Here is an example rule which defines that the users
+#group will own the fscc devices:
+#
+#KERNEL=="fscc[0-255]*", NAME="fscc/%n", GROUP="users"
+#
+#The OWNER key allows you to define which Unix user should have
+#ownership permissions on the device node. Assuming the slightly odd
+#situation where you would want john to own your fscc devices, you\
+#could use:
+#
+#KERNEL=="fscc[0-255]*", NAME="fscc/%n", OWNER="lab"
+#
+#udev defaults to creating nodes with Unix permissions of 0660
+#(read/write to owner and group). If you need to, you can override
+#these defaults on certain devices using rules including the MODE
+#assignment. As an example, the following rule defines that the inotify
+#node shall be readable and writable to everyone:
+#
+##KERNEL=="fscc[0-255]*", NAME="fscc/%n", MODE="0666"
+#
+#Put the fscc.rules file in the /etc/udev/rules.d directory before loading
+#the driver.
 KERNEL=="fscc[0-255]*", NAME="fscc/%n"

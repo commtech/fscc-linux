@@ -28,9 +28,15 @@ clean:
 		-type f -print | xargs rm -f
 	rm -rf .tmp_versions
 
+rules:
+	cp fscc.rules /etc/udev/rules.d/
+
 help:
+	@echo
 	@echo 'Build targets:'
 	@echo '  make clean - Remove most generated files'
 	@echo '  make all - Build driver module'
 	@echo '  make headers_install - Copy fscc header file to /usr/local/include/fscc'
 	@echo '  make headers_remove - Remove fscc header file from /usr/loca/linclude/fscc'
+	@echo '  make rules - Copy fscc.rules file to your /etc/udev/rules.d directory'
+	@echo
