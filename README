@@ -1,3 +1,15 @@
+This is the next generation Linux driver for the FSCC line of cards from 
+Commtech, Inc. Version 2 is a complete rewrite from the original. The original 
+driver was based largely in code that was written for 2.4 era kernels and then 
+ported over so there were some spots where it was not exactly using best 
+practices for today's kernels. The version 2 driver is essentially complete. 
+There are some features and functions that have not been integrated yet, but 
+hopefully we will be able to add them soon. WARNING: THIS DRIVER IS NOT YET 
+CONSIDERED A STABLE RELEASE. THERE ARE STILL SOME MISSING FUNCTIONS AND 
+FEATURES AND ARE LIKELY SOME BUGS.  Use at your own risk.  If you find a bugfix
+and would like to submit it to us please email the patch or modified code to
+techsupport@commtech-fastcom.com.
+
 I.     Getting the latest driver software
        1) Switching between driver versions
       
