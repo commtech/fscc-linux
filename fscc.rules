@@ -19,6 +19,11 @@
 #
 ##KERNEL=="fscc[0-255]*", NAME="fscc/%n", MODE="0666"
 #
+#Ensures that the device node named fscc0 is created at /dev/fscc/0 but 
+#also creates a symbolic link at /dev/fscc0 as usual.
+#
+##KERNEL=="fscc[0-255]*", NAME="fscc/%n", SYMLINK+="%k"
+#
 #Put the fscc.rules file in the /etc/udev/rules.d directory before loading
 #the driver.
-KERNEL=="fscc[0-255]*", NAME="fscc/%n"
+
