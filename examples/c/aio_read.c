@@ -32,7 +32,7 @@
 	operations while waiting on data to arrive take a look at the aio_*
 	functions.
 	
-	NOTE: You may need to link against the retail time library to use the aio_*
+	NOTE: You may need to link against the real time library to use the aio_*
           functions e.g. gcc -lrt aio_read.c
 
 */
