@@ -3,7 +3,7 @@
 # Downloads and installs the various tools related to the FSCC (command line,
 # graphical settings editor and python libraries).
 
-sudo rm -r tools
+rm -r tools
 mkdir tools
 cd tools
 
@@ -18,11 +18,11 @@ tar xzf fscc-cli.tar.gz
 #tar xzf fscc-gui.tar.gz
 
 cd fastcom-pyfscc*
-sudo python setup.py install
+python setup.py install
 cd ..
 
 cd fastcom-fscc-cli*
-sudo python setup.py install
+python setup.py install
 cd ..
 
 # cd fscc-gui*
