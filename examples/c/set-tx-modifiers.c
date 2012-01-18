@@ -26,15 +26,16 @@
 #include <fscc/fscc.h> /* FSCC_SET_TX_MODIFIERS */
 
 /*
-	This is a simple example showing how to change the transmit type for each port.
+	This is a simple example showing how to change the transmit type for each 
+	port.
 
-	valid TX_MODIFIERS are:
+	Valid TX_MODIFIERS are:
+	---------------------------------------------------------------------------
 	XF - Normal transmit - disable modifiers
 	XREP - Transmit repeat
 	TXT - Transmit on timer
 	TXEXT - Transmit on external signal
-
-
+	
 */
 
 int main(void)
@@ -56,7 +57,7 @@ int main(void)
 
 	ioctl(port_fd, FSCC_SET_TX_MODIFIERS, TXT|XREP);
 
-	ioctl(port_fd, FSCC_SET_TX_MODIFIERS, XF); //disable modifiers
+	ioctl(port_fd, FSCC_SET_TX_MODIFIERS, XF); /* disable modifiers */
 
 	close(port_fd);
 
