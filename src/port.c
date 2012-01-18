@@ -69,7 +69,7 @@ struct fscc_port *fscc_port_new(struct fscc_card *card, unsigned channel,
 	port->dev_t = MKDEV(major_number, minor_number);
 	port->append_status = DEFAULT_APPEND_STATUS_VALUE;
 	port->ignore_timeout = DEFAULT_IGNORE_TIMEOUT_VALUE;
-	port->transmit_modifiers = 0;
+	port->transmit_modifiers = DEFAULT_TRANSMIT_MODIFIERS_VALUE;
 
 	port->memory_cap.input = DEFAULT_INPUT_MEMORY_CAP_VALUE;
 	port->memory_cap.output = DEFAULT_OUTPUT_MEMORY_CAP_VALUE;
