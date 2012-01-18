@@ -69,7 +69,7 @@ struct fscc_port *fscc_port_new(struct fscc_card *card, unsigned channel,
 	port->dev_t = MKDEV(major_number, minor_number);
 	port->append_status = DEFAULT_APPEND_STATUS_VALUE;
 	port->ignore_timeout = DEFAULT_IGNORE_TIMEOUT_VALUE;
-	port->transmit_modifiers = DEFAULT_TRANSMIT_MODIFIERS_VALUE;
+	port->tx_modifiers = DEFAULT_TX_MODIFIERS_VALUE;
 
 	port->memory_cap.input = DEFAULT_INPUT_MEMORY_CAP_VALUE;
 	port->memory_cap.output = DEFAULT_OUTPUT_MEMORY_CAP_VALUE;
@@ -1159,26 +1159,33 @@ void fscc_port_increment_interrupt_counts(struct fscc_port *port,
 #endif
 
 /* Returns -EINVAL if you set an incorrect transmit modifier */
-int fscc_port_set_transmit_modifiers(struct fscc_port *port, int transmit_modifiers)
+int fscc_port_set_tx_modifiers(struct fscc_port *port, int tx_modifiers)
 {
 	return_val_if_untrue(port, 0);
 	
-	port->transmit_modifiers = transmit_modifiers;
+	port->tx_modifiers = tx_modifiers;
 
-	switch (port->transmit_modifiers) {
+	switch (port->tx_modifiers) {
 		case XF|XREP|TXT|TXEXT:
-			dev_info(port->device, "transmit modifiers 0x%x\n",
-				port->transmit_modifiers);
+			dev_info(port->device, "transmit modifiers 0x%x\n", 
+			         port->tx_modifiers);
 			break;
 			
 		default:
 			dev_warn(port->device, "invalid transmit modifiers 0x%x\n",
-			         port->transmit_modifiers);
+			         port->tx_modifiers);
 			
 			return -EINVAL;
 	}
 
 	return 1;
+}
+
+unsigned fscc_port_get_tx_modifiers(struct fscc_port *port)
+{
+	return_val_if_untrue(port, 0);
+
+	return port->tx_modifiers;
 }
 
 void fscc_port_execute_transmit(struct fscc_port *port)
@@ -1194,13 +1201,13 @@ void fscc_port_execute_transmit(struct fscc_port *port)
 		command_register = DMACCR_OFFSET;
 		command_value = 0x00000002;
 
-		if (port->transmit_modifiers & XREP)
+		if (port->tx_modifiers & XREP)
 			command_value |= 0x40000000;
 
-		if (port->transmit_modifiers & TXT)
+		if (port->tx_modifiers & TXT)
 			command_value |= 0x10000000;
 
-		if (port->transmit_modifiers & TXEXT)
+		if (port->tx_modifiers & TXEXT)
 			command_value |= 0x20000000;
 	}
 	else {
@@ -1208,13 +1215,13 @@ void fscc_port_execute_transmit(struct fscc_port *port)
 		command_register = CMDR_OFFSET;
 		command_value = 0x01000000;
 
-		if (port->transmit_modifiers & XREP)
+		if (port->tx_modifiers & XREP)
 			command_value |= 0x02000000;	
 
-		if (port->transmit_modifiers & TXT)
+		if (port->tx_modifiers & TXT)
 			command_value |= 0x10000000;
 		
-		if (port->transmit_modifiers & TXEXT)	
+		if (port->tx_modifiers & TXEXT)	
 			command_value |= 0x20000000;
 	}
 

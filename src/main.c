@@ -235,7 +235,7 @@ int fscc_ioctl(struct inode *inode, struct file *file, unsigned int cmd,
 		break;
 		
 	case FSCC_SET_TX_MODIFIERS:
-		if ((error_code = fscc_port_set_transmit_modifiers(port, (int)arg)) < 0)
+		if ((error_code = fscc_port_set_tx_modifiers(port, (int)arg)) < 0)
 			return error_code;
 
 		break;
