@@ -197,6 +197,7 @@ void fscc_port_set_memory_cap(struct fscc_port *port,
 
 void fscc_port_set_ignore_timeout(struct fscc_port *port,
 								  unsigned ignore_timeout);
+unsigned fscc_port_get_ignore_timeout(struct fscc_port *port);
 
 void fscc_port_set_clock_bits(struct fscc_port *port,
 							  const unsigned char *clock_data);

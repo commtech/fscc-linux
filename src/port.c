@@ -1018,6 +1018,13 @@ unsigned fscc_port_get_append_status(struct fscc_port *port)
 	return port->append_status;
 }
 
+unsigned fscc_port_get_ignore_timeout(struct fscc_port *port)
+{
+	return_val_if_untrue(port, 0);
+
+	return port->ignore_timeout;
+}
+
 /* Locks oframe_spinlock. */
 int fscc_port_execute_TRES(struct fscc_port *port)
 {

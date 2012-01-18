@@ -307,6 +307,33 @@ struct attribute_group port_info_attr_group = {
 
 
 
+static ssize_t ignore_timeout_store(struct kobject *kobj,
+								   struct kobj_attribute *attr, const char *buf,
+								   size_t count)
+{
+	struct fscc_port *port = 0;
+	unsigned value = 0;
+	char *end = 0;
+
+	port = (struct fscc_port *)dev_get_drvdata((struct device *)kobj);
+
+	value = (unsigned)simple_strtoul(buf, &end, 16);
+
+	fscc_port_set_ignore_timeout(port, value);
+
+	return count;
+}
+
+static ssize_t ignore_timeout_show(struct kobject *kobj,
+								  struct kobj_attribute *attr, char *buf)
+{
+	struct fscc_port *port = 0;
+
+	port = (struct fscc_port *)dev_get_drvdata((struct device *)kobj);
+
+	return sprintf(buf, "%i\n", fscc_port_get_ignore_timeout(port));
+}
+
 static ssize_t append_status_store(struct kobject *kobj,
 								   struct kobj_attribute *attr, const char *buf,
 								   size_t count)
@@ -401,10 +428,14 @@ static struct kobj_attribute input_memory_cap_attribute =
 static struct kobj_attribute output_memory_cap_attribute =
 	__ATTR(output_memory_cap, SYSFS_READ_WRITE_MODE, output_memory_cap_show, output_memory_cap_store);
 
+static struct kobj_attribute ignore_timeout_attribute =
+	__ATTR(ignore_timeout, SYSFS_READ_WRITE_MODE, ignore_timeout_show, ignore_timeout_store);
+
 static struct attribute *settings_attrs[] = {
 	&append_status_attribute.attr,
 	&input_memory_cap_attribute.attr,
 	&output_memory_cap_attribute.attr,
+	&ignore_timeout_attribute.attr,
 	NULL,
 };
 
