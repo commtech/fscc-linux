@@ -331,7 +331,7 @@ static ssize_t tx_modifiers_show(struct kobject *kobj,
 
 	port = (struct fscc_port *)dev_get_drvdata((struct device *)kobj);
 
-	return sprintf(buf, "%x\n", fscc_port_get_tx_modifiers(port));
+	return sprintf(buf, "%i\n", fscc_port_get_tx_modifiers(port));
 }
 
 static ssize_t ignore_timeout_store(struct kobject *kobj,
