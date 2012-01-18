@@ -67,9 +67,10 @@ struct fscc_port *fscc_port_new(struct fscc_card *card, unsigned channel,
 	port->class = class;
 	port->istream = fscc_stream_new();
 	port->dev_t = MKDEV(major_number, minor_number);
-	port->append_status = DEFAULT_APPEND_STATUS_VALUE;
-	port->ignore_timeout = DEFAULT_IGNORE_TIMEOUT_VALUE;
-	port->tx_modifiers = DEFAULT_TX_MODIFIERS_VALUE;
+	
+	fscc_port_set_append_status(port, DEFAULT_APPEND_STATUS_VALUE);
+	fscc_port_set_ignore_timeout(port, DEFAULT_IGNORE_TIMEOUT_VALUE);
+	fscc_port_set_tx_modifiers(port, DEFAULT_TX_MODIFIERS_VALUE);
 
 	port->memory_cap.input = DEFAULT_INPUT_MEMORY_CAP_VALUE;
 	port->memory_cap.output = DEFAULT_OUTPUT_MEMORY_CAP_VALUE;
@@ -1162,18 +1163,23 @@ void fscc_port_increment_interrupt_counts(struct fscc_port *port,
 int fscc_port_set_tx_modifiers(struct fscc_port *port, int tx_modifiers)
 {
 	return_val_if_untrue(port, 0);
-	
-	port->tx_modifiers = tx_modifiers;
 
-	switch (port->tx_modifiers) {
-		case XF|XREP|TXT|TXEXT:
+	switch (tx_modifiers) {
+		case XF:
+		case XF|TXT:
+		case XF|TXEXT:
+		case XREP:
+		case XREP|TXT:
+		case XREP|TXEXT:
+	        port->tx_modifiers = tx_modifiers;
+	        
 			dev_info(port->device, "transmit modifiers 0x%x\n", 
 			         port->tx_modifiers);
 			break;
 			
 		default:
 			dev_warn(port->device, "invalid transmit modifiers 0x%x\n",
-			         port->tx_modifiers);
+			         tx_modifiers);
 			
 			return -EINVAL;
 	}
