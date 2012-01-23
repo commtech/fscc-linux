@@ -24,8 +24,6 @@
 #include "port.h" /* struct fscc_port */
 #include "utils.h" /* return_{val_}if_true */
 
-unsigned minor_number = 0;
-
 struct pciserial_board pci_board = {
 	.flags = FL_BASE1,
 	.num_ports = 2,
@@ -47,6 +45,7 @@ struct fscc_card *fscc_card_new(struct pci_dev *pdev,
 	struct fscc_card *card = 0;
 	struct fscc_port *port_iter = 0;
 	unsigned start_minor_number = 0;
+	static unsigned minor_number = 0;
 	unsigned i = 0;
 
 	card = kmalloc(sizeof(*card), GFP_KERNEL);
