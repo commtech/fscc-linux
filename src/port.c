@@ -62,28 +62,8 @@ struct fscc_port *fscc_port_new(struct fscc_card *card, unsigned channel,
 	port->name = kmalloc(10, GFP_KERNEL);
 	sprintf(port->name, "%s%u", DEVICE_NAME, minor_number);
 
-	port->channel = channel;
-	port->card = card;
 	port->class = class;
-	port->istream = fscc_stream_new();
 	port->dev_t = MKDEV(major_number, minor_number);
-	
-	fscc_port_set_append_status(port, DEFAULT_APPEND_STATUS_VALUE);
-	fscc_port_set_ignore_timeout(port, DEFAULT_IGNORE_TIMEOUT_VALUE);
-	fscc_port_set_tx_modifiers(port, DEFAULT_TX_MODIFIERS_VALUE);
-
-	port->memory_cap.input = DEFAULT_INPUT_MEMORY_CAP_VALUE;
-	port->memory_cap.output = DEFAULT_OUTPUT_MEMORY_CAP_VALUE;
-
-	port->pending_iframe = 0;
-	port->pending_oframe = 0;
-
-	spin_lock_init(&port->iframe_spinlock);
-	spin_lock_init(&port->oframe_spinlock);
-
-#ifdef DEBUG
-	port->interrupt_tracker = debug_interrupt_tracker_new();
-#endif
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 18)
 
@@ -102,10 +82,32 @@ struct fscc_port *fscc_port_new(struct fscc_card *card, unsigned channel,
 						port->name);
 #endif
 
+	/* TODO: Add cleanup of already initialized structures. */
 	if (port->device <= 0) {
 		printk(KERN_ERR DEVICE_NAME " %s: device_create failed\n", port->name);
 		return 0;
 	}
+
+#ifdef DEBUG
+	port->interrupt_tracker = debug_interrupt_tracker_new();
+#endif
+	
+	port->channel = channel;
+	port->card = card;
+	port->istream = fscc_stream_new();
+	
+	fscc_port_set_append_status(port, DEFAULT_APPEND_STATUS_VALUE);
+	fscc_port_set_ignore_timeout(port, DEFAULT_IGNORE_TIMEOUT_VALUE);
+	fscc_port_set_tx_modifiers(port, DEFAULT_TX_MODIFIERS_VALUE);
+
+	port->memory_cap.input = DEFAULT_INPUT_MEMORY_CAP_VALUE;
+	port->memory_cap.output = DEFAULT_OUTPUT_MEMORY_CAP_VALUE;
+
+	port->pending_iframe = 0;
+	port->pending_oframe = 0;
+
+	spin_lock_init(&port->iframe_spinlock);
+	spin_lock_init(&port->oframe_spinlock);
 
 	/* Simple check to see if the port is messed up. It won't catch all
 	   instances. */
