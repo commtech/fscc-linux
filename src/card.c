@@ -44,7 +44,6 @@ struct fscc_card *fscc_card_new(struct pci_dev *pdev,
 {
 	struct fscc_card *card = 0;
 	struct fscc_port *port_iter = 0;
-	unsigned start_minor_number = 0;
 	static unsigned minor_number = 0;
 	unsigned i = 0;
 
@@ -100,8 +99,6 @@ struct fscc_card *fscc_card_new(struct pci_dev *pdev,
 		dev_warn(&card->pci_dev->dev, "no suitable DMA available\n");
 		return 0;
 	}
-
-	start_minor_number = minor_number;
 
 	/* There are three register sections. */
 	for (i = 0; i < 3; i++) {
