@@ -1169,7 +1169,7 @@ int fscc_port_set_tx_modifiers(struct fscc_port *port, int tx_modifiers)
 		case XREP|TXEXT:
 	        port->tx_modifiers = tx_modifiers;
 	        
-			dev_info(port->device, "transmit modifiers 0x%x\n", 
+			dev_dbg(port->device, "transmit modifiers 0x%x\n", 
 			         port->tx_modifiers);
 			break;
 			
