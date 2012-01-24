@@ -39,26 +39,6 @@ void debug_interrupt_tracker_delete(struct debug_interrupt_tracker *tracker)
 	kfree(tracker);
 }
 
-void debug_interrupt_tracker_increment_single(struct debug_interrupt_tracker *tracker,
-											  __u32 isr_bit)
-{
-	unsigned i = 0;
-
-	return_if_untrue(tracker);
-
-	if (isr_bit == 0)
-		return;
-
-	isr_bit >>= 1;
-
-	while (isr_bit) {
-		isr_bit >>= 1;
-		i++;
-	}
-
-	(*((unsigned *)tracker + i))++;
-}
-
 void debug_interrupt_tracker_increment_all(struct debug_interrupt_tracker *tracker,
 									       __u32 isr_value)
 {
@@ -94,8 +74,6 @@ unsigned debug_interrupt_tracker_get_count(struct debug_interrupt_tracker *track
 
 	return *((unsigned *)tracker + i);
 }
-
-
 
 void debug_interrupt_display(unsigned long data)
 {
