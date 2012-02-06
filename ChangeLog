@@ -1,3 +1,15 @@
+version 2.1.3 (02/06/2012)
+--------------------------------------------------------------------------------
+	* Fix typos
+	* Remove sudo from install_tools
+	* Remove make all
+	* Add default transmit_modifiers
+	* Add tx_modifiers and ignore_timeout to sysfs
+	* Rearrange initialization code
+	* Use sema_init exclusively
+	* Clean up code
+	* See changesets for full list of changes
+
 version 2.1.2 (09/14/2011)
 --------------------------------------------------------------------------------
 	* init_MUTEX(x) removed in 2.6.37, I replaced it with sema_init(x,1)
