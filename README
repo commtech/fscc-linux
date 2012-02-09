@@ -76,6 +76,8 @@ XIV.   FAQ
        1) Ports are not created even though the driver has loaded
        2) What does poll() and select() base their information on
        3) Executing a flush without a clock puts the card in a broken state
+       4) Receiving the error message 'Couldn't register serial port'
+       5) Not seeing card in sysfs
 
 
 I. Getting the latest driver software
@@ -699,3 +701,14 @@ XIV. FAQ
        
        There are multiple ways of allowing more available UART room which can 
        be found in section VII.
+
+5)  Q: Why am I not seeing my card in sysfs?
+
+    A: There are a couple possibilities but you should first check what kernel
+       version you are using. Due to the way we register our card with sysfs it 
+       won't appear in kernel versions prior to 2.6.25.
+       
+       Another possibility is that it is located in a different directory than
+       you are checking. Typically fscc/ appears in /sys/class/ but it might 
+       appear elsewhere. If it isn't in /sys/class/ do a search in /sys/ for 
+       our fscc/ directory.
