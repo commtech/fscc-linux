@@ -12,11 +12,15 @@ endif
 default:
 	$(MAKE) -C $(KDIR) SUBDIRS=$(PWD) modules
 	
-headers_install:
+install:
+	cp fscc.ko /lib/modules/`uname -r`/kernel/drivers/char/
+	depmod
 	mkdir -p /usr/local/include/fscc
 	cp include/fscc.h /usr/local/include/fscc/
-
-headers_remove:
+	
+uninstall:
+	rm /lib/modules/`uname -r`/kernel/drivers/char/fscc.ko
+	depmod
 	rm -rf /usr/local/include/fscc
 
 clean:
@@ -36,7 +40,7 @@ help:
 	@echo 'Build targets:'
 	@echo '  make - Build driver module'
 	@echo '  make clean - Remove most generated files'
-	@echo '  make headers_install - Copy fscc header file to /usr/local/include/fscc'
-	@echo '  make headers_remove - Remove fscc header file from /usr/local/include/fscc'
+	@echo '  make install - Copy fscc driver and header files to /lib/modules/`uname -r`/kernel/drivers/char/ and /usr/local/include/fscc respectively'
+	@echo '  make uninstall - Remove fscc driver and header files from their installed directories'
 	@echo '  make rules - Copy fscc.rules file to your /etc/udev/rules.d directory'
 	@echo

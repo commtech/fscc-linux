@@ -17,9 +17,10 @@ II.    Compiling the driver
        1) Enabling debug prints
        2) Specifying non-default header files directory
       
-III.   Loading the driver
-       1) Enabling hot plugging support
-       2) Disabling DMA support
+III.   Loading/installed the driver
+       1) Installing the driver
+       2) Enabling hot plugging support
+       3) Disabling DMA support
       
 IV.    Installing the application files
        1) C headers
@@ -127,7 +128,7 @@ simply running the make command from within the source code directory.
 
    > make KDIR="/location/to/kernel_headers/"
 
-III. Loading the driver
+III. Loading/installing the driver
 -------------------------------------------------------------------------------
 Assuming the driver has been successfully built in the previous step you are
 now ready to load the driver so you can begin using it. To do this you insert
@@ -135,9 +136,19 @@ the driver's kernel object file (fscc.ko) into the kernel.
 
    > insmod fscc.ko
 
-NOTE: You will more than likely need administrator privileges for this command.
+NOTE: You will more than likely need administrator privileges for this and
+      the following commands.
+
+1) If you would like the driver to load automatically at boot use the included
+   installer.
    
-1) By default if there are no cards present when the driver is loaded the
+   > make install
+   
+   This will also install the header (.h) files for using the card within code.
+
+   NOTE: The driver can be removed with: make uninstall
+      
+2) By default if there are no cards present when the driver is loaded the
    insmod will fail with a 'No such device' error. To allow the driver to load
    even if no cards are present turn on the 'hot_plug' option.
    
@@ -149,11 +160,14 @@ NOTE: You will more than likely need administrator privileges for this command.
    > insmod fscc.ko hot_plug=0
    insmod: error inserting 'fscc.ko': -1 No such device
    
-2) If you would like to disable DMA for cards (SuperFSCC* line) that have that
+3) If you would like to disable DMA for cards (SuperFSCC* line) that have that
    capability you can do so by using the 'force_fifo' option. This option will
    disable DMA and allow you to operate in the FIFO based mode.
    
    > insmod fscc.ko force_fifo=1
+   
+NOTE: All driver load time options can be set in your modprobe.conf file for
+      using upon system boot.
     
     
 IV. Installing the header files
@@ -167,15 +181,15 @@ If you decide you need to modify the driver while in your application's code
 you will need a header file (.h) that allows you to interact with the FSCC 
 driver. 
 
-1) To install the header file use the headers_install option to the make 
-   command.
+1) To install the header file use the install option to the make command (see
+   section III).
 
-   > make headers_install
+   > make install
    
    After doing this you will have access to <fscc/fscc.h> which you can use in
    your C program.
 
-   NOTE: Headers can be removed with: make headers_remove
+   NOTE: Headers can be removed with: make uninstall
    
 2) If instead you would like to use Python or our GUI and/or CLI you will need 
    to install pyfscc. The same procedure of downloading the driver (see section 
