@@ -520,14 +520,35 @@ int fscc_port_set_register(struct fscc_port *port, unsigned bar,
 		&& fscc_port_timed_out(port)) {
 		return -ETIMEDOUT;
 	}
-
+	
 	fscc_card_set_register(port->card, bar, offset, value);
 
-	if (bar == 0)
+	if (bar == 0) {
+	    fscc_register old_value = ((fscc_register *)&port->register_storage)[register_offset / 4];
 		((fscc_register *)&port->register_storage)[register_offset / 4] = value;
-	else if (register_offset == FCR_OFFSET)
+		
+		if (old_value != value) {
+		    dev_dbg(port->device, "%i:%02x 0x%08x => 0x%08x\n", bar, 
+		            register_offset, (unsigned int)old_value, value);
+		}
+		else {
+		    dev_dbg(port->device, "%i:%02x 0x%08x\n", bar, register_offset, 
+		            value);
+		}
+	}
+	else if (register_offset == FCR_OFFSET) {
+		fscc_register old_value = port->register_storage.FCR;
 		port->register_storage.FCR = value;
-
+		
+		if (old_value != value) {
+		    dev_dbg(port->device, "2:00 0x%08x => 0x%08x\n", 
+		            (unsigned int)old_value, value);
+		}
+		else {
+		    dev_dbg(port->device, "2:00 0x%08x\n", value);
+		}
+	}
+		
 	return 1;
 }
 
@@ -583,7 +604,7 @@ int fscc_port_set_registers(struct fscc_port *port,
 
 	return_val_if_untrue(port, 0);
 	return_val_if_untrue(regs, 0);
-
+	
 	for (i = 0; i < sizeof(*regs) / sizeof(fscc_register); i++) {
 		unsigned register_offset = i * 4;
 

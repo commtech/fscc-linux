@@ -40,9 +40,6 @@ static ssize_t register_store(struct kobject *kobj,
 	value = (unsigned)simple_strtoul(buf, &end, 16);
 
 	if (register_offset >= 0) {
-		dev_dbg(port->device, "setting register 0x%02x to 0x%08x\n",
-				register_offset, value);
-
 		fscc_port_set_register(port, bar_number, register_offset, value);
 		return count;
 	}
@@ -62,9 +59,8 @@ static ssize_t register_show(struct kobject *kobj, struct kobj_attribute *attr,
 	register_offset = str_to_register_offset(attr->attr.name);
 
 	if (register_offset >= 0) {
-		dev_dbg(port->device, "reading register 0x%02x\n", register_offset);
-
-		return sprintf(buf, "%08x\n", fscc_port_get_register(port, bar_number, (unsigned)register_offset));
+		return sprintf(buf, "%08x\n", fscc_port_get_register(port, bar_number, 
+		               (unsigned)register_offset));
 	}
 
 	return 0;
