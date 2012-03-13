@@ -1177,26 +1177,35 @@ void fscc_port_increment_interrupt_counts(struct fscc_port *port,
 #endif
 
 /* Returns -EINVAL if you set an incorrect transmit modifier */
-int fscc_port_set_tx_modifiers(struct fscc_port *port, int tx_modifiers)
+int fscc_port_set_tx_modifiers(struct fscc_port *port, int value)
 {
 	return_val_if_untrue(port, 0);
 
-	switch (tx_modifiers) {
+	switch (value) {
 		case XF:
 		case XF|TXT:
 		case XF|TXEXT:
 		case XREP:
 		case XREP|TXT:
-		case XREP|TXEXT:
-	        port->tx_modifiers = tx_modifiers;
-	        
-			dev_dbg(port->device, "transmit modifiers 0x%x\n", 
-			         port->tx_modifiers);
+		case XREP|TXEXT: {
+				int old_value = port->tx_modifiers;
+			    port->tx_modifiers = value;
+			    
+			    if (old_value != value) {
+					dev_dbg(port->device, "tx_modifiers 0x%x => 0x%x\n", 
+							old_value, value);
+				}
+				else {
+					dev_dbg(port->device, "tx_modifiers 0x%x\n", 
+							value);
+				}
+			}
+			
 			break;
 			
 		default:
-			dev_warn(port->device, "invalid transmit modifiers 0x%x\n",
-			         tx_modifiers);
+			dev_warn(port->device, "tx_modifiers (invalid value 0x%x)\n",
+			         value);
 			
 			return -EINVAL;
 	}
