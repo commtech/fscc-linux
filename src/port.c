@@ -1199,24 +1199,22 @@ int fscc_port_set_tx_modifiers(struct fscc_port *port, int value)
 		case XF|TXEXT:
 		case XREP:
 		case XREP|TXT:
-		case XREP|TXEXT: {
-				int old_value = port->tx_modifiers;
-			    port->tx_modifiers = value;
-			    
-			    if (old_value != value) {
-					dev_dbg(port->device, "tx_modifiers 0x%x => 0x%x\n", 
-							old_value, value);
-				}
-				else {
-					dev_dbg(port->device, "tx_modifiers 0x%x\n", 
-							value);
-				}
+		case XREP|TXEXT:
+		    if (port->tx_modifiers != value) {
+				dev_dbg(port->device, "tx modifiers 0x%x => 0x%x\n", 
+						port->tx_modifiers, value);
 			}
+			else {
+				dev_dbg(port->device, "tx modifiers 0x%x\n", 
+						value);
+			}
+			
+		    port->tx_modifiers = value;
 			
 			break;
 			
 		default:
-			dev_warn(port->device, "tx_modifiers (invalid value 0x%x)\n",
+			dev_warn(port->device, "tx modifiers (invalid value 0x%x)\n",
 			         value);
 			
 			return -EINVAL;
