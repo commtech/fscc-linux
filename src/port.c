@@ -935,23 +935,35 @@ unsigned fscc_port_get_output_memory_cap(struct fscc_port *port)
 }
 
 void fscc_port_set_memory_cap(struct fscc_port *port,
-							  struct fscc_memory_cap *memory_cap)
+							  struct fscc_memory_cap *value)
 {
 	return_if_untrue(port);
-	return_if_untrue(memory_cap);
+	return_if_untrue(value);
 
-	if (memory_cap->input >= 0) {
-		dev_dbg(port->device, "changing input memory cap %i => %i\n",
-				port->memory_cap.input, memory_cap->input);
-
-		port->memory_cap.input = memory_cap->input;
+	if (value->input >= 0) {
+		if (port->memory_cap.input != value->input) {
+			dev_dbg(port->device, "memory cap (input) %i => %i\n",
+					port->memory_cap.input, value->input);
+		}
+		else {
+			dev_dbg(port->device, "memory cap (input) %i\n",
+					value->input);
+		}
+		
+		port->memory_cap.input = value->input;
 	}
 
-	if (memory_cap->output >= 0) {
-		dev_dbg(port->device, "changing output memory cap %i => %i\n",
-				port->memory_cap.output, memory_cap->output);
-
-		port->memory_cap.output = memory_cap->output;
+	if (value->output >= 0) {
+		if (port->memory_cap.output != value->output) {
+			dev_dbg(port->device, "memory cap (output) %i => %i\n",
+					port->memory_cap.output, value->output);
+		}
+		else {
+			dev_dbg(port->device, "memory cap (output) %i\n",
+					value->output);
+		}
+		
+		port->memory_cap.output = value->output;
 	}
 }
 
