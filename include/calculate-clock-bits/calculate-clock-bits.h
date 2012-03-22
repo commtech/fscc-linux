@@ -18,10 +18,10 @@
 
 */
 
-#ifndef ICS30703_H
-#define ICS30703_H
+#ifndef CALCULATE_CLOCK_BITS_H
+#define CALCULATE_CLOCK_BITS_H
 
 int calculate_clock_bits(unsigned long freq, unsigned long ppm, 
-                         unsigned char *clock_bits)
+                         unsigned char *clock_bits);
 
 #endif
