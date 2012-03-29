@@ -1,0 +1,17 @@
+version 1.0.2 (03/15/2011)
+--------------------------------------------------------------------------------
+Only changed README to refer to the repository @ Bitbucket instead of Google code
+
+version 1.0.1 (02/17/2010)
+--------------------------------------------------------------------------------
+Bugfix release targeting python 2 compatability and import_registers.
+
+	* Remove python 3 only functions
+	* Add the ability to load registers from a file with the import_registers
+	  command
+	* Add the ability to set a port's clock
+
+
+version 1.0.0 (01/07/2010)
+--------------------------------------------------------------------------------
+This is the initial release of the 1.0 fscc-cli series.

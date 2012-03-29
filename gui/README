@@ -1,0 +1,12 @@
+Requirements & Installation
+---------------------------
+The fscc-gui module requires Python, Gtk+ and pyfscc. It can be installed with 
+the standard Python installation procedure:
+
+   > python setup.py install
+   
+Runtime Errors
+--------------
+If you come across the following import error you need to install pyfscc.
+
+ImportError: No module named fscc

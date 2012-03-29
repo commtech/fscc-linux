@@ -1,0 +1,17 @@
+Requirements & Installation
+---------------------------
+The fscc-cli module requires Python, pyfscc and argparse, and can be installed 
+with the standard Python installation procedure:
+
+   > python setup.py install
+   
+Runtime Errors
+--------------
+If you come across the following import error you need to install pyfscc.
+
+ImportError: No module named fscc
+
+
+If you come across the following import error you need to install argparse.
+
+ImportError: No module named argparse
