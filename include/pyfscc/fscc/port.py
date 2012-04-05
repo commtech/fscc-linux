@@ -76,6 +76,7 @@ FSCC_UPDATE_VALUE = -2
 
 
 class InvalidRegisterError(Exception):
+    """Exception for the situation where an invalid register is modified."""
     def __init__(self, register_name):
         self.register_name = register_name
 
@@ -84,13 +85,15 @@ class InvalidRegisterError(Exception):
 
 
 class ReadonlyRegisterError(InvalidRegisterError):
+    """Exception for the situation where a read only register is modified."""
     def __str__(self):
         return "%s is a readonly register" % self.register_name
 
 
 class Port(io.FileIO):
-
+    """Commtech FSCC port."""
     class Registers(object):
+        """Registers on the FSCC port."""
         register_names = ["FIFOT", "CMDR", "STAR", "CCR0", "CCR1", "CCR2",
                           "BGR", "SSR", "SMR", "TSR", "TMR", "RAR", "RAMR",
                           "PPR", "TCR", "VSTR", "IMR", "DPLLR", "FCR"]
@@ -99,7 +102,7 @@ class Port(io.FileIO):
         writeonly_register_names = ["CMDR"]
 
         editable_register_names = [r for r in register_names if r not in
-                                   readonly_register_names]
+                                   ["STAR", "VSTR"]]
 
         def __init__(self, port=None):
             self.port = port
@@ -119,6 +122,7 @@ class Port(io.FileIO):
                 yield register
 
         def _add_register(self, register):
+            """Dynamically add a way to edit a register to the port."""
             if register not in self.writeonly_register_names:
                 fget = lambda self: self._get_register(register)
             else:
@@ -132,6 +136,7 @@ class Port(io.FileIO):
             setattr(self.__class__, register, property(fget, fset, None, ""))
 
         def _get_register(self, register):
+            """Gets the value of a register."""
             if self.port:
                 self._clear_registers()
                 setattr(self, "_%s" % register, FSCC_UPDATE_VALUE)
@@ -140,6 +145,7 @@ class Port(io.FileIO):
             return getattr(self, "_%s" % register)
 
         def _set_register(self, register, value):
+            """Sets the value of a register."""
             if self.port:
                 self._clear_registers()
 
@@ -149,10 +155,12 @@ class Port(io.FileIO):
                 self._set_registers()
 
         def _clear_registers(self):
+            """Clears the stored register values."""
             for register in self.register_names:
                 setattr(self, "_%s" % register, -1)
 
         def _get_registers(self):
+            """Gets all of the register values."""
             if not self.port:
                 return
 
@@ -168,6 +176,7 @@ class Port(io.FileIO):
                     self._set_register_by_index(i, regs[i])
 
         def _set_registers(self):
+            """Sets all of the register values."""
             if not self.port:
                 return
 
@@ -177,6 +186,7 @@ class Port(io.FileIO):
                         struct.pack("q" * len(registers), *registers))
 
         def _set_register_by_index(self, index, value):
+            """Sets the value of a register by it's index."""
             data = [("FIFOT", 2), ("CMDR", 5), ("STAR", 6), ("CCR0", 7),
                     ("CCR1", 8), ("CCR2", 9), ("BGR", 10), ("SSR", 11),
                     ("SMR", 12), ("TSR", 13), ("TMR", 14), ("RAR", 15),
@@ -189,6 +199,7 @@ class Port(io.FileIO):
 
         # Note: clears registers
         def import_from_file(self, import_file):
+            """Reads and stores the register values from a file."""
             import_file.seek(0, os.SEEK_SET)
 
             for line in import_file:
@@ -215,7 +226,8 @@ class Port(io.FileIO):
                     setattr(self, reg_name, reg_val)
 
         def export_to_file(self, export_file):
-            for i, register_name in enumerate(self.editable_register_names):
+            """Writes the current register values to a file."""
+            for register_name in self.editable_register_names:
                 if register_name in self.writeonly_register_names:
                     continue
 
@@ -234,6 +246,7 @@ class Port(io.FileIO):
         self.append_status = append_status
 
     def purge(self, tx=True, rx=True):
+        """Removes unsent and/or unread data from the card."""
         if (tx):
             try:
                 fcntl.ioctl(self, FSCC_FLUSH_TX)
@@ -246,12 +259,14 @@ class Port(io.FileIO):
                 raise e
 
     def _set_append_status(self, append_status):
+        """Sets the value of the append status setting."""
         if append_status:
             fcntl.ioctl(self, FSCC_ENABLE_APPEND_STATUS)
         else:
             fcntl.ioctl(self, FSCC_DISABLE_APPEND_STATUS)
 
     def _get_append_status(self):
+        """Gets the value of the append status setting."""
         buf = fcntl.ioctl(self, FSCC_GET_APPEND_STATUS,
                           struct.pack("I", 0))
         value = struct.unpack("I", buf)
@@ -264,38 +279,46 @@ class Port(io.FileIO):
     append_status = property(fset=_set_append_status, fget=_get_append_status)
 
     def _set_memcap(self, input_memcap, output_memcap):
+        """Sets the value of the memory cap setting."""
         fcntl.ioctl(self, FSCC_SET_MEMORY_CAP,
                     struct.pack("i" * 2, input_memcap, output_memcap))
 
     def _get_memcap(self):
+        """Gets the value of the memory cap setting."""
         buf = fcntl.ioctl(self, FSCC_GET_MEMORY_CAP,
                           struct.pack("i" * 2, -1, -1))
 
         return struct.unpack("i" * 2, buf)
 
     def _set_imemcap(self, memcap):
+        """Sets the value of the input memory cap setting."""
         self._set_memcap(memcap, -1)
 
     def _get_imemcap(self):
+        """Gets the value of the output memory cap setting."""
         return self._get_memcap()[0]
 
     input_memory_cap = property(fset=_set_imemcap, fget=_get_imemcap)
 
     def _set_omemcap(self, memcap):
+        """Sets the value of the output memory cap setting."""
         self._set_memcap(-1, memcap)
 
     def _get_omemcap(self):
+        """Gets the value of the output memory cap setting."""
         return self._get_memcap()[1]
 
     output_memory_cap = property(fset=_set_omemcap, fget=_get_omemcap)
 
     def _set_ignore_timeout(self, ignore_timeout):
+        """Sets the value of the ignore timeout setting."""
         if ignore_timeout:
             fcntl.ioctl(self, FSCC_ENABLE_IGNORE_TIMEOUT)
         else:
             fcntl.ioctl(self, FSCC_DISABLE_IGNORE_TIMEOUT)
 
     def _get_ignore_timeout(self):
+        """Gets the value of the ignore timeout setting."""
         buf = fcntl.ioctl(self, FSCC_GET_IGNORE_TIMEOUT,
                           struct.pack("I", 0))
         value = struct.unpack("I", buf)
@@ -306,9 +329,11 @@ class Port(io.FileIO):
                               fget=_get_ignore_timeout)
 
     def _set_tx_modifiers(self, tx_modifiers):
+        """Sets the value of the transmit modifiers setting."""
         fcntl.ioctl(self, FSCC_SET_TX_MODIFIERS, tx_modifiers)
 
     def _get_tx_modifiers(self):
+        """Gets the value of the transmit modifiers setting."""
         buf = fcntl.ioctl(self, FSCC_GET_TX_MODIFIERS,
                           struct.pack("I", 0))
         value = struct.unpack("I", buf)
@@ -317,11 +342,13 @@ class Port(io.FileIO):
 
     tx_modifiers = property(fset=_set_tx_modifiers, fget=_get_tx_modifiers)
 
-    def read(self, num_bytes):
-        if num_bytes:
-            return super(io.FileIO, self).read(num_bytes)
+    def read(self, max_bytes=4096):
+        """Reads data from the card."""
+        if max_bytes:
+            return super(io.FileIO, self).read(max_bytes)
 
-    def check_POLLIN(self, timeout=100):
+    def can_read(self, timeout=100):
+        """Checks whether there is data available to read."""
         poll_obj = select.poll()
         poll_obj.register(self, select.POLLIN)
 
@@ -334,7 +361,8 @@ class Port(io.FileIO):
         else:
             return False
 
-    def check_POLLOUT(self, timeout=100):
+    def can_write(self, timeout=100):
+        """Checks whether there is room available to write additional data."""
         poll_obj = select.poll()
         poll_obj.register(self, select.POLLOUT)
 
