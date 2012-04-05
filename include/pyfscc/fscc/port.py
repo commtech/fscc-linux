@@ -55,8 +55,8 @@ FSCC_IOCTL_MAGIC = 0x18
 FSCC_GET_REGISTERS = _IOR(FSCC_IOCTL_MAGIC, 0, struct.calcsize("P"))
 FSCC_SET_REGISTERS = _IOW(FSCC_IOCTL_MAGIC, 1, struct.calcsize("P"))
 
-FSCC_FLUSH_TX = _IO(FSCC_IOCTL_MAGIC, 2)
-FSCC_FLUSH_RX = _IO(FSCC_IOCTL_MAGIC, 3)
+FSCC_PURGE_TX = _IO(FSCC_IOCTL_MAGIC, 2)
+FSCC_PURGE_RX = _IO(FSCC_IOCTL_MAGIC, 3)
 
 FSCC_ENABLE_APPEND_STATUS = _IO(FSCC_IOCTL_MAGIC, 4)
 FSCC_DISABLE_APPEND_STATUS = _IO(FSCC_IOCTL_MAGIC, 5)
@@ -73,6 +73,8 @@ FSCC_SET_TX_MODIFIERS = _IOW(FSCC_IOCTL_MAGIC, 12, struct.calcsize("i"))
 FSCC_GET_TX_MODIFIERS = _IOR(FSCC_IOCTL_MAGIC, 14, struct.calcsize("P"))
 
 FSCC_UPDATE_VALUE = -2
+
+XF, XREP, TXT, TXEXT = 0, 1, 2, 4
 
 
 class InvalidRegisterError(Exception):
@@ -249,12 +251,12 @@ class Port(io.FileIO):
         """Removes unsent and/or unread data from the card."""
         if (tx):
             try:
-                fcntl.ioctl(self, FSCC_FLUSH_TX)
+                fcntl.ioctl(self, FSCC_PURGE_TX)
             except IOError as e:
                 raise e
         if (rx):
             try:
-                fcntl.ioctl(self, FSCC_FLUSH_RX)
+                fcntl.ioctl(self, FSCC_PURGE_RX)
             except IOError as e:
                 raise e
 

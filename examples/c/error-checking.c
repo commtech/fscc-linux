@@ -24,7 +24,7 @@
 #include <stdlib.h> /* EXIT_SUCCESS, EXIT_FAILURE */
 #include <string.h> /* memset */
 #include <sys/ioctl.h> /* ioctl */
-#include <fscc/fscc.h> /* FSCC_FLUSH_RX, FSCC_FLUSH_TX */
+#include <fscc/fscc.h> /* FSCC_PURGE_RX, FSCC_PURGE_TX */
 
 /*
 	This is a simple example showing more thorough error checking than the 
@@ -47,8 +47,8 @@ int main(void)
 		return EXIT_FAILURE;
 	}
 
-	if (ioctl(port_fd, FSCC_FLUSH_RX) == -1) {
-		perror("FSCC_FLUSH_RX");
+	if (ioctl(port_fd, FSCC_PURGE_RX) == -1) {
+		perror("FSCC_PURGE_RX");
 
 		if (close(port_fd) == -1)
 			perror("close");
@@ -56,8 +56,8 @@ int main(void)
 		return EXIT_FAILURE;
 	}
 
-	if (ioctl(port_fd, FSCC_FLUSH_TX) == -1) {
-		perror("FSCC_FLUSH_TX");
+	if (ioctl(port_fd, FSCC_PURGE_TX) == -1) {
+		perror("FSCC_PURGE_TX");
 
 		if (close(port_fd) == -1)
 			perror("close");

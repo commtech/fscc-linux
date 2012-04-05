@@ -52,7 +52,7 @@ namespace FSCC
 
 	public class Port : System.IO.FileStream
 	{
-		public const int FLUSH_TX = 6146;
+		public const int PURGE_TX = 6146;
 		public Registers Registers;
 
 		public Port(string path, FileAccess access) : base(path, FileMode.Open, access)
@@ -111,21 +111,21 @@ namespace FSCC
 		}
 		*/
 
-		public void FlushRx()
+		public void PurgeRx()
 		{
 			throw new System.NotImplementedException();
 
 			/*
-			this.Ioctl(Port.FLUSH_RX);
+			this.Ioctl(Port.PURGE_RX);
 			*/
 		}
 
-		public void FlushTx()
+		public void PurgeTx()
 		{
 			throw new System.NotImplementedException();
 
 			/*
-			this.Ioctl(Port.FLUSH_TX);
+			this.Ioctl(Port.PURGE_TX);
 			*/
 		}
 
