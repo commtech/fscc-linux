@@ -32,18 +32,8 @@ import argparse
 
 from fscc import port as fscc_port
 
-
-def random_string(length):
-    chars = []
-
-    for i in range(length):
-        chars.append(random.choice(string.ascii_letters + string.digits))
-
-    return "".join(chars)
-
-
-def write_worker(args, data):
-    outgoing_data = data
+def write(args):
+    outgoing_data = args.data.encode()
 
     try:
         if args.hex:
@@ -60,17 +50,11 @@ def write_worker(args, data):
         port.close()
 
 
-def random_write(args):
-    write_worker(args, random_string(args.length).encode())
-
-
-def write(args):
-    write_worker(args, args.data.encode())
-
-
 def read(args):
     port = fscc_port.Port(args.port, "rb")
-
+    
+    old_status = port.append_status
+    
     if args.append_status == 0:
         port.append_status = False
     else:
@@ -83,145 +67,45 @@ def read(args):
             incoming_data = binascii.a2b_hex(incoming_data)
 
         print(incoming_data)
+        
+    port.append_status = old_status
 
     port.close()
 
 
-def loop(args):
-    """
-    class WriteThread(threading.Thread):
-        def __init__(self, port_name, data):
-            super(WriteThread, self).__init__()
+def purge(args):
+    port = fscc_port.Port(args.port, "wb")
 
-            self.port = fscc_port.Port(port_name, "w+")
-            self.data = data
-
-        def run(self):
-            for packet in self.data:
-                self.port.write(packet)
-
-    class ReadThread(threading.Thread):
-        def __init__(self, port_name, data):
-            super(ReadThread, self).__init__()
-
-            self.port = fscc_port.Port(port_name, "w+")
-            self.data = data
-
-        def run(self):
-            failures = 0
-
-            for i, packet in enumerate(self.data, start=1):
-                if self.port.read(4096) != packet:
-                    failures += 1
-
-                print("\b" * len(str(i - 1)), end="", file=sys.stdout)
-                print(str(i), end="", file=sys.stdout)
-                sys.stdout.flush()
-
-            print("\b" * len(str(len(self.data))), end="", file=sys.stdout)
-            sys.stdout.flush()
-
-            print("%i failure%s out of %i iteration%s (%2.1f%%)" % \
-                  (failures, "s"[failures == 1:],
-                  len(self.data), "s"[len(self.data) == 1:],
-                  (float(failures)) / float(len(self.data)) * 100))
-
-    ports = [fscc_port.Port(name, "w+") for name in [args.port1, args.port2]]
-
-    for port in ports:
-        port.flush_tx()
-        port.flush_rx()
-
-    outgoing_data = [random_string(random.randint(1, args.max_length)).encode() for i in range(1, args.iterations + 1)]
-
-    threads = [ReadThread(args.port2, outgoing_data), WriteThread(args.port1, outgoing_data)]
-
-    for thread in threads:
-        #thread.daemon = True
-        thread.start()
-    """
-
-    ports = [fscc_port.Port(name, "w+") for name in [args.port1, args.port2]]
-
-    failures = 0
-
-    for i in range(1, args.iterations + 1):
-        outgoing_data = random_string(random.randint(1, args.max_length)).encode()
-        incoming_data = ""
-
-        if i % 2 == 0:
-            ports[0].write(outgoing_data)
-            incoming_data = ports[1].read(args.max_length)
-        else:
-            ports[1].write(outgoing_data)
-            incoming_data = ports[0].read(args.max_length)
-
-        if outgoing_data != incoming_data:
-            failures = failures + 1
-
-        if i > 1:
-            # print("\b" * len(str(i - 1)), end="", file=sys.stdout)
-            sys.stdout.write("\b" * len(str(i - 1)))
-
-        # print(str(i), end="", file=sys.stdout)
-        sys.stdout.write(str(i))
+    port.purge(not args.ignore_tx, not args.ignore_rx)
         
-        sys.stdout.flush()
+    port.close()
 
-    # print("\b" * len(str(args.iterations)), end="", file=sys.stdout)
-    sys.stdout.write("\b" * len(str(args.iterations)))
+        
+def registers(args):
+    port = fscc_port.Port(args.port, "w+")
     
-    sys.stdout.flush()
-
-    print("%i failure%s out of %i iteration%s (%2.1f%%)" % \
-          (failures, "s"[failures == 1:],
-          args.iterations, "s"[args.iterations == 1:],
-          (float(failures)) / float(args.iterations) * 100))
-
-
-def set_registers(args):
-    ports = [fscc_port.Port(port, "wb") for port in args.port]
-
-    if os.path.exists(args.values):
-        file_path = args.values
+    if args.values == None:
+        port.registers.export_to_file(sys.stdout)
     else:
-        file_path = "/tmp/fscc_settings"
-        
-        import_file = open(file_path, "w+")
+        if os.path.exists(args.values):
+            file_path = args.values
+        else:
+            file_path = "/tmp/fscc_settings"
+            
+            import_file = open(file_path, "w+")
 
-        for line in args.values.split("\n"):
-            import_file.write("%s\n" % line)
+            for line in args.values.split("\n"):
+                import_file.write("%s\n" % line)
 
-        import_file.close()
+            import_file.close()
 
-    import_file = open(file_path, "r")
+        import_file = open(file_path, "r")
 
-    for port in ports:
         port.registers.import_from_file(import_file)
 
-    import_file.close()
-
-
-def get_registers(args):
-    port = fscc_port.Port(args.port, "rb")
-
-    port.registers.export_to_file(sys.stdout)
-
-
-def flush_tx(args):
-    for port_name in args.port:
-        port = fscc_port.Port(port_name, "wb")
-
-        port.flush_tx()
-        port.close()
-
-
-def flush_rx(args):
-    for port_name in args.port:
-        port = fscc_port.Port(port_name, "wb")
-
-        port.flush_rx()
-        port.close()
+        import_file.close()
+        
+    port.close()
 
 
 def set_clock(args):
@@ -240,130 +124,174 @@ def set_clock(args):
             return retcode
 
 
-def set_tx_modifiers(args):
-    for port_name in args.port:
-        port = fscc_port.Port(port_name, "wb")
-
-        port.tx_modifiers = args.modifiers
-        port.close()
-
-
-def set_input_memory_cap(args):
-    for port_name in args.port:
-        port = fscc_port.Port(port_name, "wb")
-
-        port.input_memory_cap = args.memory_cap
-        port.close()
-
-
-def set_output_memory_cap(args):
-    for port_name in args.port:
-        port = fscc_port.Port(port_name, "wb")
-
-        port.output_memory_cap = args.memory_cap
-        port.close()
-
-
-def set_ignore_timeout(args):
-    for port_name in args.port:
-        port = fscc_port.Port(port_name, "wb")
+def input_memcap(args):
+    port = fscc_port.Port(args.port, "wb")
+    
+    if args.value:
+        port.input_memory_cap = args.value
+    else:
+        print(port.input_memory_cap)
         
-        port.ignore_timeout = args.ignore_timeout
-        port.close()
+    port.close()
 
 
-def set_tx_modifiers(args):
-    for port_name in args.port:
-        port = fscc_port.Port(port_name, "wb")
+def output_memcap(args):
+    port = fscc_port.Port(args.port, "wb")
+    
+    if args.value:
+        port.output_memory_cap = args.value
+    else:
+        print(port.output_memory_cap)
         
-        port.tx_modifiers = args.modifiers
-        port.close()
+    port.close()
+
+
+def tx_modifiers(args):
+    port = fscc_port.Port(args.port, "wb")
+
+    if args.value:
+        port.tx_modifiers = args.value
+    else:
+        print(port.tx_modifiers)
+        
+    port.close()
+
+
+def ignore_timeout(args):
+    port = fscc_port.Port(args.port, "wb")
+
+    if args.value:
+        port.ignore_timeout = args.value
+    else:
+        print(port.ignore_timeout)
+        
+    port.close()
 
 
 main_description = """Tools for using the Commtech FSCC line of cards."""
 port_description = """the FSCC port to interact with"""
 write_description = """Sends a frame of data out of an FSCC port."""
+read_description = """Receives a frame of data from an FSCC port."""
+purge_description = """Removes pending data from an FSCC port."""
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=main_description)
     subparsers = parser.add_subparsers(title='subcommands')
 
-    parser_write = subparsers.add_parser('write', description=write_description, 
-                                         help=write_description, formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser_write.add_argument('port', type=str, nargs='+', help=port_description)
-    parser_write.add_argument('data', type=str, help='the data to send out of the port')
-    parser_write.add_argument('--hex', type=int, default=0, help='whether or not the data is hexidecimal')
-    parser_write.add_argument('--iterations', type=int, default=1, help='how many times to transmit the data')
-    parser_write.set_defaults(func=write)
+    #
+    pwrite = subparsers.add_parser('write')
+   
+    pwrite.description = write_description
+    pwrite.help = write_description
+    pwrite.formatter_class = argparse.ArgumentDefaultsHelpFormatter
+    pwrite.set_defaults(func=write)
+    
+    pwrite.add_argument('port', nargs='+', help=port_description)
+    pwrite.add_argument('data', 
+                        help='the data to send out of the port')
+    pwrite.add_argument('--hex', default=False, action='store_true', 
+                        help='whether or not the data is hexidecimal')
+    pwrite.add_argument('-i', '--iterations', type=int, default=1, 
+                        help='how many times to transmit the data')
+    
+    #
+    pread = subparsers.add_parser('read')
+    
+    pread.description = read_description
+    pread.help = read_description
+    pread.formatter_class = argparse.ArgumentDefaultsHelpFormatter
+    pread.set_defaults(func=read)
+    
+    pread.add_argument('port', help=port_description)
+    pread.add_argument('-a', '--append-status', default=False, action='store_true',
+                       help='whether or not to append the status bytes to the data')
+    pread.add_argument('--hex', default=False, action='store_true', 
+                       help='whether or not the data is hexidecimal')
+    pread.add_argument('-l', '--length', type=int, default=4096, 
+                       help='the largest frame size in frame based mode or how much data to read in transparent')
+    pread.add_argument('-i', '--iterations', type=int, default=1, 
+                       help='how many times to read in data')
+
+    #
+    ppurge = subparsers.add_parser('purge')
+
+    ppurge.description = purge_description
+    ppurge.help = purge_description
+    ppurge.formatter_class = argparse.ArgumentDefaultsHelpFormatter
+    ppurge.set_defaults(func=purge)
+    
+    ppurge.add_argument('port',
+                        help='the fscc node to remove its pending data')
+    ppurge.add_argument('--ignore-tx', default=False, action='store_true',
+                        help='prevent purging the transmit side')
+    ppurge.add_argument('--ignore-rx', default=False, action='store_true',
+                        help='prevent purging the receive side')
+
+    #
+    pregisters = subparsers.add_parser('registers')
+    
+    pregisters.description = 'sets the register\'s values of an FSCC port'
+    pregisters.help = 'sets the register\'s values of an FSCC port'
+    pregisters.formatter_class = argparse.ArgumentDefaultsHelpFormatter
+    pregisters.set_defaults(func=registers)
+    
+    pregisters.add_argument('port', 
+                            help='the fscc node to have it\'s registers set.')
+    pregisters.add_argument('values', nargs='?',
+                            help='the register values to set (file or string)')
+
+    #
+    pimemcap = subparsers.add_parser('input-memcap')
+    
+    pimemcap.description = 'TODO'
+    pimemcap.help = 'TODO'
+    pimemcap.formatter_class = argparse.ArgumentDefaultsHelpFormatter
+    pimemcap.set_defaults(func=input_memcap)
+    
+    pimemcap.add_argument('port', help='TODO')
+    pimemcap.add_argument('value', nargs='?', type=int, help='TODO')
+
+    #
+    pomemcap = subparsers.add_parser('output-memcap')
+    
+    pomemcap.description = 'TODO'
+    pomemcap.help = 'TODO'
+    pomemcap.formatter_class = argparse.ArgumentDefaultsHelpFormatter
+    pomemcap.set_defaults(func=output_memcap)
+    
+    pomemcap.add_argument('port', help='TODO')
+    pomemcap.add_argument('value', nargs='?', type=int, help='TODO')
+
+    #
+    ptx_modifiers = subparsers.add_parser('tx-modifiers')
+    
+    ptx_modifiers.description = 'Sets transmit modifiers'
+    ptx_modifiers.help = 'Sets transmit modifiers'
+    ptx_modifiers.formatter_class = argparse.ArgumentDefaultsHelpFormatter
+    ptx_modifiers.set_defaults(func=tx_modifiers)
+    
+    ptx_modifiers.add_argument('port',
+                               help='the fscc node to have it\'s modifiers set')
+    ptx_modifiers.add_argument('value', nargs='?', type=int, help='TODO')
+
+    #
+    pignore_timeout = subparsers.add_parser('ignore-timeout')
+    
+    pignore_timeout.description = 'TODO'
+    pignore_timeout.help = 'TODO'
+    pignore_timeout.formatter_class = argparse.ArgumentDefaultsHelpFormatter
+    pignore_timeout.set_defaults(func=ignore_timeout)
+    
+    pignore_timeout.add_argument('port', help='TODO')
+    pignore_timeout.add_argument('value', nargs='?', type=int, help='TODO')
+    
     """
-    parser_random = subparsers.add_parser('random', description="Sends a frame of random data out of an FSCC port.", help='sends a frame of random data out of an FSCC port.')
-    parser_random.add_argument('port', type=str, nargs='+', help='the fscc node to send data out of')
-    parser_random.add_argument('--length', type=int, default=1000, help='frame length')
-    parser_random.add_argument('--iterations', type=int, default=1, help='how many times to transmit the data')
-    parser_random.set_defaults(func=random_write)
-    """
-    parser_read = subparsers.add_parser('read', help='receives a frame of data from an FSCC port')
-    parser_read.add_argument('port', type=str, help='the fscc node to receive data out of')
-    parser_read.add_argument('--append_status', type=int, default=0, help='whether or not to append the status bytes to the data')
-    parser_read.add_argument('--hex', type=int, default=0, help='whether or not the data is hexidecimal')
-    parser_read.add_argument('--length', type=int, default=4096, help='the largest frame size in frame based mode or how much data to read in transparent')
-    parser_read.add_argument('--iterations', type=int, default=1, help='how many times to read in data')
-    parser_read.set_defaults(func=read)
-
-    """
-    parser_loop = subparsers.add_parser('loop', help='sends data back and forth between FSCC ports')
-    parser_loop.add_argument('port1', type=str, help='one of the nodes to loop between')
-    parser_loop.add_argument('port2', type=str, help='the other node to loop between')
-    parser_loop.add_argument('--iterations', type=int, default=100, help='number of iterations to send data back and forth')
-    parser_loop.add_argument('--max_length', type=int, default=4090, help='maximum frame length')
-    parser_loop.set_defaults(func=loop)
-
-    parser_set_registers = subparsers.add_parser('set-registers', help='sets the register\'s values of an FSCC port')
-    parser_set_registers.add_argument('port', type=str, nargs='+', help='the fscc node to have it\'s registers set.')
-    parser_set_registers.add_argument('values', type=str, help='the register values to set (file or string)')
-    parser_set_registers.set_defaults(func=set_registers)
-
-    parser_get_registers = subparsers.add_parser('get-registers', help='gets a register\'s value from an FSCC port')
-    parser_get_registers.add_argument('port', type=str, help='the fscc node to get a register\'s value from')
-    parser_get_registers.set_defaults(func=get_registers)
-
-    parser_flush_tx = subparsers.add_parser('flush-tx', help='Removes all pending transmit data')
-    parser_flush_tx.add_argument('port', type=str, nargs='+', help='the fscc node to remove its pending data')
-    parser_flush_tx.set_defaults(func=flush_tx)
-
-    parser_flush_rx = subparsers.add_parser('flush-rx', help='Removes all pending receive data')
-    parser_flush_rx.add_argument('port', type=str, nargs='+', help='the fscc node to remove its pending data')
-    parser_flush_rx.set_defaults(func=flush_rx)
 
     parser_set_clock = subparsers.add_parser('set-clock', help='Sets clock frequency')
     parser_set_clock.add_argument('port', type=str, nargs='+', help='the fscc node to have its clock set')
     parser_set_clock.add_argument('frequency', type=int, default=0, help='TODO')
     parser_set_clock.set_defaults(func=set_clock)
-
-    parser_set_tx_modifiers = subparsers.add_parser('set-tx-modifiers', help='Sets transmit modifiers')
-    parser_set_tx_modifiers.add_argument('port', type=str, nargs='+', help='the fscc node to have it\'s modifiers set')
-    parser_set_tx_modifiers.add_argument('modifiers', type=int, default=0, help='TODO')
-    parser_set_tx_modifiers.set_defaults(func=set_tx_modifiers)
-
-    parser_set_input_memory_cap = subparsers.add_parser('set-input-memory-cap', help='TODO')
-    parser_set_input_memory_cap.add_argument('port', type=str, nargs='+', help='TODO')
-    parser_set_input_memory_cap.add_argument('memory_cap', type=int, default=0, help='TODO')
-    parser_set_input_memory_cap.set_defaults(func=set_input_memory_cap)
-
-    parser_set_output_memory_cap = subparsers.add_parser('set-output-memory-cap', help='TODO')
-    parser_set_output_memory_cap.add_argument('port', type=str, nargs='+', help='TODO')
-    parser_set_output_memory_cap.add_argument('memory_cap', type=int, default=0, help='TODO')
-    parser_set_output_memory_cap.set_defaults(func=set_output_memory_cap)
-
-    parser_set_ignore_timeout = subparsers.add_parser('set-ignore-timeout', help='TODO')
-    parser_set_ignore_timeout.add_argument('port', type=str, nargs='+', help='TODO')
-    parser_set_ignore_timeout.add_argument('ignore_timeout', type=int, default=0, help='TODO')
-    parser_set_ignore_timeout.set_defaults(func=set_ignore_timeout)
-
-    parser_set_tx_modifiers = subparsers.add_parser('set-tx-modifiers', help='TODO')
-    parser_set_tx_modifiers.add_argument('port', type=str, nargs='+', help='TODO')
-    parser_set_tx_modifiers.add_argument('modifiers', type=int, default=0, help='TODO')
-    parser_set_tx_modifiers.set_defaults(func=set_tx_modifiers)
     """    
+    
     args = parser.parse_args()
     args.func(args)
