@@ -188,7 +188,7 @@ int fscc_ioctl(struct inode *inode, struct file *file, unsigned int cmd,
 	int error_code = 0;
 
 	port = file->private_data;
-
+	
 	switch (cmd) {
 	case FSCC_GET_REGISTERS:
 		fscc_port_get_registers(port, (struct fscc_registers *)arg);
@@ -218,8 +218,17 @@ int fscc_ioctl(struct inode *inode, struct file *file, unsigned int cmd,
 		fscc_port_set_append_status(port, 0);
 		break;
 
+	case FSCC_GET_APPEND_STATUS:
+		*(unsigned *)arg = fscc_port_get_append_status(port);
+		break;
+
 	case FSCC_SET_MEMORY_CAP:
 		fscc_port_set_memory_cap(port, (struct fscc_memory_cap *)arg);
+		break;
+
+	case FSCC_GET_MEMORY_CAP:
+		((struct fscc_memory_cap *)arg)->input = fscc_port_get_input_memory_cap(port);
+		((struct fscc_memory_cap *)arg)->output = fscc_port_get_output_memory_cap(port);
 		break;
 
 	case FSCC_SET_CLOCK_BITS:
@@ -233,11 +242,18 @@ int fscc_ioctl(struct inode *inode, struct file *file, unsigned int cmd,
 	case FSCC_DISABLE_IGNORE_TIMEOUT:
 		fscc_port_set_ignore_timeout(port, 0);
 		break;
+
+	case FSCC_GET_IGNORE_TIMEOUT:
+		*(unsigned *)arg = fscc_port_get_ignore_timeout(port);
+		break;
 		
 	case FSCC_SET_TX_MODIFIERS:
 		if ((error_code = fscc_port_set_tx_modifiers(port, (int)arg)) < 0)
 			return error_code;
-
+		break;
+		
+	case FSCC_GET_TX_MODIFIERS:
+		*(unsigned *)arg = fscc_port_get_tx_modifiers(port);
 		break;
 
 	default:
