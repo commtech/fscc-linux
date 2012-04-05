@@ -23,11 +23,11 @@
 #include <stdio.h> /* perror */
 #include <stdlib.h> /* EXIT_SUCCESS, EXIT_FAILURE */
 #include <sys/ioctl.h> /* ioctl */
-#include <fscc/fscc.h> /* FSCC_FLUSH_RX */
+#include <fscc/fscc.h> /* FSCC_PURGE_TX */
 
 /*
-	This is a simple example showing how to empty all of the unread data out of 
-	a port.
+	This is a simple example showing how to empty all of the data waiting to be
+	transmitted out of a port.
 
 */
 
@@ -48,7 +48,7 @@ int main(void)
 		return EXIT_FAILURE;
 	}
 
-	ioctl(port_fd, FSCC_FLUSH_RX);
+	ioctl(port_fd, FSCC_PURGE_TX);
 
 	close(port_fd);
 

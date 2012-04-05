@@ -61,7 +61,7 @@ XI.    Viewing/setting memory constraints
        2) Using the ioctl call from within yzour application code
        3) Using the config.h file for modifying the boot defaults
 
-XII.   Flushing data out of driver
+XII.   Purging data out of driver
        1) Using sysfs from the command line
        2) Using the ioctl call from within your application code
        2) Using the Python API from within your application code
@@ -69,14 +69,14 @@ XII.   Flushing data out of driver
 XIII.  Migrating from the 1.x driver to the 2.x driver
        1) Setting register values
        2) Getting register values
-       3) Flushing transmit and receive data
+       3) Purging transmit and receive data
        4) Getting the frame status
        5) Changing the clock frequency
        
 XIV.   FAQ
        1) Ports are not created even though the driver has loaded
        2) What does poll() and select() base their information on
-       3) Executing a flush without a clock puts the card in a broken state
+       3) Executing a purge without a clock puts the card in a broken state
        4) Receiving the error message 'Couldn't register serial port'
        5) Not seeing card in sysfs
 
@@ -573,26 +573,26 @@ There are multiple ways of setting this value.
    NOTE: This will set all ports to this at driver boot up. It is a driver wide
          setting.
 
-XII. Flushing data out of driver
+XII. Purging data out of driver
 -------------------------------------------------------------------------------
 Between the hardware FIFO and the driver's software buffers there are multiple
 places data could be at excluding your application code. If you ever need to 
 clear this data out and start out fresh there are a couple ways of doing this.
    
 1) The simplest method of doing this is by writing a value of 1 to the
-   flush_tx and flush_rx file in sysfs from the command line.
+   purge_tx and purge_rx file in sysfs from the command line.
    
-   echo 1 > /sys/class/fscc/fscc0/commands/flush_tx
-   echo 1 > /sys/class/fscc/fscc0/commands/flush_rx
+   echo 1 > /sys/class/fscc/fscc0/commands/purge_tx
+   echo 1 > /sys/class/fscc/fscc0/commands/purge_rx
    
-2) Another way of doing this is by using the FSCC_FLUSH_TX and FSCC_FLUSH_TX
+2) Another way of doing this is by using the FSCC_PURGE_TX and FSCC_PURGE_TX
    ioctl's from within your C code.
    
-   ioctl(port_fd, FSCC_FLUSH_TX);
-   ioctl(port_fd, FSCC_FLUSH_RX);
+   ioctl(port_fd, FSCC_PURGE_TX);
+   ioctl(port_fd, FSCC_PURGE_RX);
    
    NOTE: A complete example of how to do this can be found in the files 
-         fscc-linux/examples/c/flush_tx.c and flush_rx.c.
+         fscc-linux/examples/c/purge_tx.c and purge_rx.c.
    
    In in addition to the standard errors that the ioctl() function returns
    there is an error specific to the FSCC you might run into.
@@ -603,8 +603,8 @@ clear this data out and start out fresh there are a couple ways of doing this.
          
 3) The Python API makes this easy by calling a couple built-in methods.
 
-   >>> port.flush_rx()
-   >>> port.flush_tx()
+   >>> port.purge_rx()
+   >>> port.purge_tx()
    
    
 XIII. Migrating from the 1.x driver to the 2.x driver
@@ -639,8 +639,8 @@ NOTE: All ioctl values have changed even if their new names match their old
    
    FSCC_READ_REGISTER (reading a single register at a time)
    
-3) Flushing transmit and receive data has not changed. Continue using
-   FSCC_FLUSH_TX and FSCC_FLUSH_RX. 
+3) Purging transmit and receive data has not changed. Continue using
+   FSCC_PURGE_TX and FSCC_PURGE_RX. 
    
    For more information on these ioctl's see section XII.
    
@@ -694,15 +694,15 @@ XIV. FAQ
        Whether or not you can write data will be based on if you have hit your
        output memory cap. (see section XI).
        
-3)  Q: Why does executing a flush without a clock put the card in a broken
+3)  Q: Why does executing a purge without a clock put the card in a broken
        state?
        
-    A: When executing a flush on either the transmitter or receiver there is
+    A: When executing a purge on either the transmitter or receiver there is
        a TRES or RRES (command from the CMDR register) happening behind the 
        scenes. If there is no clock available the command will stall until
        a clock is available. This should work in theory but doesn't in 
-       practice. So whenever you need to execute a flush without a clock, first
-       put it into clock mode 7, execute your flush then return to your other
+       practice. So whenever you need to execute a purge without a clock, first
+       put it into clock mode 7, execute your purge then return to your other
        clock mode.
        
 4)  Q: Why am I receiving the error message 'Couldn't register serial port' 

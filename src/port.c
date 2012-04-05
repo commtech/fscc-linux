@@ -773,13 +773,13 @@ void fscc_port_clear_oframes(struct fscc_port *port, unsigned lock)
 }
 
 /* Locks iframe_spinlock. */
-int fscc_port_flush_rx(struct fscc_port *port)
+int fscc_port_purge_rx(struct fscc_port *port)
 {
 	int error_code = 0;
 
 	return_val_if_untrue(port, 0);
 
-	dev_dbg(port->device, "flush_rx\n");
+	dev_dbg(port->device, "purge_rx\n");
 
 	/* Locks iframe_spinlock. */
 	if ((error_code = fscc_port_execute_RRES(port)) < 0)
@@ -795,13 +795,13 @@ int fscc_port_flush_rx(struct fscc_port *port)
 }
 
 /* Locks oframe_spinlock. */
-int fscc_port_flush_tx(struct fscc_port *port)
+int fscc_port_purge_tx(struct fscc_port *port)
 {
 	int error_code = 0;
 
 	return_val_if_untrue(port, 0);
 
-	dev_dbg(port->device, "flush_tx\n");
+	dev_dbg(port->device, "purge_tx\n");
 
 	/* Locks oframe_spinlock. */
 	if ((error_code = fscc_port_execute_TRES(port)) < 0)

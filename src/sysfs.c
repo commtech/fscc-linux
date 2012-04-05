@@ -184,39 +184,39 @@ struct attribute_group port_registers_attr_group = {
 
 
 
-static ssize_t flush_tx(struct kobject *kobj, struct kobj_attribute *attr,
+static ssize_t purge_tx(struct kobject *kobj, struct kobj_attribute *attr,
 							  const char *buf, size_t count)
 {
 	struct fscc_port *port = 0;
 
 	port = (struct fscc_port *)dev_get_drvdata((struct device *)kobj);
 
-	fscc_port_flush_tx(port);
+	fscc_port_purge_tx(port);
 
 	return count;
 }
 
-static ssize_t flush_rx(struct kobject *kobj, struct kobj_attribute *attr,
+static ssize_t purge_rx(struct kobject *kobj, struct kobj_attribute *attr,
 							  const char *buf, size_t count)
 {
 	struct fscc_port *port = 0;
 
 	port = (struct fscc_port *)dev_get_drvdata((struct device *)kobj);
 
-	fscc_port_flush_rx(port);
+	fscc_port_purge_rx(port);
 
 	return count;
 }
 
-static struct kobj_attribute flush_tx_attribute =
-	__ATTR(flush_tx, SYSFS_WRITE_ONLY_MODE, 0, flush_tx);
+static struct kobj_attribute purge_tx_attribute =
+	__ATTR(purge_tx, SYSFS_WRITE_ONLY_MODE, 0, purge_tx);
 
-static struct kobj_attribute flush_rx_attribute =
-	__ATTR(flush_rx, SYSFS_WRITE_ONLY_MODE, 0, flush_rx);
+static struct kobj_attribute purge_rx_attribute =
+	__ATTR(purge_rx, SYSFS_WRITE_ONLY_MODE, 0, purge_rx);
 
 static struct attribute *command_attrs[] = {
-	&flush_tx_attribute.attr,
-	&flush_rx_attribute.attr,
+	&purge_tx_attribute.attr,
+	&purge_rx_attribute.attr,
 	NULL,
 };
 

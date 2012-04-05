@@ -198,14 +198,14 @@ int fscc_ioctl(struct inode *inode, struct file *file, unsigned int cmd,
 		fscc_port_set_registers(port, (struct fscc_registers *)arg);
 		break;
 
-	case FSCC_FLUSH_TX:
-		if ((error_code = fscc_port_flush_tx(port)) < 0)
+	case FSCC_PURGE_TX:
+		if ((error_code = fscc_port_purge_tx(port)) < 0)
 			return error_code;
 
 		break;
 
-	case FSCC_FLUSH_RX:
-		if ((error_code = fscc_port_flush_rx(port)) < 0)
+	case FSCC_PURGE_RX:
+		if ((error_code = fscc_port_purge_rx(port)) < 0)
 			return error_code;
 
 		break;
