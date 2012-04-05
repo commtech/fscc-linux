@@ -168,60 +168,54 @@ def ignore_timeout(args):
     port.close()
 
 
-main_description = """Tools for using the Commtech FSCC line of cards."""
 port_description = """the FSCC port to interact with"""
-write_description = """Sends a frame of data out of an FSCC port."""
-read_description = """Receives a frame of data from an FSCC port."""
-purge_description = """Removes pending data from an FSCC port."""
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description=main_description)
+    parser = argparse.ArgumentParser()
+    parser.description = 'Tools for using the Commtech FSCC line of cards.'
+    
     subparsers = parser.add_subparsers(title='subcommands')
 
     #
     pwrite = subparsers.add_parser('write')
-   
-    pwrite.description = write_description
-    pwrite.help = write_description
+    pwrite.help = 'Sends a frame of data out of an FSCC port.'
+    pwrite.description = pwrite.help
     pwrite.formatter_class = argparse.ArgumentDefaultsHelpFormatter
     pwrite.set_defaults(func=write)
     
-    pwrite.add_argument('port', nargs='+', help=port_description)
-    pwrite.add_argument('data', 
-                        help='the data to send out of the port')
+    pwrite.add_argument('port', help=port_description)
+    pwrite.add_argument('data', help='the data to send out of the port')
     pwrite.add_argument('--hex', default=False, action='store_true', 
-                        help='whether or not the data is hexidecimal')
+                        help='transfer the data in hexidecimal')
     pwrite.add_argument('-i', '--iterations', type=int, default=1, 
-                        help='how many times to transmit the data')
+                        help='the number of (frames/streams) to transmit')
     
     #
     pread = subparsers.add_parser('read')
-    
-    pread.description = read_description
-    pread.help = read_description
+    pread.help = 'Receives a frame of data from an FSCC port.'
+    pread.description = pread.help
     pread.formatter_class = argparse.ArgumentDefaultsHelpFormatter
     pread.set_defaults(func=read)
     
     pread.add_argument('port', help=port_description)
-    pread.add_argument('-a', '--append-status', default=False, action='store_true',
-                       help='whether or not to append the status bytes to the data')
+    pread.add_argument('-a', '--append-status', default=False, 
+                       action='store_true',
+                       help='append the status bytes to the data')
     pread.add_argument('--hex', default=False, action='store_true', 
-                       help='whether or not the data is hexidecimal')
+                       help='display the data in hexidecimal')
     pread.add_argument('-l', '--length', type=int, default=4096, 
                        help='the largest frame size in frame based mode or how much data to read in transparent')
     pread.add_argument('-i', '--iterations', type=int, default=1, 
-                       help='how many times to read in data')
+                       help='the number of (frames/streams) to receive')
 
     #
     ppurge = subparsers.add_parser('purge')
-
-    ppurge.description = purge_description
-    ppurge.help = purge_description
+    ppurge.help = 'Removes pending data from an FSCC port.'
+    ppurge.description = ppurge.help
     ppurge.formatter_class = argparse.ArgumentDefaultsHelpFormatter
     ppurge.set_defaults(func=purge)
     
-    ppurge.add_argument('port',
-                        help='the fscc node to remove its pending data')
+    ppurge.add_argument('port', help=port_description)
     ppurge.add_argument('--ignore-tx', default=False, action='store_true',
                         help='prevent purging the transmit side')
     ppurge.add_argument('--ignore-rx', default=False, action='store_true',
@@ -229,61 +223,53 @@ if __name__ == '__main__':
 
     #
     pregisters = subparsers.add_parser('registers')
-    
-    pregisters.description = 'sets the register\'s values of an FSCC port'
-    pregisters.help = 'sets the register\'s values of an FSCC port'
-    pregisters.formatter_class = argparse.ArgumentDefaultsHelpFormatter
+    pregisters.help = 'Set/get the register value(s) of an FSCC port.'
+    pregisters.description = pregisters.help
     pregisters.set_defaults(func=registers)
     
-    pregisters.add_argument('port', 
-                            help='the fscc node to have it\'s registers set.')
+    pregisters.add_argument('port', help=port_description)
     pregisters.add_argument('values', nargs='?',
-                            help='the register values to set (file or string)')
+                            help='the new register value(s) (file or string)')
 
     #
     pimemcap = subparsers.add_parser('input-memcap')
-    
-    pimemcap.description = 'TODO'
-    pimemcap.help = 'TODO'
-    pimemcap.formatter_class = argparse.ArgumentDefaultsHelpFormatter
+    pimemcap.help = 'Set/get the input memory cap of an FSCC port.'
+    pimemcap.description = pimemcap.help
     pimemcap.set_defaults(func=input_memcap)
     
-    pimemcap.add_argument('port', help='TODO')
-    pimemcap.add_argument('value', nargs='?', type=int, help='TODO')
+    pimemcap.add_argument('port', help=port_description)
+    pimemcap.add_argument('value', nargs='?', type=int, 
+                          help='the new \'memory cap\' value')
 
     #
     pomemcap = subparsers.add_parser('output-memcap')
-    
-    pomemcap.description = 'TODO'
-    pomemcap.help = 'TODO'
-    pomemcap.formatter_class = argparse.ArgumentDefaultsHelpFormatter
+    pomemcap.help = 'Set/get the output memory cap of an FSCC port.'
+    pomemcap.description = pomemcap.help
     pomemcap.set_defaults(func=output_memcap)
     
-    pomemcap.add_argument('port', help='TODO')
-    pomemcap.add_argument('value', nargs='?', type=int, help='TODO')
+    pomemcap.add_argument('port', help=port_description)
+    pomemcap.add_argument('value', nargs='?', type=int, 
+                          help='the new \'memory cap\' value')
 
     #
     ptx_modifiers = subparsers.add_parser('tx-modifiers')
-    
-    ptx_modifiers.description = 'Sets transmit modifiers'
-    ptx_modifiers.help = 'Sets transmit modifiers'
-    ptx_modifiers.formatter_class = argparse.ArgumentDefaultsHelpFormatter
+    ptx_modifiers.help = 'Set/get the transmit modifiers of an FSCC port.'
+    ptx_modifiers.description = ptx_modifiers.help
     ptx_modifiers.set_defaults(func=tx_modifiers)
     
-    ptx_modifiers.add_argument('port',
-                               help='the fscc node to have it\'s modifiers set')
-    ptx_modifiers.add_argument('value', nargs='?', type=int, help='TODO')
+    ptx_modifiers.add_argument('port', help=port_description)
+    ptx_modifiers.add_argument('value', nargs='?', type=int, 
+                               help='the new \'transmit modifiers\' value')
 
     #
     pignore_timeout = subparsers.add_parser('ignore-timeout')
-    
-    pignore_timeout.description = 'TODO'
-    pignore_timeout.help = 'TODO'
-    pignore_timeout.formatter_class = argparse.ArgumentDefaultsHelpFormatter
+    pignore_timeout.help = 'Set/get the ignore timeout value of an FSCC port.'
+    pignore_timeout.description = pignore_timeout.help
     pignore_timeout.set_defaults(func=ignore_timeout)
     
-    pignore_timeout.add_argument('port', help='TODO')
-    pignore_timeout.add_argument('value', nargs='?', type=int, help='TODO')
+    pignore_timeout.add_argument('port', help=port_description)
+    pignore_timeout.add_argument('value', nargs='?', type=int, 
+                               help='the new \'ignore timeout\' value')
     
     """
 
