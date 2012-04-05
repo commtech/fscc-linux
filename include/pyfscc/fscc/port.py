@@ -26,10 +26,9 @@ import io
 import os
 
 IOCPARM_MASK = 0x7f
-IOC_NONE = 0x20000000
-IOC_NONE = 0x00000000
-IOC_WRITE = 0x40000000
-IOC_READ = 0x80000000
+IO_NONE = 0x00000000
+IO_WRITE = 0x40000000
+IO_READ = 0x80000000
 
 
 def FIX(x):
@@ -37,19 +36,19 @@ def FIX(x):
 
 
 def _IO(x, y):
-    return FIX(IOC_NONE | (x << 8) | y)
+    return FIX(IO_NONE | (x << 8) | y)
 
 
 def _IOR(x, y, t):
-    return FIX(IOC_READ | ((t & IOCPARM_MASK) << 16) | (x << 8) | y)
+    return FIX(IO_READ | ((t & IOCPARM_MASK) << 16) | (x << 8) | y)
 
 
 def _IOW(x, y, t):
-    return FIX(IOC_WRITE | ((t & IOCPARM_MASK) << 16) | (x << 8) | y)
+    return FIX(IO_WRITE | ((t & IOCPARM_MASK) << 16) | (x << 8) | y)
 
 
 def _IOWR(x, y, t):
-    return FIX(IOC_READ | IOC_WRITE | ((t & IOCPARM_MASK) << 16) | (x << 8) | y)
+    return FIX(IO_READ | IO_WRITE | ((t & IOCPARM_MASK) << 16) | (x << 8) | y)
 
 FSCC_IOCTL_MAGIC = 0x18
 
@@ -76,17 +75,18 @@ FSCC_GET_TX_MODIFIERS = _IOR(FSCC_IOCTL_MAGIC, 14, struct.calcsize("P"))
 FSCC_UPDATE_VALUE = -2
 
 
-
 class InvalidRegisterError(Exception):
-	def __init__(self, register_name):
-		self.register_name = register_name
+    def __init__(self, register_name):
+        self.register_name = register_name
 
-	def __str__(self):
-		return "%s is an invalid register" % self.register_name
+    def __str__(self):
+        return "%s is an invalid register" % self.register_name
+
 
 class ReadonlyRegisterError(InvalidRegisterError):
-	def __str__(self):
-		return "%s is a readonly register" % self.register_name
+    def __str__(self):
+        return "%s is a readonly register" % self.register_name
+
 
 class Port(io.FileIO):
 
@@ -98,7 +98,8 @@ class Port(io.FileIO):
         readonly_register_names = ["STAR", "VSTR"]
         writeonly_register_names = ["CMDR"]
 
-        editable_register_names = [r for r in register_names if r not in ["STAR", "VSTR"]]
+        editable_register_names = [r for r in register_names if r not in
+                                   readonly_register_names]
 
         def __init__(self, port=None):
             self.port = port
@@ -201,10 +202,10 @@ class Port(io.FileIO):
                     reg_name, reg_val = d[0].strip().upper(), d[1].strip()
 
                     if reg_name not in self.register_names:
-                    	raise InvalidRegisterError(reg_name)
+                        raise InvalidRegisterError(reg_name)
 
                     if reg_name not in self.editable_register_names:
-                    	raise ReadonlyRegisterError(reg_name)
+                        raise ReadonlyRegisterError(reg_name)
 
                     if reg_val[0] == "0" and reg_val[1] in ["x", "X"]:
                         reg_val = int(reg_val, 16)
@@ -222,7 +223,6 @@ class Port(io.FileIO):
 
                 if value >= 0:
                     export_file.write("%s = 0x%08x\n" % (register_name, value))
-
 
     def __init__(self, file, mode, append_status=False):
         if not os.path.exists(file):
@@ -255,7 +255,7 @@ class Port(io.FileIO):
         buf = fcntl.ioctl(self, FSCC_GET_APPEND_STATUS,
                           struct.pack("I", 0))
         value = struct.unpack("I", buf)
-        
+
         if (value[0]):
             return True
         else:
@@ -270,24 +270,24 @@ class Port(io.FileIO):
     def _get_memcap(self):
         buf = fcntl.ioctl(self, FSCC_GET_MEMORY_CAP,
                           struct.pack("i" * 2, -1, -1))
-                          
+
         return struct.unpack("i" * 2, buf)
 
-    def _set_input_memcap(self, memcap):
+    def _set_imemcap(self, memcap):
         self._set_memcap(memcap, -1)
 
-    def _get_input_memcap(self):
+    def _get_imemcap(self):
         return self._get_memcap()[0]
 
-    input_memory_cap = property(fset=_set_input_memcap, fget=_get_input_memcap)
+    input_memory_cap = property(fset=_set_imemcap, fget=_get_imemcap)
 
-    def _set_output_memcap(self, memcap):
+    def _set_omemcap(self, memcap):
         self._set_memcap(-1, memcap)
 
-    def _get_output_memcap(self):
+    def _get_omemcap(self):
         return self._get_memcap()[1]
 
-    output_memory_cap = property(fset=_set_output_memcap, fget=_get_output_memcap)
+    output_memory_cap = property(fset=_set_omemcap, fget=_get_omemcap)
 
     def _set_ignore_timeout(self, ignore_timeout):
         if ignore_timeout:
@@ -299,10 +299,11 @@ class Port(io.FileIO):
         buf = fcntl.ioctl(self, FSCC_GET_IGNORE_TIMEOUT,
                           struct.pack("I", 0))
         value = struct.unpack("I", buf)
-        
+
         return value[0]
 
-    ignore_timeout = property(fset=_set_ignore_timeout, fget=_get_ignore_timeout)
+    ignore_timeout = property(fset=_set_ignore_timeout,
+                              fget=_get_ignore_timeout)
 
     def _set_tx_modifiers(self, tx_modifiers):
         fcntl.ioctl(self, FSCC_SET_TX_MODIFIERS, tx_modifiers)
@@ -311,7 +312,7 @@ class Port(io.FileIO):
         buf = fcntl.ioctl(self, FSCC_GET_TX_MODIFIERS,
                           struct.pack("I", 0))
         value = struct.unpack("I", buf)
-        
+
         return value[0]
 
     tx_modifiers = property(fset=_set_tx_modifiers, fget=_get_tx_modifiers)
