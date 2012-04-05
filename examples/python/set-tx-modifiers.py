@@ -1,13 +1,21 @@
-#!/usr/bin/python
-
 """
-    This example requires pyfscc. You can download pyfscc by using Mercurial.
+	Copyright (C) 2011 Commtech, Inc.
 
-    > hg clone https://pyfscc.googlecode.com/hg/ pyfscc
+	This file is part of fscc-linux.
 
-    Or manually downloading the tarball from the following location.
+	fscc-linux is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version.
 
-    http://code.google.com/p/pyfscc/downloads/list
+	fscc-linux is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with fscc-linux.	If not, see <http://www.gnu.org/licenses/>.
+
 """
 
 """
@@ -22,6 +30,8 @@
 	TXEXT - Transmit on external signal
 	
 """
+
+# This example requires pyfscc. You can find pyfscc in the /include/ directory.
 
 from fscc import port as fscc_port
 from fscc.port import TXT, XREP, XF
