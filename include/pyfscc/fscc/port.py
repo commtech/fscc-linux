@@ -55,16 +55,23 @@ FSCC_IOCTL_MAGIC = 0x18
 
 FSCC_GET_REGISTERS = _IOR(FSCC_IOCTL_MAGIC, 0, struct.calcsize("P"))
 FSCC_SET_REGISTERS = _IOW(FSCC_IOCTL_MAGIC, 1, struct.calcsize("P"))
+
 FSCC_FLUSH_TX = _IO(FSCC_IOCTL_MAGIC, 2)
 FSCC_FLUSH_RX = _IO(FSCC_IOCTL_MAGIC, 3)
+
 FSCC_ENABLE_APPEND_STATUS = _IO(FSCC_IOCTL_MAGIC, 4)
 FSCC_DISABLE_APPEND_STATUS = _IO(FSCC_IOCTL_MAGIC, 5)
+FSCC_GET_APPEND_STATUS = _IOR(FSCC_IOCTL_MAGIC, 13, struct.calcsize("P"))
+
 FSCC_SET_MEMORY_CAP = _IOW(FSCC_IOCTL_MAGIC, 6, struct.calcsize("P"))
+FSCC_GET_MEMORY_CAP = _IOR(FSCC_IOCTL_MAGIC, 7, struct.calcsize("P"))
 
 FSCC_ENABLE_IGNORE_TIMEOUT = _IO(FSCC_IOCTL_MAGIC, 10)
 FSCC_DISABLE_IGNORE_TIMEOUT = _IO(FSCC_IOCTL_MAGIC, 11)
+FSCC_GET_IGNORE_TIMEOUT = _IOR(FSCC_IOCTL_MAGIC, 15, struct.calcsize("P"))
 
-FSCC_SET_TX_MODIFIERS = _IOW(FSCC_IOCTL_MAGIC, 12, struct.calcsize("P"))
+FSCC_SET_TX_MODIFIERS = _IOW(FSCC_IOCTL_MAGIC, 12, struct.calcsize("i"))
+FSCC_GET_TX_MODIFIERS = _IOR(FSCC_IOCTL_MAGIC, 14, struct.calcsize("P"))
 
 FSCC_UPDATE_VALUE = -2
 
@@ -226,17 +233,17 @@ class Port(io.FileIO):
         self.registers = Port.Registers(self)
         self.append_status = append_status
 
-    def flush_tx(self):
-        try:
-            fcntl.ioctl(self, FSCC_FLUSH_TX)
-        except IOError as e:
-            raise e
-
-    def flush_rx(self):
-        try:
-            fcntl.ioctl(self, FSCC_FLUSH_RX)
-        except IOError as e:
-            raise e
+    def purge(self, tx=True, rx=True):
+        if (tx):
+            try:
+                fcntl.ioctl(self, FSCC_FLUSH_TX)
+            except IOError as e:
+                raise e
+        if (rx):
+            try:
+                fcntl.ioctl(self, FSCC_FLUSH_RX)
+            except IOError as e:
+                raise e
 
     def _set_append_status(self, append_status):
         if append_status:
@@ -244,21 +251,43 @@ class Port(io.FileIO):
         else:
             fcntl.ioctl(self, FSCC_DISABLE_APPEND_STATUS)
 
-    append_status = property(fset=_set_append_status)
+    def _get_append_status(self):
+        buf = fcntl.ioctl(self, FSCC_GET_APPEND_STATUS,
+                          struct.pack("I", 0))
+        value = struct.unpack("I", buf)
+        
+        if (value[0]):
+            return True
+        else:
+            return False
 
-    def _set_memory_cap(self, input_memory_cap, output_memory_cap):
+    append_status = property(fset=_set_append_status, fget=_get_append_status)
+
+    def _set_memcap(self, input_memcap, output_memcap):
         fcntl.ioctl(self, FSCC_SET_MEMORY_CAP,
-                    struct.pack("i" * 2, input_memory_cap, output_memory_cap))
+                    struct.pack("i" * 2, input_memcap, output_memcap))
 
-    def _set_input_memory_cap(self, memory_cap):
-        self._set_memory_cap(memory_cap, -1)
+    def _get_memcap(self):
+        buf = fcntl.ioctl(self, FSCC_GET_MEMORY_CAP,
+                          struct.pack("i" * 2, -1, -1))
+                          
+        return struct.unpack("i" * 2, buf)
 
-    input_memory_cap = property(fset=_set_input_memory_cap)
+    def _set_input_memcap(self, memcap):
+        self._set_memcap(memcap, -1)
 
-    def _set_output_memory_cap(self, memory_cap):
-        self._set_memory_cap(-1, memory_cap)
+    def _get_input_memcap(self):
+        return self._get_memcap()[0]
 
-    output_memory_cap = property(fset=_set_output_memory_cap)
+    input_memory_cap = property(fset=_set_input_memcap, fget=_get_input_memcap)
+
+    def _set_output_memcap(self, memcap):
+        self._set_memcap(-1, memcap)
+
+    def _get_output_memcap(self):
+        return self._get_memcap()[1]
+
+    output_memory_cap = property(fset=_set_output_memcap, fget=_get_output_memcap)
 
     def _set_ignore_timeout(self, ignore_timeout):
         if ignore_timeout:
@@ -266,13 +295,26 @@ class Port(io.FileIO):
         else:
             fcntl.ioctl(self, FSCC_DISABLE_IGNORE_TIMEOUT)
 
-    ignore_timeout = property(fset=_set_ignore_timeout)
+    def _get_ignore_timeout(self):
+        buf = fcntl.ioctl(self, FSCC_GET_IGNORE_TIMEOUT,
+                          struct.pack("I", 0))
+        value = struct.unpack("I", buf)
+        
+        return value[0]
+
+    ignore_timeout = property(fset=_set_ignore_timeout, fget=_get_ignore_timeout)
 
     def _set_tx_modifiers(self, tx_modifiers):
-        fcntl.ioctl(self, FSCC_SET_TX_MODIFIERS,
-                    struct.pack("i", tx_modifiers))
+        fcntl.ioctl(self, FSCC_SET_TX_MODIFIERS, tx_modifiers)
 
-    tx_modifiers = property(fset=_set_tx_modifiers)
+    def _get_tx_modifiers(self):
+        buf = fcntl.ioctl(self, FSCC_GET_TX_MODIFIERS,
+                          struct.pack("I", 0))
+        value = struct.unpack("I", buf)
+        
+        return value[0]
+
+    tx_modifiers = property(fset=_set_tx_modifiers, fget=_get_tx_modifiers)
 
     def read(self, num_bytes):
         if num_bytes:
