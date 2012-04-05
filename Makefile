@@ -13,6 +13,7 @@ default:
 	$(MAKE) -C $(KDIR) SUBDIRS=$(PWD) modules
 	
 install:
+    cp fscc.rules /etc/udev/rules.d/
 	cp fscc.ko /lib/modules/`uname -r`/kernel/drivers/char/
 	depmod
 	mkdir -p /usr/local/include/fscc
@@ -22,6 +23,7 @@ uninstall:
 	rm /lib/modules/`uname -r`/kernel/drivers/char/fscc.ko
 	depmod
 	rm -rf /usr/local/include/fscc
+	rm /etc/udev/rules.d/fscc.rules
 
 clean:
 	@find . $(IGNORE) \
