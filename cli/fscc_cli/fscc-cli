@@ -26,6 +26,7 @@ import sys
 import binascii
 import threading
 import subprocess
+import textwrap
 import os.path
 
 import argparse
@@ -41,13 +42,12 @@ def write(args):
     except:
         pass
 
-    for port_name in args.port:
-        port = fscc_port.Port(port_name, "wb")
+    port = fscc_port.Port(args.port, "wb")
 
-        for i in range(args.iterations):
-            port.write(outgoing_data)
+    for i in range(args.iterations):
+        port.write(outgoing_data)
 
-        port.close()
+    port.close()
 
 
 def read(args):
@@ -61,7 +61,7 @@ def read(args):
         port.append_status = True
 
     for i in range(args.iterations):
-        incoming_data = port.read(args.length)
+        incoming_data = port.read(args.max_bytes)
 
         if args.hex:
             incoming_data = binascii.a2b_hex(incoming_data)
@@ -127,7 +127,7 @@ def set_clock(args):
 def input_memcap(args):
     port = fscc_port.Port(args.port, "wb")
     
-    if args.value:
+    if args.value is not None:
         port.input_memory_cap = args.value
     else:
         print(port.input_memory_cap)
@@ -138,7 +138,7 @@ def input_memcap(args):
 def output_memcap(args):
     port = fscc_port.Port(args.port, "wb")
     
-    if args.value:
+    if args.value is not None:
         port.output_memory_cap = args.value
     else:
         print(port.output_memory_cap)
@@ -149,7 +149,7 @@ def output_memcap(args):
 def tx_modifiers(args):
     port = fscc_port.Port(args.port, "wb")
 
-    if args.value:
+    if args.value is not None:
         port.tx_modifiers = args.value
     else:
         print(port.tx_modifiers)
@@ -159,8 +159,8 @@ def tx_modifiers(args):
 
 def ignore_timeout(args):
     port = fscc_port.Port(args.port, "wb")
-
-    if args.value:
+    
+    if args.value is not None:
         port.ignore_timeout = args.value
     else:
         print(port.ignore_timeout)
@@ -180,7 +180,7 @@ if __name__ == '__main__':
     pwrite = subparsers.add_parser('write')
     pwrite.help = 'Sends a frame of data out of an FSCC port.'
     pwrite.description = pwrite.help
-    pwrite.formatter_class = argparse.ArgumentDefaultsHelpFormatter
+    pwrite.formatter_class = argparse.RawTextHelpFormatter
     pwrite.set_defaults(func=write)
     
     pwrite.add_argument('port', help=port_description)
@@ -189,12 +189,26 @@ if __name__ == '__main__':
                         help='transfer the data in hexidecimal')
     pwrite.add_argument('-i', '--iterations', type=int, default=1, 
                         help='the number of (frames/streams) to transmit')
+                            
+    pwrite.epilog = \
+    textwrap.dedent("""
+    examples:
+      # Send a frame/stream as ascii data.
+      fscc-cli write /dev/fscc0 "0123456789ABCDEF"
+      
+      # Send a frame/stream as hexidecimal data.
+      fscc-cli write --hex /dev/fscc0 "0123456789ABCDEF"
+      
+      # Send three frames/streams.
+      fscc-cli write --iterations 3 /dev/fscc0 "0123456789ABCDEF"
+      
+    """)
     
     #
     pread = subparsers.add_parser('read')
     pread.help = 'Receives a frame of data from an FSCC port.'
     pread.description = pread.help
-    pread.formatter_class = argparse.ArgumentDefaultsHelpFormatter
+    pread.formatter_class = argparse.RawTextHelpFormatter
     pread.set_defaults(func=read)
     
     pread.add_argument('port', help=port_description)
@@ -203,16 +217,35 @@ if __name__ == '__main__':
                        help='append the status bytes to the data')
     pread.add_argument('--hex', default=False, action='store_true', 
                        help='display the data in hexidecimal')
-    pread.add_argument('-l', '--length', type=int, default=4096, 
+    pread.add_argument('-m', '--max-bytes', type=int, default=4096, 
                        help='the largest frame size in frame based mode or how much data to read in transparent')
     pread.add_argument('-i', '--iterations', type=int, default=1, 
                        help='the number of (frames/streams) to receive')
+                            
+    pread.epilog = \
+    textwrap.dedent("""
+    examples:
+      # Read in a frame/stream as ascii data.
+      fscc-cli read /dev/fscc0
+      > b'0123456789ABCDEF'
+      
+      # Read in a frame/stream as hexidecimal data.
+      fscc-cli read --hex /dev/fscc0
+      b'\\x01#Eg\\x89\\xab\\xcd\\xef'
+      
+      # Read in three frames/streams.
+      fscc-cli read --iterations 3 /dev/fscc0
+      > b'0123456789ABCDEF'
+      > b'0123456789ABCDEF'
+      > b'0123456789ABCDEF'
+      
+    """)
 
     #
     ppurge = subparsers.add_parser('purge')
     ppurge.help = 'Removes pending data from an FSCC port.'
     ppurge.description = ppurge.help
-    ppurge.formatter_class = argparse.ArgumentDefaultsHelpFormatter
+    ppurge.formatter_class = argparse.RawTextHelpFormatter
     ppurge.set_defaults(func=purge)
     
     ppurge.add_argument('port', help=port_description)
@@ -220,56 +253,136 @@ if __name__ == '__main__':
                         help='prevent purging the transmit side')
     ppurge.add_argument('--ignore-rx', default=False, action='store_true',
                         help='prevent purging the receive side')
+                            
+    ppurge.epilog = \
+    textwrap.dedent("""
+    examples:
+      # Purge data from both the transmit and receive sides.
+      fscc-cli purge /dev/fscc0   
+      
+      # Purge data from the receive side only.
+      fscc-cli purge /dev/fscc0 --ignore-tx 
+      
+      # Purge data from the transmit side only.
+      fscc-cli purge /dev/fscc0 --ignore-rx
+      
+    """)
 
     #
     pregisters = subparsers.add_parser('registers')
     pregisters.help = 'Set/get the register value(s) of an FSCC port.'
     pregisters.description = pregisters.help
+    pregisters.formatter_class = argparse.RawTextHelpFormatter
     pregisters.set_defaults(func=registers)
     
     pregisters.add_argument('port', help=port_description)
     pregisters.add_argument('values', nargs='?',
                             help='the new register value(s) (file or string)')
+                            
+    pregisters.epilog = \
+    textwrap.dedent("""
+    examples:
+      # Set the BGR register to a value of 1
+      fscc-cli registers /dev/fscc0 "BGR = 0x00000001"    
+      
+    """)
 
     #
     pimemcap = subparsers.add_parser('input-memcap')
     pimemcap.help = 'Set/get the input memory cap of an FSCC port.'
     pimemcap.description = pimemcap.help
+    pimemcap.formatter_class = argparse.RawTextHelpFormatter
     pimemcap.set_defaults(func=input_memcap)
     
     pimemcap.add_argument('port', help=port_description)
     pimemcap.add_argument('value', nargs='?', type=int, 
                           help='the new \'memory cap\' value')
+                          
+    pimemcap.epilog = \
+    textwrap.dedent("""
+    examples:
+      # Set the memory cap to 10000.
+      > fscc-cli input-memcap /dev/fscc0 10000 
+      
+      # Get the current memory cap.
+      > fscc-cli input-memcap /dev/fscc0 
+      10000
+      
+    """)
 
     #
     pomemcap = subparsers.add_parser('output-memcap')
     pomemcap.help = 'Set/get the output memory cap of an FSCC port.'
     pomemcap.description = pomemcap.help
+    pomemcap.formatter_class = argparse.RawTextHelpFormatter
     pomemcap.set_defaults(func=output_memcap)
     
     pomemcap.add_argument('port', help=port_description)
     pomemcap.add_argument('value', nargs='?', type=int, 
                           help='the new \'memory cap\' value')
+                          
+    pomemcap.epilog = \
+    textwrap.dedent("""
+    examples:
+      # Set the memory cap to 10000.
+      > fscc-cli output-memcap /dev/fscc0 10000 
+      
+      # Get the current memory cap.
+      > fscc-cli output-memcap /dev/fscc0 
+      10000
+      
+    """)
 
     #
     ptx_modifiers = subparsers.add_parser('tx-modifiers')
     ptx_modifiers.help = 'Set/get the transmit modifiers of an FSCC port.'
     ptx_modifiers.description = ptx_modifiers.help
+    ptx_modifiers.formatter_class = argparse.RawTextHelpFormatter
     ptx_modifiers.set_defaults(func=tx_modifiers)
     
     ptx_modifiers.add_argument('port', help=port_description)
     ptx_modifiers.add_argument('value', nargs='?', type=int, 
                                help='the new \'transmit modifiers\' value')
+                               
+    ptx_modifiers.epilog = \
+    textwrap.dedent("""
+    examples:
+      # XF(0) - Normal transmit - disable modifiers
+      # XREP(1) - Transmit repeat
+      # TXT(2) - Transmit on timer
+      # TXEXT(4) - Transmit on external signal
+      
+      # Set the transmit modifiers to TXT(2) & XREP(1).
+      > fscc-cli tx-modifiers /dev/fscc0 3 
+      
+      # Get the current transmit modifiers.
+      > fscc-cli tx-modifiers /dev/fscc0 
+      3
+      
+    """)
 
     #
     pignore_timeout = subparsers.add_parser('ignore-timeout')
     pignore_timeout.help = 'Set/get the ignore timeout value of an FSCC port.'
     pignore_timeout.description = pignore_timeout.help
+    pignore_timeout.formatter_class = argparse.RawTextHelpFormatter
     pignore_timeout.set_defaults(func=ignore_timeout)
     
     pignore_timeout.add_argument('port', help=port_description)
     pignore_timeout.add_argument('value', nargs='?', type=int, 
-                               help='the new \'ignore timeout\' value')
+                                 help='the new \'ignore timeout\' value')
+                                 
+    pignore_timeout.epilog = \
+    textwrap.dedent("""
+    examples:
+      # Disable ignore timeout.
+      > fscc-cli ignore-timeout /dev/fscc0 0 
+      
+      # Get current ignore timeout value.
+      > fscc-cli ignore-timeout /dev/fscc0 
+      0
+      
+    """)
     
     """
 
