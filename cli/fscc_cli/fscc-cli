@@ -20,11 +20,8 @@
 
 """
 
-import random
-import string
 import sys
 import binascii
-import threading
 import subprocess
 import textwrap
 import os.path
@@ -32,6 +29,7 @@ import os.path
 import argparse
 
 from fscc import port as fscc_port
+
 
 def write(args):
     outgoing_data = args.data.encode()
@@ -52,9 +50,9 @@ def write(args):
 
 def read(args):
     port = fscc_port.Port(args.port, "rb")
-    
+
     old_status = port.append_status
-    
+
     if args.append_status == 0:
         port.append_status = False
     else:
@@ -67,7 +65,7 @@ def read(args):
             incoming_data = binascii.a2b_hex(incoming_data)
 
         print(incoming_data)
-        
+
     port.append_status = old_status
 
     port.close()
@@ -77,13 +75,13 @@ def purge(args):
     port = fscc_port.Port(args.port, "wb")
 
     port.purge(not args.ignore_tx, not args.ignore_rx)
-        
+
     port.close()
 
-        
+
 def registers(args):
     port = fscc_port.Port(args.port, "w+")
-    
+
     if args.values == None:
         port.registers.export_to_file(sys.stdout)
     else:
@@ -91,7 +89,7 @@ def registers(args):
             file_path = args.values
         else:
             file_path = "/tmp/fscc_settings"
-            
+
             import_file = open(file_path, "w+")
 
             for line in args.values.split("\n"):
@@ -104,21 +102,25 @@ def registers(args):
         port.registers.import_from_file(import_file)
 
         import_file.close()
-        
+
     port.close()
 
 
 def set_clock(args):
     if args.frequency < 20000 or args.frequency > 200000000:
-        sys.stderr.write("Error: frequency out of allowed range (20kHz - 200MHz).\n")
+        sys.stderr.write("Error: frequency out of allowed range (20kHz - " \
+                         "200MHz).\n")
         return -1
 
     if args.frequency > 50000000:
-        sys.stdout.write("Warning: frequency above recommended range (20kHz - 50Mhz).\n")
+        sys.stdout.write("Warning: frequency above recommended range (20kHz " \
+                         "- 50Mhz).\n")
         return 0
 
     for port_name in args.port:
-        retcode = subprocess.call([os.path.dirname(__file__) + "/fscc-set-clock", port_name, str(args.frequency), "1"])
+        retcode = subprocess.call([os.path.dirname(__file__) +
+                                  "/fscc-set-clock",
+                                  port_name, str(args.frequency), "1"])
 
         if retcode != 0:
             return retcode
@@ -126,23 +128,23 @@ def set_clock(args):
 
 def input_memcap(args):
     port = fscc_port.Port(args.port, "wb")
-    
+
     if args.value is not None:
         port.input_memory_cap = args.value
     else:
         print(port.input_memory_cap)
-        
+
     port.close()
 
 
 def output_memcap(args):
     port = fscc_port.Port(args.port, "wb")
-    
+
     if args.value is not None:
         port.output_memory_cap = args.value
     else:
         print(port.output_memory_cap)
-        
+
     port.close()
 
 
@@ -153,18 +155,18 @@ def tx_modifiers(args):
         port.tx_modifiers = args.value
     else:
         print(port.tx_modifiers)
-        
+
     port.close()
 
 
 def ignore_timeout(args):
     port = fscc_port.Port(args.port, "wb")
-    
+
     if args.value is not None:
         port.ignore_timeout = args.value
     else:
         print(port.ignore_timeout)
-        
+
     port.close()
 
 
@@ -173,7 +175,7 @@ port_description = """the FSCC port to interact with"""
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.description = 'Tools for using the Commtech FSCC line of cards.'
-    
+
     subparsers = parser.add_subparsers(title='subcommands')
 
     #
@@ -182,63 +184,64 @@ if __name__ == '__main__':
     pwrite.description = pwrite.help
     pwrite.formatter_class = argparse.RawTextHelpFormatter
     pwrite.set_defaults(func=write)
-    
+
     pwrite.add_argument('port', help=port_description)
     pwrite.add_argument('data', help='the data to send out of the port')
-    pwrite.add_argument('--hex', default=False, action='store_true', 
+    pwrite.add_argument('--hex', default=False, action='store_true',
                         help='transfer the data in hexidecimal')
-    pwrite.add_argument('-i', '--iterations', type=int, default=1, 
+    pwrite.add_argument('-i', '--iterations', type=int, default=1,
                         help='the number of (frames/streams) to transmit')
-                            
+
     pwrite.epilog = \
     textwrap.dedent("""
     examples:
       # Send a frame/stream as ascii data.
       fscc-cli write /dev/fscc0 "0123456789ABCDEF"
-      
+
       # Send a frame/stream as hexidecimal data.
       fscc-cli write --hex /dev/fscc0 "0123456789ABCDEF"
-      
+
       # Send three frames/streams.
       fscc-cli write --iterations 3 /dev/fscc0 "0123456789ABCDEF"
-      
+
     """)
-    
+
     #
     pread = subparsers.add_parser('read')
     pread.help = 'Receives a frame of data from an FSCC port.'
     pread.description = pread.help
     pread.formatter_class = argparse.RawTextHelpFormatter
     pread.set_defaults(func=read)
-    
+
     pread.add_argument('port', help=port_description)
-    pread.add_argument('-a', '--append-status', default=False, 
+    pread.add_argument('-a', '--append-status', default=False,
                        action='store_true',
                        help='append the status bytes to the data')
-    pread.add_argument('--hex', default=False, action='store_true', 
+    pread.add_argument('--hex', default=False, action='store_true',
                        help='display the data in hexidecimal')
-    pread.add_argument('-m', '--max-bytes', type=int, default=4096, 
-                       help='the largest frame size in frame based mode or how much data to read in transparent')
-    pread.add_argument('-i', '--iterations', type=int, default=1, 
+    pread.add_argument('-m', '--max-bytes', type=int, default=4096,
+                       help='the largest frame size in frame based mode or ' \
+                       'how much data to read in transparent')
+    pread.add_argument('-i', '--iterations', type=int, default=1,
                        help='the number of (frames/streams) to receive')
-                            
+
     pread.epilog = \
     textwrap.dedent("""
     examples:
       # Read in a frame/stream as ascii data.
       fscc-cli read /dev/fscc0
       > b'0123456789ABCDEF'
-      
+
       # Read in a frame/stream as hexidecimal data.
       fscc-cli read --hex /dev/fscc0
       b'\\x01#Eg\\x89\\xab\\xcd\\xef'
-      
+
       # Read in three frames/streams.
       fscc-cli read --iterations 3 /dev/fscc0
       > b'0123456789ABCDEF'
       > b'0123456789ABCDEF'
       > b'0123456789ABCDEF'
-      
+
     """)
 
     #
@@ -247,25 +250,25 @@ if __name__ == '__main__':
     ppurge.description = ppurge.help
     ppurge.formatter_class = argparse.RawTextHelpFormatter
     ppurge.set_defaults(func=purge)
-    
+
     ppurge.add_argument('port', help=port_description)
     ppurge.add_argument('--ignore-tx', default=False, action='store_true',
                         help='prevent purging the transmit side')
     ppurge.add_argument('--ignore-rx', default=False, action='store_true',
                         help='prevent purging the receive side')
-                            
+
     ppurge.epilog = \
     textwrap.dedent("""
     examples:
       # Purge data from both the transmit and receive sides.
-      fscc-cli purge /dev/fscc0   
-      
+      fscc-cli purge /dev/fscc0
+
       # Purge data from the receive side only.
-      fscc-cli purge /dev/fscc0 --ignore-tx 
-      
+      fscc-cli purge /dev/fscc0 --ignore-tx
+
       # Purge data from the transmit side only.
       fscc-cli purge /dev/fscc0 --ignore-rx
-      
+
     """)
 
     #
@@ -274,17 +277,17 @@ if __name__ == '__main__':
     pregisters.description = pregisters.help
     pregisters.formatter_class = argparse.RawTextHelpFormatter
     pregisters.set_defaults(func=registers)
-    
+
     pregisters.add_argument('port', help=port_description)
     pregisters.add_argument('values', nargs='?',
                             help='the new register value(s) (file or string)')
-                            
+
     pregisters.epilog = \
     textwrap.dedent("""
     examples:
       # Set the BGR register to a value of 1
-      fscc-cli registers /dev/fscc0 "BGR = 0x00000001"    
-      
+      fscc-cli registers /dev/fscc0 "BGR = 0x00000001"
+
     """)
 
     #
@@ -293,21 +296,21 @@ if __name__ == '__main__':
     pimemcap.description = pimemcap.help
     pimemcap.formatter_class = argparse.RawTextHelpFormatter
     pimemcap.set_defaults(func=input_memcap)
-    
+
     pimemcap.add_argument('port', help=port_description)
-    pimemcap.add_argument('value', nargs='?', type=int, 
+    pimemcap.add_argument('value', nargs='?', type=int,
                           help='the new \'memory cap\' value')
-                          
+
     pimemcap.epilog = \
     textwrap.dedent("""
     examples:
       # Set the memory cap to 10000.
-      > fscc-cli input-memcap /dev/fscc0 10000 
-      
+      > fscc-cli input-memcap /dev/fscc0 10000
+
       # Get the current memory cap.
-      > fscc-cli input-memcap /dev/fscc0 
+      > fscc-cli input-memcap /dev/fscc0
       10000
-      
+
     """)
 
     #
@@ -316,21 +319,21 @@ if __name__ == '__main__':
     pomemcap.description = pomemcap.help
     pomemcap.formatter_class = argparse.RawTextHelpFormatter
     pomemcap.set_defaults(func=output_memcap)
-    
+
     pomemcap.add_argument('port', help=port_description)
-    pomemcap.add_argument('value', nargs='?', type=int, 
+    pomemcap.add_argument('value', nargs='?', type=int,
                           help='the new \'memory cap\' value')
-                          
+
     pomemcap.epilog = \
     textwrap.dedent("""
     examples:
       # Set the memory cap to 10000.
-      > fscc-cli output-memcap /dev/fscc0 10000 
-      
+      > fscc-cli output-memcap /dev/fscc0 10000
+
       # Get the current memory cap.
-      > fscc-cli output-memcap /dev/fscc0 
+      > fscc-cli output-memcap /dev/fscc0
       10000
-      
+
     """)
 
     #
@@ -339,11 +342,11 @@ if __name__ == '__main__':
     ptx_modifiers.description = ptx_modifiers.help
     ptx_modifiers.formatter_class = argparse.RawTextHelpFormatter
     ptx_modifiers.set_defaults(func=tx_modifiers)
-    
+
     ptx_modifiers.add_argument('port', help=port_description)
-    ptx_modifiers.add_argument('value', nargs='?', type=int, 
+    ptx_modifiers.add_argument('value', nargs='?', type=int,
                                help='the new \'transmit modifiers\' value')
-                               
+
     ptx_modifiers.epilog = \
     textwrap.dedent("""
     examples:
@@ -351,14 +354,14 @@ if __name__ == '__main__':
       # XREP(1) - Transmit repeat
       # TXT(2) - Transmit on timer
       # TXEXT(4) - Transmit on external signal
-      
+
       # Set the transmit modifiers to TXT(2) & XREP(1).
-      > fscc-cli tx-modifiers /dev/fscc0 3 
-      
+      > fscc-cli tx-modifiers /dev/fscc0 3
+
       # Get the current transmit modifiers.
-      > fscc-cli tx-modifiers /dev/fscc0 
+      > fscc-cli tx-modifiers /dev/fscc0
       3
-      
+
     """)
 
     #
@@ -367,30 +370,33 @@ if __name__ == '__main__':
     pignore_timeout.description = pignore_timeout.help
     pignore_timeout.formatter_class = argparse.RawTextHelpFormatter
     pignore_timeout.set_defaults(func=ignore_timeout)
-    
+
     pignore_timeout.add_argument('port', help=port_description)
-    pignore_timeout.add_argument('value', nargs='?', type=int, 
+    pignore_timeout.add_argument('value', nargs='?', type=int,
                                  help='the new \'ignore timeout\' value')
-                                 
+
     pignore_timeout.epilog = \
     textwrap.dedent("""
     examples:
       # Disable ignore timeout.
-      > fscc-cli ignore-timeout /dev/fscc0 0 
-      
+      > fscc-cli ignore-timeout /dev/fscc0 0
+
       # Get current ignore timeout value.
-      > fscc-cli ignore-timeout /dev/fscc0 
+      > fscc-cli ignore-timeout /dev/fscc0
       0
-      
+
     """)
-    
+
     """
 
-    parser_set_clock = subparsers.add_parser('set-clock', help='Sets clock frequency')
-    parser_set_clock.add_argument('port', type=str, nargs='+', help='the fscc node to have its clock set')
-    parser_set_clock.add_argument('frequency', type=int, default=0, help='TODO')
+    parser_set_clock = subparsers.add_parser('set-clock',
+                                             help='Sets clock frequency')
+    parser_set_clock.add_argument('port', type=str, nargs='+',
+                                  help='the fscc node to have its clock set')
+    parser_set_clock.add_argument('frequency', type=int, default=0,
+                                  help='TODO')
     parser_set_clock.set_defaults(func=set_clock)
-    """    
-    
+    """
+
     args = parser.parse_args()
     args.func(args)
