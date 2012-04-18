@@ -844,7 +844,12 @@ unsigned fscc_port_get_iframes_qty(struct fscc_port *port)
 
 	return_val_if_untrue(port, 0);
 
-	if (port->pending_iframe)
+	/* TODO: Counts a frame only if has data as a workaround for a situation
+	   where a frame is created but no data is incoming yet. Likely with
+	   handling when it is already handled,
+
+	   Could potentially be removed when I resolve that issue. */
+	if (port->pending_iframe && fscc_frame_get_current_length(port->pending_iframe) > 0)
 		qty++;
 
 	return qty + get_frames_qty(&port->iframes, &port->iframe_spinlock);
