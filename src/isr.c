@@ -94,16 +94,6 @@ void iframe_worker(unsigned long data)
 
 	spin_lock_irqsave(&port->iframe_spinlock, flags);
 
-	if (!port->pending_iframe) {
-		//port->pending_iframe = fscc_frame_new(0, fscc_port_has_dma(port), port);
-		port->pending_iframe = fscc_frame_new(0, 0, port);
-
-		if (!port->pending_iframe) {
-			spin_unlock_irqrestore(&port->iframe_spinlock, flags);
-			return;
-		}
-	}
-
 	finished_frame = (fscc_port_get_RFCNT(port) > 0) ? 1 : 0;
 
 	if (finished_frame) {
@@ -111,7 +101,11 @@ void iframe_worker(unsigned long data)
 		unsigned current_length = 0;
 
 		bc_fifo_l = fscc_port_get_register(port, 0, BC_FIFO_L_OFFSET);
-		current_length = fscc_frame_get_current_length(port->pending_iframe);
+
+		if (port->pending_iframe)
+			current_length = fscc_frame_get_current_length(port->pending_iframe);
+		else
+			current_length = 0;
 
 		receive_length = bc_fifo_l - current_length;
 	} else {
@@ -127,6 +121,16 @@ void iframe_worker(unsigned long data)
 
 	if (receive_length > 0) {
 		char *buffer = 0;
+
+		if (!port->pending_iframe) {
+			//port->pending_iframe = fscc_frame_new(0, fscc_port_has_dma(port), port);
+			port->pending_iframe = fscc_frame_new(0, 0, port);
+
+			if (!port->pending_iframe) {
+				spin_unlock_irqrestore(&port->iframe_spinlock, flags);
+				return;
+			}
+		}
 
 		/* Make sure we don't go over the user's memory constraint. */
 		if (fscc_port_get_input_memory_usage(port, 0) + receive_length > fscc_port_get_input_memory_cap(port)) {
