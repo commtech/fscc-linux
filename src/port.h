@@ -132,6 +132,8 @@ struct fscc_port {
 	unsigned ignore_timeout;
 	int tx_modifiers;
 
+	struct timer_list timer;
+
 #ifdef DEBUG
 	struct debug_interrupt_tracker *interrupt_tracker;
 	struct tasklet_struct print_tasklet;
@@ -234,5 +236,7 @@ void fscc_port_increment_interrupt_counts(struct fscc_port *port,
 int fscc_port_set_tx_modifiers(struct fscc_port *port, int tx_modifiers);
 unsigned fscc_port_get_tx_modifiers(struct fscc_port *port);
 void fscc_port_execute_transmit(struct fscc_port *port);
+
+void fscc_port_reset_timer(struct fscc_port *port);
 
 #endif

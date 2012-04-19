@@ -46,6 +46,9 @@ irqreturn_t fscc_isr(int irq, void *potential_port, struct pt_regs *regs)
 	if (!isr_value)
 		return IRQ_NONE;
 
+	if (timer_pending(&port->timer))
+		del_timer(&port->timer);
+
 	port->last_isr_value |= isr_value;
 	streaming = fscc_port_is_streaming(port);
 
@@ -55,7 +58,7 @@ irqreturn_t fscc_isr(int irq, void *potential_port, struct pt_regs *regs)
 	}
 	else {
 		if (isr_value & (RFE | RFT | RFS))
-		   tasklet_schedule(&port->iframe_tasklet);
+			tasklet_schedule(&port->iframe_tasklet);
 	}
 
 	if (isr_value & TFT && !fscc_port_has_dma(port))
@@ -77,6 +80,8 @@ irqreturn_t fscc_isr(int irq, void *potential_port, struct pt_regs *regs)
 	tasklet_schedule(&port->print_tasklet);
 	fscc_port_increment_interrupt_counts(port, isr_value);
 #endif
+
+	fscc_port_reset_timer(port);
 
 	return IRQ_HANDLED;
 }
@@ -363,3 +368,15 @@ void oframe_worker(unsigned long data)
 	spin_unlock_irqrestore(&port->oframe_spinlock, flags);
 }
 
+void timer_handler(unsigned long data)
+{
+	struct fscc_port *port = (struct fscc_port *)data;
+	unsigned streaming = 0;
+	
+	streaming = fscc_port_is_streaming(port);
+
+	if (streaming)
+		tasklet_schedule(&port->istream_tasklet);
+	else
+		tasklet_schedule(&port->iframe_tasklet);
+}

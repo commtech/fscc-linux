@@ -21,7 +21,6 @@
 #ifndef FSCC_ISR_H
 #define FSCC_ISR_H
 
-//#include <linux/irqreturn.h> /* irqreturn_t */
 #include <linux/version.h> /* LINUX_VERSION_CODE, KERNEL_VERSION */
 #include <linux/interrupt.h> /* struct pt_regs */
 
@@ -34,5 +33,7 @@ irqreturn_t fscc_isr(int irq, void *dev_id, struct pt_regs *regs);
 void oframe_worker(unsigned long data);
 void iframe_worker(unsigned long data);
 void istream_worker(unsigned long data);
+
+void timer_handler(unsigned long data);
 
 #endif

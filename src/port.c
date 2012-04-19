@@ -218,6 +218,8 @@ struct fscc_port *fscc_port_new(struct fscc_card *card, unsigned channel,
 
 	fscc_port_set_clock_bits(port, clock_bits);
 
+	setup_timer(&port->timer, &timer_handler, (unsigned long)port);
+
 	if (port->card->dma) {
 		fscc_port_execute_RST_R(port);
 		fscc_port_execute_RST_T(port);
@@ -235,6 +237,8 @@ void fscc_port_delete(struct fscc_port *port)
 	unsigned irq_num = 0;
 
 	return_if_untrue(port);
+
+	del_timer(&port->timer);
 
 	irq_num = fscc_card_get_irq(port->card);
 	free_irq(irq_num, port);
@@ -268,6 +272,12 @@ void fscc_port_delete(struct fscc_port *port)
 		kfree(port->name);
 
 	kfree(port);
+}
+
+void fscc_port_reset_timer(struct fscc_port *port)
+{	
+	if (mod_timer(&port->timer, jiffies + msecs_to_jiffies(250)))
+		dev_err(port->device, "mod_timer\n");
 }
 
 /* Basic check to see if the CE bit is set. */
