@@ -149,6 +149,7 @@ static struct kobj_attribute dpllr_attribute =
 static struct kobj_attribute fcr_attribute =
 	__ATTR(fcr, SYSFS_READ_WRITE_MODE, bar2_register_show, bar2_register_store);
 
+#ifdef DEBUG
 static struct kobj_attribute bcfl_attribute =
 	__ATTR(bcfl, SYSFS_READ_ONLY_MODE, bar0_register_show, bar0_register_store);
 
@@ -157,6 +158,7 @@ static struct kobj_attribute fifobc_attribute =
 
 static struct kobj_attribute fifofc_attribute =
 	__ATTR(fifofc, SYSFS_READ_ONLY_MODE, bar0_register_show, bar0_register_store);
+#endif
 	
 static struct attribute *register_attrs[] = {
 #ifdef DEBUG
