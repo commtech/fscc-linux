@@ -205,6 +205,9 @@ void istream_worker(unsigned long data)
 	struct fscc_port *port = 0;
 	int receive_length = 0; /* Needs to be signed */
 	unsigned long flags = 0;
+	unsigned current_memory = 0;
+	unsigned memory_cap = 0;
+	char *buffer = 0;
 
 	port = (struct fscc_port *)data;
 
@@ -212,62 +215,59 @@ void istream_worker(unsigned long data)
 
 	spin_lock_irqsave(&port->iframe_spinlock, flags);
 
+	current_memory = fscc_port_get_input_memory_usage(port, 0);
+	memory_cap = fscc_port_get_input_memory_cap(port);
+
+	/* Leave the interrupt handler if we are at our memory cap. */
+	if (current_memory == memory_cap) {
+		dev_warn(port->device, "Stream rejected (memory constraint)\n");
+
+		spin_unlock_irqrestore(&port->iframe_spinlock, flags);
+		return;
+	}
+
+	/* Find out how many bytes are available to read. */
 	receive_length = fscc_port_get_RXCNT(port);
 
-	if (receive_length > 0) {
-		char *buffer = 0;
-
-		/* Make sure we don't go over the user's memory constraint. */
-		if (fscc_port_get_input_memory_usage(port, 0) + receive_length > fscc_port_get_input_memory_cap(port)) {
-			dev_warn(port->device, "Stream rejected (memory constraint)\n");
-
-			spin_unlock_irqrestore(&port->iframe_spinlock, flags);
-			return;
-		}
-
-		buffer = kmalloc(receive_length, GFP_ATOMIC);
-
-		/* Make sure the kernel gives us enough memory to receive the data. */
-		if (buffer == NULL) {
-			dev_warn(port->device,
-					 "Stream receive rejected (kmalloc of %i bytes)\n",
-					 receive_length);
-
-
-            spin_unlock_irqrestore(&port->iframe_spinlock, flags);
-			return;
-		}
-
-		fscc_port_get_register_rep(port, 0, FIFO_OFFSET, buffer,
-								   receive_length);
-
-		fscc_stream_add_data(port->istream, buffer, receive_length);
-
-		kfree(buffer);
-
-#ifdef TODO_ADD_ENDIAN_CODE
-#ifdef __BIG_ENDIAN
-		{
-			char status[STATUS_LENGTH];
-
-			/* Moves the status bytes to the end. */
-			memmove(&status, port->pending_iframe->data, STATUS_LENGTH);
-			memmove(port->pending_iframe->data, port->pending_iframe->data + STATUS_LENGTH, port->pending_iframe->current_length - STATUS_LENGTH);
-			memmove(port->pending_iframe->data + port->pending_iframe->current_length - STATUS_LENGTH, &status, STATUS_LENGTH);
-		}
-#endif
-#endif
-
-		dev_dbg(port->device, "Stream <= %i byte%s\n", receive_length,
-				(receive_length == 1) ? "" : "s");
+	/* Leave the interrupt handler if there is no data to read. */
+	if (receive_length == 0) {
+		spin_unlock_irqrestore(&port->iframe_spinlock, flags);
+		return;
 	}
+
+	/* Trim the amount to read if there isn't enough memory space to read all
+	   of it. */
+	if (receive_length + current_memory > memory_cap)
+		receive_length = memory_cap - current_memory;
+
+	buffer = kmalloc(receive_length, GFP_ATOMIC);
+
+	/* Make sure the kernel gives us enough memory to receive the data. */
+	if (buffer == NULL) {
+		dev_warn(port->device,
+				 "Stream receive rejected (kmalloc of %i bytes)\n",
+				 receive_length);
+
+        spin_unlock_irqrestore(&port->iframe_spinlock, flags);
+		return;
+	}
+
+	fscc_port_get_register_rep(port, 0, FIFO_OFFSET, buffer,
+							   receive_length);
+
+	fscc_stream_add_data(port->istream, buffer, receive_length);
+
+	kfree(buffer);
+
+    /* TODO: Add endian code. */
+
+	dev_dbg(port->device, "Stream <= %i byte%s\n", receive_length,
+			(receive_length == 1) ? "" : "s");
 
 	wake_up_interruptible(&port->input_queue);
 
 	spin_unlock_irqrestore(&port->iframe_spinlock, flags);
 }
-
-#include "card.h"
 
 void oframe_worker(unsigned long data)
 {
