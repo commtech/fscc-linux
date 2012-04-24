@@ -36,7 +36,7 @@ def write(args):
 
     try:
         if args.hex:
-            outgoing_data = binascii.b2a_hex(outgoing_data)
+            outgoing_data = binascii.a2b_hex(outgoing_data)
     except:
         pass
 
@@ -62,7 +62,7 @@ def read(args):
         incoming_data = port.read(args.max_bytes)
 
         if args.hex:
-            incoming_data = binascii.a2b_hex(incoming_data)
+            incoming_data = binascii.b2a_hex(incoming_data)
 
         print(incoming_data)
 
