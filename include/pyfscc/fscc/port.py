@@ -77,19 +77,28 @@ FSCC_UPDATE_VALUE = -2
 XF, XREP, TXT, TXEXT = 0, 1, 2, 4
 
 
+class InvalidPortError(Exception):
+    """Exception for the situation where a non FSCC port is opened."""
+    def __init__(self, file_name):
+        self.file_name = file_name
+
+    def __str__(self):
+        return "'%s' is not an FSCC port" % self.file_name
+
+
 class InvalidRegisterError(Exception):
     """Exception for the situation where an invalid register is modified."""
     def __init__(self, register_name):
         self.register_name = register_name
 
     def __str__(self):
-        return "%s is an invalid register" % self.register_name
+        return "'%s' is an invalid register" % self.register_name
 
 
 class ReadonlyRegisterError(InvalidRegisterError):
     """Exception for the situation where a read only register is modified."""
     def __str__(self):
-        return "%s is a readonly register" % self.register_name
+        return "'%s' is a readonly register" % self.register_name
 
 
 class Port(io.FileIO):
@@ -238,14 +247,18 @@ class Port(io.FileIO):
                 if value >= 0:
                     export_file.write("%s = 0x%08x\n" % (register_name, value))
 
-    def __init__(self, file, mode, append_status=False):
-        if not os.path.exists(file):
-            raise IOError(errno.ENOENT, os.strerror(errno.ENOENT), file)
+    def __init__(self, file_name, mode, append_status=False):
+        if not os.path.exists(file_name):
+            raise IOError(errno.ENOENT, os.strerror(errno.ENOENT), file_name)
 
-        io.FileIO.__init__(self, file, mode)
+        io.FileIO.__init__(self, file_name, mode)
 
         self.registers = Port.Registers(self)
-        self.append_status = append_status
+
+        try:
+        	self.append_status = append_status
+       	except IOError as e:
+            raise InvalidPortError(file_name)
 
     def purge(self, tx=True, rx=True):
         """Removes unsent and/or unread data from the card."""
