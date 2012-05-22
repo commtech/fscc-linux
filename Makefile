@@ -18,6 +18,8 @@ install:
 	depmod
 	mkdir -p /usr/local/include/fscc
 	cp include/fscc.h /usr/local/include/fscc/
+	cd include/pyfscc/; python setup.py install
+	cd cli/; python setup.py install
 	
 uninstall:
 	rm /lib/modules/`uname -r`/kernel/drivers/char/fscc.ko

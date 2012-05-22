@@ -21,11 +21,6 @@ III.   Loading/installed the driver
        1) Installing the driver
        2) Enabling hot plugging support
        3) Disabling DMA support
-      
-IV.    Installing the application files
-       1) C headers
-       2) Python API
-       3) GUI/CLI
 
 V.     Changing a port's register values
        1) Using sysfs from the command line
@@ -128,6 +123,7 @@ simply running the make command from within the source code directory.
 
    > make KDIR="/location/to/kernel_headers/"
 
+
 III. Loading/installing the driver
 -------------------------------------------------------------------------------
 Assuming the driver has been successfully built in the previous step you are
@@ -144,7 +140,8 @@ NOTE: You will more than likely need administrator privileges for this and
    
    > make install
    
-   This will also install the header (.h) files for using the card within code.
+   This will also install the header (.h) files, python library and command
+   line program for using the card.
 
    NOTE: The driver can be removed with: make uninstall
       
@@ -168,47 +165,6 @@ NOTE: You will more than likely need administrator privileges for this and
    
 NOTE: All driver load time options can be set in your modprobe.conf file for
       using upon system boot.
-    
-    
-IV. Installing the header files
--------------------------------------------------------------------------------
-While the card will boot up in what we consider the most general configuration,
-the majority of our users will more than likely need to tweak how the card is 
-configured for your specific situation. There are multiple ways of doing this 
-outlined in section V. 
-
-If you decide you need to modify the driver while in your application's code 
-you will need a header file (.h) that allows you to interact with the FSCC 
-driver. 
-
-1) To install the header file use the install option to the make command (see
-   section III).
-
-   > make install
-   
-   After doing this you will have access to <fscc/fscc.h> which you can use in
-   your C program.
-
-   NOTE: Headers can be removed with: make uninstall
-   
-2) If instead you would like to use Python or our GUI and/or CLI you will need 
-   to install pyfscc. The same procedure of downloading the driver (see section 
-   I) applies to downloading pyfscc.
-
-   > hg clone https://bitbucket.org/fastcom/pyfscc/ pyfscc
-   
-   Or manually downloading the tarball from the following location:
-   
-   http://hg.commtech-fastcom.com/pyfscc/downloads
-   
-3) As a convenience there is both a GUI and CLI for configuring the card that can
-   be found at the following locations.
-
-   > hg clone https://bitbucket.org/fastcom/fscc-gui/ fscc-gui
-   > hg clone https://bitbucket.org/fastcom/fscc-cli/ fscc-cli
-   
-   http://hg.commtech-fastcom.com/fscc-gui/downloads
-   http://hg.commtech-fastcom.com/fscc-cli/downloads
 
 
 V. Changing a port's register values
