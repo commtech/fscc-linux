@@ -238,6 +238,9 @@ void fscc_port_delete(struct fscc_port *port)
 
 	return_if_untrue(port);
 
+	/* Stops the the timer and transmit repeat abailities if they are on. */
+	fscc_port_set_register(port, 0, CMDR_OFFSET, 0x04000002);
+
 	del_timer(&port->timer);
 
 	irq_num = fscc_card_get_irq(port->card);
