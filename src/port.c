@@ -59,7 +59,19 @@ struct fscc_port *fscc_port_new(struct fscc_card *card, unsigned channel,
 
 	port = kmalloc(sizeof(*port), GFP_KERNEL);
 
+	if (port == NULL) {
+		printk(KERN_ERR DEVICE_NAME "kmalloc failed\n");
+		return 0;
+	}
+
 	port->name = kmalloc(10, GFP_KERNEL);
+	if (port->name == NULL) {
+		kfree(port);
+
+		printk(KERN_ERR DEVICE_NAME "kmalloc failed\n");
+		return 0;
+	}
+
 	sprintf(port->name, "%s%u", DEVICE_NAME, minor_number);
 
 	port->class = class;
@@ -82,8 +94,16 @@ struct fscc_port *fscc_port_new(struct fscc_card *card, unsigned channel,
 						port->name);
 #endif
 
-	/* TODO: Add cleanup of already initialized structures. */
 	if (port->device <= 0) {
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 18)
+		device_destroy(port->class, port->dev_t);
+#endif
+
+		if (port->name)
+			kfree(port->name);
+
+		kfree(port);
+
 		printk(KERN_ERR DEVICE_NAME " %s: device_create failed\n", port->name);
 		return 0;
 	}
@@ -91,11 +111,11 @@ struct fscc_port *fscc_port_new(struct fscc_card *card, unsigned channel,
 #ifdef DEBUG
 	port->interrupt_tracker = debug_interrupt_tracker_new();
 #endif
-	
+
 	port->channel = channel;
 	port->card = card;
 	port->istream = fscc_stream_new();
-	
+
 	fscc_port_set_append_status(port, DEFAULT_APPEND_STATUS_VALUE);
 	fscc_port_set_ignore_timeout(port, DEFAULT_IGNORE_TIMEOUT_VALUE);
 	fscc_port_set_tx_modifiers(port, DEFAULT_TX_MODIFIERS_VALUE);
@@ -113,6 +133,10 @@ struct fscc_port *fscc_port_new(struct fscc_card *card, unsigned channel,
 	   instances. */
 	if (fscc_port_get_PREV(port) == 0xff) {
 		dev_warn(port->device, "couldn't initialize\n");
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 18)
+		device_destroy(port->class, port->dev_t);
+#endif
 
 		if (port->name)
 			kfree(port->name);
@@ -137,6 +161,16 @@ struct fscc_port *fscc_port_new(struct fscc_card *card, unsigned channel,
 
 	if (cdev_add(&port->cdev, port->dev_t, 1) < 0) {
 		dev_err(port->device, "cdev_add failed\n");
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 18)
+		device_destroy(port->class, port->dev_t);
+#endif
+
+		if (port->name)
+			kfree(port->name);
+
+		kfree(port);
+
 		return 0;
 	}
 
@@ -278,7 +312,7 @@ void fscc_port_delete(struct fscc_port *port)
 }
 
 void fscc_port_reset_timer(struct fscc_port *port)
-{	
+{
 	if (mod_timer(&port->timer, jiffies + msecs_to_jiffies(250)))
 		dev_err(port->device, "mod_timer\n");
 }
