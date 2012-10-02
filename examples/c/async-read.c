@@ -25,7 +25,7 @@
 #include <string.h> /* memset */
 
 /*
-	This is a simple example showing how to read asynchronous data from a 
+	This is a simple example showing how to read asynchronous data from a
 	port's UART.
 
 */

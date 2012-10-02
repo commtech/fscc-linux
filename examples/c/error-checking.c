@@ -27,7 +27,7 @@
 #include <fscc/fscc.h> /* FSCC_PURGE_RX, FSCC_PURGE_TX */
 
 /*
-	This is a simple example showing more thorough error checking than the 
+	This is a simple example showing more thorough error checking than the
 	other examples.
 
 */

@@ -51,16 +51,16 @@ int main(void)
 	}
 
 	memset(&timeout, 0, sizeof(timeout));
-	FD_ZERO(&fds);	
-	
+	FD_ZERO(&fds);
+
 	/* Set a timeout value of 2 seconds to look for data. */
 	timeout.tv_sec = 2;
 
 	/* Specify our file descriptor is what we want to look at. */
 	FD_SET(port_fd, &fds);
-	
+
 	select(port_fd + 1, &fds, NULL, NULL, &timeout);
-	
+
 	fprintf(stdout, "%i\n", FD_ISSET(port_fd, &fds));
 
 	close(port_fd);

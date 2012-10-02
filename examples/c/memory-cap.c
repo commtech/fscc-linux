@@ -26,7 +26,7 @@
 #include <fscc/fscc.h> /* FSCC_MEMORY_CAP_INIT, FSCC_SET_MEMORY_CAP */
 
 /*
-	This is a simple example showing how to change the memory cap for each 
+	This is a simple example showing how to change the memory cap for each
 	port.
 
 */

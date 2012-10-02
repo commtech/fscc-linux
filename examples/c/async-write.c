@@ -24,7 +24,7 @@
 #include <stdlib.h> /* EXIT_SUCCESS, EXIT_FAILURE */
 
 /*
-	This is a simple example showing how to write asynchronous data to a port's 
+	This is a simple example showing how to write asynchronous data to a port's
 	UART.
 
 */

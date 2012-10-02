@@ -26,7 +26,7 @@
 #include <fscc/fscc.h> /* FSCC_SET_CLOCK_BITS */
 
 /*
-	This is a simple example showing how to change the clock speed cap for each 
+	This is a simple example showing how to change the clock speed cap for each
 	port.
 
 */
@@ -55,18 +55,18 @@ int main(void)
 	/* To calculate the clock bits for your desired frequency call this
 	   external function in the include/calculate-clock-bits/ directory.
 
-	   > gcc set-clock-bits.c calculate-clock-bits.c -lm 
+	   > gcc set-clock-bits.c calculate-clock-bits.c -lm
 
 	if (calculate_clock_bits(10000000, 10, &clock_bits) != 0) {
 		fprintf(stderr, "Error calculating clock bits.\n");
 		return EXIT_FAILURE;
 	}
-	
+
 	printf("Programming word: \n");
-	
-	for(i = 19; i >= 0; i--) 
+
+	for(i = 19; i >= 0; i--)
 		printf("%x:", clock_bits[i]);
-		
+
 	printf("\n");
 	*/
 

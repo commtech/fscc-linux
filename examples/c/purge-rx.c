@@ -26,7 +26,7 @@
 #include <fscc/fscc.h> /* FSCC_PURGE_RX */
 
 /*
-	This is a simple example showing how to empty all of the unread data out of 
+	This is a simple example showing how to empty all of the unread data out of
 	a port.
 
 */

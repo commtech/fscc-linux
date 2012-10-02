@@ -27,11 +27,11 @@
 #include <errno.h> /* EINPROGRESS */
 
 /*
-	This is a simple example of using the aio_* series of linux	functions. AIO 
+	This is a simple example of using the aio_* series of linux	functions. AIO
 	allows for overlapping I/O operations. If you would like to do other
 	operations while waiting on data to arrive take a look at the aio_*
 	functions.
-	
+
 	NOTE: You may need to link against the real time library to use the aio_*
           functions e.g. gcc -lrt aio_read.c
 

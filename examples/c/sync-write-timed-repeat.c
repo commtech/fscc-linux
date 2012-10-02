@@ -62,8 +62,8 @@ int main(void)
 		fprintf(stderr, "Error calculating clock bits.\n");
 		return EXIT_FAILURE;
 	}
-*/	
-	ioctl(port_fd, FSCC_SET_CLOCK_BITS, &clock_bits);	
+*/
+	ioctl(port_fd, FSCC_SET_CLOCK_BITS, &clock_bits);
 
 	FSCC_REGISTERS_INIT(regs);
 
