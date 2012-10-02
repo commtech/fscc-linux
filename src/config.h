@@ -53,6 +53,8 @@
 							0x00, 0x00, 0x00, 0x18, 0x16, 0x40, 0x01, 0x04, \
 							0x00, 0xff, 0xff, 0xff} /* 18.432 MHz */
 
+//#define DISABLE_XTAL /* Used when setting the clock on newer cards. */
+
 #define SYSFS_READ_ONLY_MODE S_IRUGO
 #define SYSFS_WRITE_ONLY_MODE S_IWUGO
 #define SYSFS_READ_WRITE_MODE S_IWUGO | S_IRUGO

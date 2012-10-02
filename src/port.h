@@ -202,7 +202,7 @@ void fscc_port_set_ignore_timeout(struct fscc_port *port,
 unsigned fscc_port_get_ignore_timeout(struct fscc_port *port);
 
 void fscc_port_set_clock_bits(struct fscc_port *port,
-							  const unsigned char *clock_data);
+							  unsigned char *clock_data);
 
 void fscc_port_set_append_status(struct fscc_port *port, unsigned value);
 unsigned fscc_port_get_append_status(struct fscc_port *port);

@@ -740,6 +740,17 @@ __u8 fscc_port_get_PREV(struct fscc_port *port)
 	return (__u8)((vstr_value & 0x0000FF00) >> 8);
 }
 
+__u16 fscc_port_get_PDEV(struct fscc_port *port)
+{
+	__u32 vstr_value = 0;
+
+	return_val_if_untrue(port, 0);
+
+	vstr_value = fscc_port_get_register(port, 0, VSTR_OFFSET);
+
+	return (__u16)((vstr_value & 0xFFFF0000) >> 16);
+}
+
 unsigned fscc_port_get_CE(struct fscc_port *port)
 {
 	__u32 star_value = 0;
@@ -1019,7 +1030,7 @@ void fscc_port_set_memory_cap(struct fscc_port *port,
 #define CLK_BASE 0x00000002
 
 void fscc_port_set_clock_bits(struct fscc_port *port,
-							  const unsigned char *clock_data)
+							  unsigned char *clock_data)
 {
 	__u32 orig_fcr_value = 0;
 	__u32 new_fcr_value = 0;
@@ -1033,6 +1044,20 @@ void fscc_port_set_clock_bits(struct fscc_port *port,
 	unsigned data_index = 0;
 
 	return_if_untrue(port);
+
+
+#ifdef DISABLE_XTAL
+	clock_data[15] &= 0xfb;
+#else
+	/* This enables XTAL on all cards except green FSCC cards with a revision
+	   greater than 6. Some old protoype SuperFSCC cards will need to manually
+	   disable XTAL as they are not supported in this driver by default. */
+	if (fscc_port_get_PDEV(port) == 0x0f && fscc_port_get_PREV(port) <= 6)
+		clock_data[15] &= 0xfb;
+	else
+		clock_data[15] |= 0x04;
+#endif
+
 
 	data = kmalloc(sizeof(__u32) * 323, GFP_KERNEL);
 
