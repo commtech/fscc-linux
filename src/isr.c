@@ -92,6 +92,7 @@ void iframe_worker(unsigned long data)
 	int receive_length = 0; /* Needs to be signed */
 	unsigned finished_frame = 0;
 	unsigned long flags = 0;
+	static int rejected_last_frame = 0;
 
 	port = (struct fscc_port *)data;
 
@@ -139,11 +140,19 @@ void iframe_worker(unsigned long data)
 
 		/* Make sure we don't go over the user's memory constraint. */
 		if (fscc_port_get_input_memory_usage(port, 0) + receive_length > fscc_port_get_input_memory_cap(port)) {
-			dev_warn(port->device, "F#%i rejected (memory constraint)\n",
-					 port->pending_iframe->number);
+			if (rejected_last_frame == 0) {
+				dev_warn(port->device,
+                         "Rejecting frames (memory constraint)\n");
+			}
+
+			dev_dbg(port->device, "F#%i rejected (memory constraint)\n",
+					port->pending_iframe->number);
 
 			fscc_frame_delete(port->pending_iframe);
+
 			port->pending_iframe = 0;
+			rejected_last_frame = 1; /* Track that we dropped a frame so we
+                                        don't have to warn the user again. */
 
 			spin_unlock_irqrestore(&port->iframe_spinlock, flags);
 			return;
@@ -192,6 +201,8 @@ void iframe_worker(unsigned long data)
 
 	fscc_frame_trim(port->pending_iframe);
 	list_add_tail(&port->pending_iframe->list, &port->iframes);
+	rejected_last_frame = 0; /* Track that we received a frame to reset the
+                                memory constraint warning print message. */
 
 	wake_up_interruptible(&port->input_queue);
 
@@ -208,6 +219,7 @@ void istream_worker(unsigned long data)
 	unsigned current_memory = 0;
 	unsigned memory_cap = 0;
 	char *buffer = 0;
+	static int rejected_last_stream = 0;
 
 	port = (struct fscc_port *)data;
 
@@ -220,7 +232,13 @@ void istream_worker(unsigned long data)
 
 	/* Leave the interrupt handler if we are at our memory cap. */
 	if (current_memory == memory_cap) {
-		dev_warn(port->device, "Stream rejected (memory constraint)\n");
+		if (rejected_last_stream == 0)
+			dev_warn(port->device, "Rejecting stream (memory constraint)\n");
+		else
+			dev_dbg(port->device, "Stream rejected (memory constraint)\n");
+
+		rejected_last_stream = 1; /* Track that we dropped stream data so we
+                                     don't have to warn the user again. */
 
 		spin_unlock_irqrestore(&port->iframe_spinlock, flags);
 		return;
@@ -263,6 +281,10 @@ void istream_worker(unsigned long data)
 
 	dev_dbg(port->device, "Stream <= %i byte%s\n", receive_length,
 			(receive_length == 1) ? "" : "s");
+
+	rejected_last_stream = 0; /* Track that we received stream data to reset
+                                 the memory constraint warning print message.
+                              */
 
 	wake_up_interruptible(&port->input_queue);
 
