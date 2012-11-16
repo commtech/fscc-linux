@@ -1,3 +1,10 @@
+version 2.2.1 (11/16/2012)
+--------------------------------------------------------------------------------
+	* Fix a bug where X-Sync mode wasn't considered stream data if there
+	  wasn't any framing
+	* Fix a data loss bug in transparent mode
+	* Improved debug prints
+
 version 2.2.0 (10/09/2012)
 --------------------------------------------------------------------------------
 	* Add install option to Makefile
