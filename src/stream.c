@@ -84,6 +84,12 @@ void fscc_stream_remove_data(struct fscc_stream *stream, unsigned length)
 
 	return_if_untrue(stream);
 
+	if (length == 0)
+		return;
+
+	if (stream->length == 0)
+		return;
+
 	new_length = stream->length - length;
 
 	memmove(stream->data, stream->data + length, new_length);
