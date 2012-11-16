@@ -1221,16 +1221,18 @@ unsigned fscc_port_using_async(struct fscc_port *port)
 unsigned fscc_port_is_streaming(struct fscc_port *port)
 {
 	unsigned transparent_mode = 0;
+	unsigned xsync_mode = 0;
 	unsigned rlc_mode = 0;
 	unsigned fsc_mode = 0;
 	
 	return_val_if_untrue(port, 0);
 
 	transparent_mode = ((port->register_storage.CCR0 & 0x3) == 0x2) ? 1 : 0;
+	xsync_mode = ((port->register_storage.CCR0 & 0x3) == 0x1) ? 1 : 0;
 	rlc_mode = (port->register_storage.CCR2 & 0xffff0000) ? 1 : 0;
 	fsc_mode = (port->register_storage.CCR0 & 0x700) ? 1 : 0;
 	
-	return (transparent_mode && !(rlc_mode || fsc_mode)) ? 1 : 0;
+	return ((transparent_mode || xsync_mode) && !(rlc_mode || fsc_mode)) ? 1 : 0;
 }
 
 unsigned fscc_port_has_dma(struct fscc_port *port)
