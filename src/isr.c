@@ -215,6 +215,7 @@ void istream_worker(unsigned long data)
 {
 	struct fscc_port *port = 0;
 	int receive_length = 0; /* Needs to be signed */
+	unsigned rxcnt = 0;
 	unsigned long flags = 0;
 	unsigned current_memory = 0;
 	unsigned memory_cap = 0;
@@ -244,8 +245,12 @@ void istream_worker(unsigned long data)
 		return;
 	}
 
-	/* Find out how many bytes are available to read. */
-	receive_length = fscc_port_get_RXCNT(port);
+	rxcnt = fscc_port_get_RXCNT(port);
+
+	/* We choose a safe amount to read due to more data coming in after we
+	   get our values. The rest will be read on the next interrupt. */
+	receive_length = rxcnt - MAX_LEFTOVER_BYTES;
+	receive_length -= receive_length % 4;
 
 	/* Leave the interrupt handler if there is no data to read. */
 	if (receive_length == 0) {
