@@ -117,9 +117,6 @@ void debug_interrupt_display(unsigned long data)
 	if (isr_value & TDU)
 		dev_dbg(port->device, "TDU (Transmit Data Underrun Interrupt)\n");
 
-	if (isr_value & TDU)
-		dev_dbg(port->device, "TDU (Transmit Data Underrun Interrupt)\n");
-
 	if (isr_value & ALLS)
 		dev_dbg(port->device, "ALLS (All Sent Interrupt)\n");
 
