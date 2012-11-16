@@ -126,7 +126,7 @@ void fscc_stream_update_buffer_size(struct fscc_stream *stream,
 
 	if (stream->data) {
 		if (stream->length)
-			memmove(new_data, stream->data, length);
+			memmove(new_data, stream->data, min(stream->length, length));
 
 		kfree(stream->data);
 	}
