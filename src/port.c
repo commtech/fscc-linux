@@ -1061,6 +1061,11 @@ void fscc_port_set_clock_bits(struct fscc_port *port,
 
 	data = kmalloc(sizeof(__u32) * 323, GFP_KERNEL);
 
+	if (data == NULL) {
+		printk(KERN_ERR DEVICE_NAME "kmalloc failed\n");
+		return;
+	}
+
 	if (port->channel == 1) {
 		strb_value <<= 0x08;
 		dta_value <<= 0x08;
