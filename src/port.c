@@ -358,8 +358,10 @@ int fscc_port_write(struct fscc_port *port, const char *data, unsigned length)
 
 	frame = fscc_frame_new(length, port->card->dma, port);
 
-	if (!frame)
+	if (!frame) {
+	   kfree(temp_storage);
 		return 0; //TODO: Should return something more informative
+   }
 
 	fscc_frame_add_data(frame, temp_storage, length);
 
