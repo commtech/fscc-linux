@@ -358,8 +358,10 @@ int fscc_port_write(struct fscc_port *port, const char *data, unsigned length)
 
 	frame = fscc_frame_new(length, port->card->dma, port);
 
-	if (!frame)
+	if (!frame) {
+	   kfree(temp_storage);
 		return 0; //TODO: Should return something more informative
+   }
 
 	fscc_frame_add_data(frame, temp_storage, length);
 
@@ -1060,6 +1062,11 @@ void fscc_port_set_clock_bits(struct fscc_port *port,
 
 
 	data = kmalloc(sizeof(__u32) * 323, GFP_KERNEL);
+
+	if (data == NULL) {
+		printk(KERN_ERR DEVICE_NAME "kmalloc failed\n");
+		return;
+	}
 
 	if (port->channel == 1) {
 		strb_value <<= 0x08;

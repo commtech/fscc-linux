@@ -52,7 +52,8 @@ int main(void)
 		return EXIT_FAILURE;
 	}
 
-	memory_cap.input = 1000000;
+	memory_cap.input = 50000;
+	memory_cap.output = 75000;
 
 	ioctl(port_fd, FSCC_SET_MEMORY_CAP, &memory_cap);
 

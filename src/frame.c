@@ -275,7 +275,7 @@ void fscc_frame_update_buffer_size(struct fscc_frame *frame, unsigned length)
 
 	return_if_untrue(new_data);
 
-	memset(new_data, 0, sizeof(new_data));
+	memset(new_data, 0, length);
 
 	if (frame->data) {
 		if (frame->current_length)

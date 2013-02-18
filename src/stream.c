@@ -128,7 +128,7 @@ void fscc_stream_update_buffer_size(struct fscc_stream *stream,
 
 	return_if_untrue(new_data);
 
-	memset(new_data, 0, sizeof(new_data));
+	memset(new_data, 0, length);
 
 	if (stream->data) {
 		if (stream->length)
