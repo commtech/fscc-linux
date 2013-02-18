@@ -34,6 +34,7 @@
 #include "descriptor.h" /* struct fscc_descriptor */
 #include "stream.h" /* struct fscc_descriptor */
 #include "debug.h" /* stuct debug_interrupt_tracker */
+#include "flist.h" /* struct fscc_registers */
 
 #define FIFO_OFFSET 0x00
 #define BC_FIFO_L_OFFSET 0x04
@@ -107,8 +108,8 @@ struct fscc_port {
 	wait_queue_head_t input_queue;
 	wait_queue_head_t output_queue;
 
-	struct list_head iframes; /* Frames already retrieved from the FIFO */
-	struct list_head oframes; /* Frames not yet in the FIFO yet */
+    struct fscc_flist iframes; /* Frames already retrieved from the FIFO */
+    struct fscc_flist oframes; /* Frames not yet in the FIFO yet */
 
 	struct fscc_frame *pending_iframe; /* Frame retrieving from the FIFO */
 	struct fscc_frame *pending_oframe; /* Frame being put in the FIFO */
@@ -126,7 +127,9 @@ struct fscc_port {
 	unsigned append_status;
 
 	spinlock_t oframe_spinlock;
-	spinlock_t iframe_spinlock;
+    spinlock_t board_settings_spinlock; /* Anything that will alter the settings at a board level */
+    spinlock_t board_rx_spinlock; /* Anything that will alter the state of rx at a board level */
+    spinlock_t board_tx_spinlock; /* Anything that will alter the state of rx at a board level */
 
 	struct fscc_memory_cap memory_cap;
 	unsigned ignore_timeout;
@@ -181,9 +184,6 @@ int fscc_port_execute_RRES(struct fscc_port *port);
 
 void fscc_port_suspend(struct fscc_port *port);
 void fscc_port_resume(struct fscc_port *port);
-
-unsigned fscc_port_get_iframes_qty(struct fscc_port *port);
-unsigned fscc_port_get_oframes_qty(struct fscc_port *port);
 
 unsigned fscc_port_get_output_memory_usage(struct fscc_port *port,
 										   unsigned lock);

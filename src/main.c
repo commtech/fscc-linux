@@ -188,13 +188,15 @@ int fscc_ioctl(struct inode *inode, struct file *file, unsigned int cmd,
 	int error_code = 0;
 
 	port = file->private_data;
-	
+
 	switch (cmd) {
 	case FSCC_GET_REGISTERS:
+	    //TODO: board_settings_spinlock
 		fscc_port_get_registers(port, (struct fscc_registers *)arg);
 		break;
 
 	case FSCC_SET_REGISTERS:
+	    //TODO: board_settings_spinlock
 		fscc_port_set_registers(port, (struct fscc_registers *)arg);
 		break;
 

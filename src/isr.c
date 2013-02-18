@@ -98,7 +98,7 @@ void iframe_worker(unsigned long data)
 
 	return_if_untrue(port);
 
-	spin_lock_irqsave(&port->iframe_spinlock, flags);
+	spin_lock_irqsave(&port->board_rx_spinlock, flags);
 
 	finished_frame = (fscc_port_get_RFCNT(port) > 0) ? 1 : 0;
 
@@ -133,7 +133,7 @@ void iframe_worker(unsigned long data)
 			port->pending_iframe = fscc_frame_new(0, 0, port);
 
 			if (!port->pending_iframe) {
-				spin_unlock_irqrestore(&port->iframe_spinlock, flags);
+				spin_unlock_irqrestore(&port->board_rx_spinlock, flags);
 				return;
 			}
 		}
@@ -154,7 +154,7 @@ void iframe_worker(unsigned long data)
 			rejected_last_frame = 1; /* Track that we dropped a frame so we
                                         don't have to warn the user again. */
 
-			spin_unlock_irqrestore(&port->iframe_spinlock, flags);
+			spin_unlock_irqrestore(&port->board_rx_spinlock, flags);
 			return;
 		}
 
@@ -168,7 +168,7 @@ void iframe_worker(unsigned long data)
 			fscc_frame_delete(port->pending_iframe);
 			port->pending_iframe = 0;
 
-			spin_unlock_irqrestore(&port->iframe_spinlock, flags);
+			spin_unlock_irqrestore(&port->board_rx_spinlock, flags);
 			return;
 		}
 
@@ -195,20 +195,23 @@ void iframe_worker(unsigned long data)
 	}
 
 	if (!finished_frame) {
-		spin_unlock_irqrestore(&port->iframe_spinlock, flags);
+		spin_unlock_irqrestore(&port->board_rx_spinlock, flags);
 		return;
 	}
 
 	fscc_frame_trim(port->pending_iframe);
-	list_add_tail(&port->pending_iframe->list, &port->iframes);
+
+	if (port->pending_iframe)
+        fscc_flist_add_frame(&port->iframes, port->pending_iframe);
+
 	rejected_last_frame = 0; /* Track that we received a frame to reset the
                                 memory constraint warning print message. */
 
-	wake_up_interruptible(&port->input_queue);
-
 	port->pending_iframe = 0;
 
-	spin_unlock_irqrestore(&port->iframe_spinlock, flags);
+	wake_up_interruptible(&port->input_queue);
+
+	spin_unlock_irqrestore(&port->board_rx_spinlock, flags);
 }
 
 void istream_worker(unsigned long data)
@@ -227,8 +230,6 @@ void istream_worker(unsigned long data)
 
 	return_if_untrue(port);
 
-	spin_lock_irqsave(&port->iframe_spinlock, flags);
-
 	current_memory = fscc_port_get_input_memory_usage(port, 0);
 	memory_cap = fscc_port_get_input_memory_cap(port);
 
@@ -241,10 +242,10 @@ void istream_worker(unsigned long data)
 
 		rejected_last_stream = 1; /* Track that we dropped stream data so we
                                      don't have to warn the user again. */
-
-		spin_unlock_irqrestore(&port->iframe_spinlock, flags);
 		return;
 	}
+
+	spin_lock_irqsave(&port->board_rx_spinlock, flags);
 
 	rxcnt = fscc_port_get_RXCNT(port);
 
@@ -255,7 +256,7 @@ void istream_worker(unsigned long data)
 
 	/* Leave the interrupt handler if there is no data to read. */
 	if (receive_length == 0) {
-		spin_unlock_irqrestore(&port->iframe_spinlock, flags);
+		spin_unlock_irqrestore(&port->board_rx_spinlock, flags);
 		return;
 	}
 
@@ -266,6 +267,8 @@ void istream_worker(unsigned long data)
 
 	fscc_port_get_register_rep(port, 0, FIFO_OFFSET, buffer,
 							   receive_length);
+
+	spin_unlock_irqrestore(&port->board_rx_spinlock, flags);
 
 	status = fscc_stream_add_data(&port->istream, buffer, receive_length);
 
@@ -282,8 +285,6 @@ void istream_worker(unsigned long data)
 			(receive_length == 1) ? "" : "s");
 
 	wake_up_interruptible(&port->input_queue);
-
-	spin_unlock_irqrestore(&port->iframe_spinlock, flags);
 }
 
 void oframe_worker(unsigned long data)
@@ -306,13 +307,13 @@ void oframe_worker(unsigned long data)
 
 	/* Check if exists and if so, grabs the frame to transmit. */
 	if (!port->pending_oframe) {
-		if (fscc_port_has_oframes(port, 0)) {
-			port->pending_oframe = fscc_port_peek_front_frame(port, &port->oframes);
-			list_del(&port->pending_oframe->list);
-		} else {
+	    port->pending_oframe = fscc_flist_remove_frame(&port->oframes);
+
+        /* No frames in queue to transmit */
+        if (!port->pending_oframe) {
 			spin_unlock_irqrestore(&port->oframe_spinlock, flags);
-			return;
-		}
+            return;
+        }
 	}
 
 	if (fscc_port_has_dma(port)) {

@@ -30,11 +30,6 @@
 #include "isr.h" /* fscc_isr */
 #include "sysfs.h" /* port_*_attribute_group */
 
-/* No locking */
-void empty_frame_list(struct list_head *frames);
-
-void fscc_port_clear_oframes(struct fscc_port *port, unsigned lock);
-void fscc_port_clear_iframes(struct fscc_port *port, unsigned lock);
 
 void fscc_port_execute_GO_R(struct fscc_port *port);
 void fscc_port_execute_STOP_R(struct fscc_port *port);
@@ -127,8 +122,10 @@ struct fscc_port *fscc_port_new(struct fscc_card *card, unsigned channel,
 	port->pending_iframe = 0;
 	port->pending_oframe = 0;
 
-	spin_lock_init(&port->iframe_spinlock);
 	spin_lock_init(&port->oframe_spinlock);
+	spin_lock_init(&port->board_settings_spinlock);
+	spin_lock_init(&port->board_rx_spinlock);
+	spin_lock_init(&port->board_tx_spinlock);
 
 	/* Simple check to see if the port is messed up. It won't catch all
 	   instances. */
@@ -147,8 +144,9 @@ struct fscc_port *fscc_port_new(struct fscc_card *card, unsigned channel,
 	}
 
 	INIT_LIST_HEAD(&port->list);
-	INIT_LIST_HEAD(&port->oframes);
-	INIT_LIST_HEAD(&port->iframes);
+
+	fscc_flist_init(&port->oframes);
+	fscc_flist_init(&port->iframes);
 
 	sema_init(&port->read_semaphore, 1);
 	sema_init(&port->write_semaphore, 1);
@@ -260,7 +258,6 @@ struct fscc_port *fscc_port_new(struct fscc_card *card, unsigned channel,
 		fscc_port_execute_RST_T(port);
 	}
 
-	/* Locks both iframe_spinlock & oframe_spinlock. */
 	fscc_port_execute_RRES(port);
 	fscc_port_execute_TRES(port);
 
@@ -292,9 +289,8 @@ void fscc_port_delete(struct fscc_port *port)
 	}
 
 	fscc_stream_delete(&port->istream);
-
-	fscc_port_clear_iframes(port, 0);
-	fscc_port_clear_oframes(port, 0);
+	fscc_flist_delete(&port->iframes);
+	fscc_flist_delete(&port->oframes);
 
 #ifdef DEBUG
 	debug_interrupt_tracker_delete(port->interrupt_tracker);
@@ -366,9 +362,10 @@ int fscc_port_write(struct fscc_port *port, const char *data, unsigned length)
 
 	fscc_frame_add_data(frame, temp_storage, length);
 
+    //TODO: Remove this malloc/free
 	kfree(temp_storage);
 
-	list_add_tail(&frame->list, &port->oframes);
+	fscc_flist_add_frame(&port->oframes, frame);
 
 	tasklet_schedule(&port->oframe_tasklet);
 
@@ -379,34 +376,33 @@ int fscc_port_write(struct fscc_port *port, const char *data, unsigned length)
     Handles taking the frames already retrieved from the card and giving them
     to the user. This is purely a helper for the fscc_port_read function.
 */    
-ssize_t fscc_port_frame_read(struct fscc_port *port, char *buf, size_t count)
+ssize_t fscc_port_frame_read(struct fscc_port *port, char *buf, size_t buf_length)
 {
 	struct fscc_frame *frame = 0;
-	unsigned data_length = 0;
-	unsigned uncopied_bytes = 0;
+    unsigned max_data_length = 0;
+	unsigned out_length = 0;
 
 	return_val_if_untrue(port, 0);
 
-	frame = fscc_port_peek_front_frame(port, &port->iframes);
+    max_data_length = buf_length;
+    max_data_length -= (port->append_status) ? 2 : 0;
 
-	if (!frame)
-		return 0;
+	frame = fscc_flist_remove_frame_if_lte(&port->iframes, max_data_length);
 
-	data_length = fscc_frame_get_target_length(frame);
-	data_length -= (port->append_status) ? 0 : STATUS_LENGTH;
+	//TODO: This should never occur but it would be nice to have it in there
+    //if (!frame)
+    //    return 0;
 
-	if (count < data_length)
-		return -ENOBUFS;
+    if (!frame)
+        return -ENOBUFS;
 
-	uncopied_bytes = copy_to_user(buf, fscc_frame_get_remaining_data(frame),
-								  data_length);
+    out_length = fscc_frame_get_target_length(frame);
 
-	return_val_if_untrue(!uncopied_bytes, 0);
+    copy_to_user(buf, fscc_frame_get_remaining_data(frame),
+								      out_length);
+    fscc_frame_delete(frame);
 
-	list_del(&frame->list);
-	fscc_frame_delete(frame);
-
-	return data_length;
+    return out_length;
 }
 
 /*
@@ -439,93 +435,21 @@ ssize_t fscc_port_read(struct fscc_port *port, char *buf, size_t count)
 		return fscc_port_frame_read(port, buf, count);
 }
 
-void empty_frame_list(struct list_head *frames)
-{
-	struct list_head *current_node = 0;
-	struct list_head *temp_node = 0;
-
-	return_if_untrue(frames);
-
-	list_for_each_safe(current_node, temp_node, frames) {
-		struct fscc_frame *current_frame = 0;
-
-		current_frame = list_entry(current_node, struct fscc_frame, list);
-
-		list_del(current_node);
-		fscc_frame_delete(current_frame);
-	}
-}
-
-struct fscc_frame *fscc_port_peek_front_frame(struct fscc_port *port,
-											  struct list_head *frames)
-{
-	struct fscc_frame *current_frame = 0;
-
-	return_val_if_untrue(port, 0);
-	return_val_if_untrue(frames, 0);
-
-	list_for_each_entry(current_frame, frames, list) {
-		return current_frame;
-	}
-
-	return 0;
-}
-
-unsigned has_frames(struct list_head *frames, spinlock_t *spinlock)
-{
-	unsigned long flags = 0;
-	unsigned empty = 0;
-
-	return_val_if_untrue(frames, 0);
-
-	if (spinlock)
-		spin_lock_irqsave(spinlock, flags);
-
-	empty = list_empty(frames);
-
-	if (spinlock)
-		spin_unlock_irqrestore(spinlock, flags);
-
-	return !empty;
-}
-
-unsigned fscc_port_has_iframes(struct fscc_port *port, unsigned lock)
-{
-	spinlock_t *spinlock = 0;
-
-	return_val_if_untrue(port, 0);
-
-	spinlock = (lock) ? &port->iframe_spinlock : 0;
-
-	return has_frames(&port->iframes, spinlock);
-}
-
-unsigned fscc_port_has_oframes(struct fscc_port *port, unsigned lock)
-{
-	spinlock_t *spinlock = 0;
-
-	return_val_if_untrue(port, 0);
-
-	spinlock = (lock) ? &port->oframe_spinlock : 0;
-
-	return has_frames(&port->oframes, spinlock);
-}
-
 /* Count is for streaming mode where we need to check there is enough
    streaming data.
-
-   Locks iframe_spinlock.
 */
 unsigned fscc_port_has_incoming_data(struct fscc_port *port)
 {
+    unsigned status = 0;
+
 	return_val_if_untrue(port, 0);
 
 	if (fscc_port_is_streaming(port))
-		return (fscc_stream_is_empty(&port->istream)) ? 0 : 1;
-	else if (fscc_port_has_iframes(port, 1))
-		return 1;
+		status =  (fscc_stream_is_empty(&port->istream)) ? 0 : 1;
+	else if (fscc_flist_is_empty(&port->iframes) == 0)
+		status = 1;
 
-	return 0;
+	return status;
 }
 
 
@@ -537,13 +461,15 @@ __u32 fscc_port_get_register(struct fscc_port *port, unsigned bar,
 							 unsigned register_offset)
 {
 	unsigned offset = 0;
+	__u32 value = 0;
 
 	return_val_if_untrue(port, 0);
 	return_val_if_untrue(bar <= 2, 0);
 
 	offset = port_offset(port, bar, register_offset);
+    value = fscc_card_get_register(port->card, bar, offset);
 
-	return fscc_card_get_register(port->card, bar, offset);
+    return value;
 }
 
 /* 
@@ -785,194 +711,85 @@ void fscc_port_resume(struct fscc_port *port)
 	fscc_port_set_registers(port, &port->register_storage);
 }
 
-void clear_frames(struct fscc_frame **pending_frame,
-				  struct list_head *frame_list, spinlock_t *spinlock)
-{
-	unsigned long flags = 0;
-
-	if (spinlock)
-		spin_lock_irqsave(spinlock, flags);
-
-	if (*pending_frame) {
-		fscc_frame_delete(*pending_frame);
-		*pending_frame = 0;
-	}
-
-	empty_frame_list(frame_list);
-
-	if (spinlock)
-		spin_unlock_irqrestore(spinlock, flags);
-}
-
-void fscc_port_clear_iframes(struct fscc_port *port, unsigned lock)
-{
-	spinlock_t *spinlock = 0;
-
-	return_if_untrue(port);
-
-	spinlock = (lock) ? &port->iframe_spinlock : 0;
-
-	clear_frames(&port->pending_iframe, &port->iframes,
-				 spinlock);
-}
-
-void fscc_port_clear_oframes(struct fscc_port *port, unsigned lock)
-{
-	spinlock_t *spinlock = 0;
-
-	return_if_untrue(port);
-
-	spinlock = (lock) ? &port->oframe_spinlock : 0;
-
-	clear_frames(&port->pending_oframe, &port->oframes,
-				 spinlock);
-}
-
-/* Locks iframe_spinlock. */
 int fscc_port_purge_rx(struct fscc_port *port)
 {
 	int error_code = 0;
+	unsigned long flags;
 
 	return_val_if_untrue(port, 0);
 
 	dev_dbg(port->device, "purge_rx\n");
 
-	/* Locks iframe_spinlock. */
-	if ((error_code = fscc_port_execute_RRES(port)) < 0)
+	spin_lock_irqsave(&port->board_rx_spinlock, flags);
+	error_code = fscc_port_execute_RRES(port);
+	spin_unlock_irqrestore(&port->board_rx_spinlock, flags);
+
+	if (error_code < 0)
 		return error_code;
 
-	/* Locks iframe_spinlock. */
-	fscc_port_clear_iframes(port, 1);
-
+    fscc_flist_clear(&port->iframes);
 	fscc_stream_clear(&port->istream);
 
 	return 1;
 }
 
-/* Locks oframe_spinlock. */
 int fscc_port_purge_tx(struct fscc_port *port)
 {
 	int error_code = 0;
+	unsigned long flags;
 
 	return_val_if_untrue(port, 0);
 
 	dev_dbg(port->device, "purge_tx\n");
 
-	/* Locks oframe_spinlock. */
-	if ((error_code = fscc_port_execute_TRES(port)) < 0)
+	spin_lock_irqsave(&port->board_tx_spinlock, flags);
+	error_code = fscc_port_execute_TRES(port);
+	spin_unlock_irqrestore(&port->board_tx_spinlock, flags);
+
+	if (error_code < 0)
 		return error_code;
 
-	/* Locks oframe_spinlock. */
-	fscc_port_clear_oframes(port, 1);
+    fscc_flist_clear(&port->oframes);
+
+    //TODO: Should pending frames be attached to flist? What about syncronization???
+	if (port->pending_oframe) {
+        fscc_frame_delete(port->pending_oframe);
+        port->pending_oframe = 0;
+    }
 
 	wake_up_interruptible(&port->output_queue);
 
 	return 1;
 }
 
-unsigned get_frames_qty(struct list_head *frames,
-						spinlock_t *spinlock)
-{
-	struct list_head *iter = 0;
-	struct list_head *temp = 0;
-	unsigned long flags = 0;
-	unsigned qty = 0;
-
-	return_val_if_untrue(frames, 0);
-	return_val_if_untrue(spinlock, 0);
-
-	spin_lock_irqsave(spinlock, flags);
-
-	list_for_each_safe(iter, temp, frames) {
-		qty++;
-	}
-
-	spin_unlock_irqrestore(spinlock, flags);
-
-	return qty;
-}
-
-/* Locks iframe_spinlock. */
-unsigned fscc_port_get_iframes_qty(struct fscc_port *port)
-{
-	unsigned qty = 0;
-
-	return_val_if_untrue(port, 0);
-	
-	if (port->pending_iframe)
-		qty++;
-
-	return qty + get_frames_qty(&port->iframes, &port->iframe_spinlock);
-}
-
-/* Locks oframe_spinlock. */
-unsigned fscc_port_get_oframes_qty(struct fscc_port *port)
-{
-	unsigned qty = 0;
-
-	return_val_if_untrue(port, 0);
-
-	if (port->pending_oframe)
-		qty++;
-
-	return qty + get_frames_qty(&port->oframes, &port->oframe_spinlock);
-}
-
-unsigned calculate_memory_usage(struct fscc_frame *pending_frame,
-								struct list_head *frame_list,
-								spinlock_t *spinlock)
-{
-	struct fscc_frame *current_frame = 0;
-	unsigned long flags = 0;
-	unsigned memory = 0;
-
-	return_val_if_untrue(frame_list, 0);
-
-	if (spinlock)
-		spin_lock_irqsave(spinlock, flags);
-
-	list_for_each_entry(current_frame, frame_list, list) {
-		memory += fscc_frame_get_current_length(current_frame);
-	}
-
-	if (pending_frame)
-		memory += fscc_frame_get_current_length(pending_frame);
-
-	if (spinlock)
-		spin_unlock_irqrestore(spinlock, flags);
-
-	return memory;
-}
-
 unsigned fscc_port_get_input_memory_usage(struct fscc_port *port,
 										  unsigned lock)
 {
-	spinlock_t *spinlock = 0;
-	unsigned memory = 0;
+	unsigned value = 0;
 
-	return_val_if_untrue(port, 0);
+    return_val_if_untrue(port, 0);
 
-	spinlock = (lock) ? &port->iframe_spinlock : 0;
+	value = fscc_flist_calculate_memory_usage(&port->iframes);
 
-	memory = calculate_memory_usage(port->pending_iframe, &port->iframes,
-									spinlock);
+    if (port->pending_oframe)
+        value += fscc_frame_get_current_length(port->pending_iframe);
 
-	memory += fscc_stream_get_length(&port->istream);
-
-	return memory;
+    return value;
 }
 
 unsigned fscc_port_get_output_memory_usage(struct fscc_port *port,
 										   unsigned lock)
 {
-	spinlock_t *spinlock = 0;
+	unsigned value = 0;
 
-	return_val_if_untrue(port, 0);
+    return_val_if_untrue(port, 0);
 
-	spinlock = (lock) ? &port->oframe_spinlock : 0;
+	value = fscc_flist_calculate_memory_usage(&port->oframes);
 
-	return calculate_memory_usage(port->pending_oframe, &port->oframes,
-								  spinlock);
+    if (port->pending_oframe)
+        value += fscc_frame_get_current_length(port->pending_oframe);
+
+    return value;
 }
 
 unsigned fscc_port_get_input_memory_cap(struct fscc_port *port)
@@ -1036,6 +853,7 @@ void fscc_port_set_clock_bits(struct fscc_port *port,
 	unsigned strb_value = STRB_BASE;
 	unsigned dta_value = DTA_BASE;
 	unsigned clk_value = CLK_BASE;
+	unsigned long flags;
 
 	__u32 *data = 0;
 	unsigned data_index = 0;
@@ -1069,6 +887,8 @@ void fscc_port_set_clock_bits(struct fscc_port *port,
 		clk_value <<= 0x08;
 	}
 
+	spin_lock_irqsave(&port->board_settings_spinlock, flags);
+
 	orig_fcr_value = fscc_card_get_register(port->card, 2, FCR_OFFSET);
 
 	data[data_index++] = new_fcr_value = orig_fcr_value & 0xfffff0f0;
@@ -1096,6 +916,8 @@ void fscc_port_set_clock_bits(struct fscc_port *port,
 	data[data_index++] = orig_fcr_value;
 
 	fscc_port_set_register_rep(port, 2, FCR_OFFSET, (char *)data, data_index * 4);
+
+	spin_unlock_irqrestore(&port->board_settings_spinlock, flags);
 
 	kfree(data);
 }
@@ -1129,38 +951,18 @@ unsigned fscc_port_get_ignore_timeout(struct fscc_port *port)
 	return port->ignore_timeout;
 }
 
-/* Locks oframe_spinlock. */
 int fscc_port_execute_TRES(struct fscc_port *port)
 {
-	unsigned long flags = 0;
-	int error_code = 0;
-
 	return_val_if_untrue(port, 0);
 
-	spin_lock_irqsave(&port->oframe_spinlock, flags);
-
-	error_code = fscc_port_set_register(port, 0, CMDR_OFFSET, 0x08000000);
-
-	spin_unlock_irqrestore(&port->oframe_spinlock, flags);
-
-	return error_code;
+	return fscc_port_set_register(port, 0, CMDR_OFFSET, 0x08000000);
 }
 
-/* Locks iframe_spinlock. */
 int fscc_port_execute_RRES(struct fscc_port *port)
 {
-	unsigned long flags = 0;
-	int error_code = 0;
-
 	return_val_if_untrue(port, 0);
 
-	spin_lock_irqsave(&port->iframe_spinlock, flags);
-
-	error_code = fscc_port_set_register(port, 0, CMDR_OFFSET, 0x00020000);
-
-	spin_unlock_irqrestore(&port->iframe_spinlock, flags);
-
-	return error_code;
+	return fscc_port_set_register(port, 0, CMDR_OFFSET, 0x00020000);
 }
 
 void fscc_port_execute_GO_R(struct fscc_port *port)
@@ -1207,6 +1009,9 @@ unsigned fscc_port_using_async(struct fscc_port *port)
 {
 	return_val_if_untrue(port, 0);
 
+    /* We must refresh FCR because it is shared with serialfc */
+    port->register_storage.FCR = fscc_port_get_register(port, 2, FCR_OFFSET);
+
 	switch (port->channel) {
 	case 0:
 		return port->register_storage.FCR & 0x01000000;
@@ -1226,24 +1031,24 @@ unsigned fscc_port_is_streaming(struct fscc_port *port)
 	unsigned xsync_mode = 0;
 	unsigned rlc_mode = 0;
 	unsigned fsc_mode = 0;
-	
+
 	return_val_if_untrue(port, 0);
 
 	transparent_mode = ((port->register_storage.CCR0 & 0x3) == 0x2) ? 1 : 0;
 	xsync_mode = ((port->register_storage.CCR0 & 0x3) == 0x1) ? 1 : 0;
 	rlc_mode = (port->register_storage.CCR2 & 0xffff0000) ? 1 : 0;
 	fsc_mode = (port->register_storage.CCR0 & 0x700) ? 1 : 0;
-	
+
 	return ((transparent_mode || xsync_mode) && !(rlc_mode || fsc_mode)) ? 1 : 0;
 }
 
 unsigned fscc_port_has_dma(struct fscc_port *port)
 {
 	return_val_if_untrue(port, 0);
-	
+
 	if (force_fifo)
 		return 0;
-		
+
 	return port->card->dma;
 }
 
