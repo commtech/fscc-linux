@@ -219,8 +219,9 @@ void istream_worker(unsigned long data)
 	unsigned long flags = 0;
 	unsigned current_memory = 0;
 	unsigned memory_cap = 0;
-	char *buffer = 0;
 	static int rejected_last_stream = 0;
+	char buffer[8192];
+	unsigned status;
 
 	port = (struct fscc_port *)data;
 
@@ -263,33 +264,22 @@ void istream_worker(unsigned long data)
 	if (receive_length + current_memory > memory_cap)
 		receive_length = memory_cap - current_memory;
 
-	buffer = kmalloc(receive_length, GFP_ATOMIC);
-
-	/* Make sure the kernel gives us enough memory to receive the data. */
-	if (buffer == NULL) {
-		dev_warn(port->device,
-				 "Stream receive rejected (kmalloc of %i bytes)\n",
-				 receive_length);
-
-        spin_unlock_irqrestore(&port->iframe_spinlock, flags);
-		return;
-	}
-
 	fscc_port_get_register_rep(port, 0, FIFO_OFFSET, buffer,
 							   receive_length);
 
-	fscc_stream_add_data(port->istream, buffer, receive_length);
+	status = fscc_stream_add_data(&port->istream, buffer, receive_length);
 
-	kfree(buffer);
-
-    /* TODO: Add endian code. */
-
-	dev_dbg(port->device, "Stream <= %i byte%s\n", receive_length,
-			(receive_length == 1) ? "" : "s");
+    if (status == 0) {
+	    dev_err(port->device, "Error adding stream data");
+	    return;
+    }
 
 	rejected_last_stream = 0; /* Track that we received stream data to reset
                                  the memory constraint warning print message.
                               */
+
+	dev_dbg(port->device, "Stream <= %i byte%s\n", receive_length,
+			(receive_length == 1) ? "" : "s");
 
 	wake_up_interruptible(&port->input_queue);
 

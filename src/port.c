@@ -114,7 +114,8 @@ struct fscc_port *fscc_port_new(struct fscc_card *card, unsigned channel,
 
 	port->channel = channel;
 	port->card = card;
-	port->istream = fscc_stream_new();
+
+	fscc_stream_init(&port->istream);
 
 	fscc_port_set_append_status(port, DEFAULT_APPEND_STATUS_VALUE);
 	fscc_port_set_ignore_timeout(port, DEFAULT_IGNORE_TIMEOUT_VALUE);
@@ -290,7 +291,7 @@ void fscc_port_delete(struct fscc_port *port)
 		fscc_port_set_register(port, 2, DMA_TX_BASE_OFFSET, 0x00000000);
 	}
 
-	fscc_stream_delete(port->istream);
+	fscc_stream_delete(&port->istream);
 
 	fscc_port_clear_iframes(port, 0);
 	fscc_port_clear_oframes(port, 0);
@@ -408,27 +409,22 @@ ssize_t fscc_port_frame_read(struct fscc_port *port, char *buf, size_t count)
 	return data_length;
 }
 
-/* 
+/*
     Handles taking the streams already retrieved from the card and giving them
     to the user. This is purely a helper for the fscc_port_read function.
-*/ 
-ssize_t fscc_port_stream_read(struct fscc_port *port, char *buf, size_t count)
+*/
+ssize_t fscc_port_stream_read(struct fscc_port *port, char *buf,
+                              size_t buf_length)
 {
-	unsigned data_length = 0;
-	unsigned uncopied_bytes = 0;
+	unsigned out_length = 0;
 
 	return_val_if_untrue(port, 0);
 
-	data_length = min(count, (size_t)fscc_stream_get_length(port->istream));
+	out_length = min(buf_length, (size_t)fscc_stream_get_length(&port->istream));
 
-	uncopied_bytes = copy_to_user(buf, fscc_stream_get_data(port->istream),
-								  data_length);
+	fscc_stream_remove_data(&port->istream, buf, out_length);
 
-	return_val_if_untrue(!uncopied_bytes, 0);
-
-	fscc_stream_remove_data(port->istream, data_length);
-
-	return data_length;
+	return out_length;
 }
 
 /*
@@ -525,7 +521,7 @@ unsigned fscc_port_has_incoming_data(struct fscc_port *port)
 	return_val_if_untrue(port, 0);
 
 	if (fscc_port_is_streaming(port))
-		return (fscc_stream_is_empty(port->istream)) ? 0 : 1;
+		return (fscc_stream_is_empty(&port->istream)) ? 0 : 1;
 	else if (fscc_port_has_iframes(port, 1))
 		return 1;
 
@@ -848,8 +844,7 @@ int fscc_port_purge_rx(struct fscc_port *port)
 	/* Locks iframe_spinlock. */
 	fscc_port_clear_iframes(port, 1);
 
-	fscc_stream_remove_data(port->istream,
-							fscc_stream_get_length(port->istream));
+	fscc_stream_clear(&port->istream);
 
 	return 1;
 }
@@ -962,7 +957,7 @@ unsigned fscc_port_get_input_memory_usage(struct fscc_port *port,
 	memory = calculate_memory_usage(port->pending_iframe, &port->iframes,
 									spinlock);
 
-	memory += fscc_stream_get_length(port->istream);
+	memory += fscc_stream_get_length(&port->istream);
 
 	return memory;
 }

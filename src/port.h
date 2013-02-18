@@ -113,7 +113,7 @@ struct fscc_port {
 	struct fscc_frame *pending_iframe; /* Frame retrieving from the FIFO */
 	struct fscc_frame *pending_oframe; /* Frame being put in the FIFO */
 
-	struct fscc_stream *istream; /* Transparent stream */
+	struct fscc_stream istream; /* Transparent stream */
 
 	struct fscc_registers register_storage; /* Only valid on suspend/resume */
 

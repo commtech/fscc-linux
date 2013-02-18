@@ -23,121 +23,166 @@
 #include "stream.h"
 #include "utils.h" /* return_{val_}if_true */
 
-void fscc_stream_update_buffer_size(struct fscc_stream *stream,
-									unsigned length);
+int fscc_stream_update_buffer_size(struct fscc_stream *stream,
+									unsigned size);
 
-struct fscc_stream *fscc_stream_new(void)
+void fscc_stream_init(struct fscc_stream *stream)
 {
-	struct fscc_stream *stream = 0;
+	unsigned long flags = 0;
 
-	stream = kmalloc(sizeof(*stream), GFP_ATOMIC);
+	spin_lock_init(&stream->spinlock);
 
-	return_val_if_untrue(stream, 0);
+	spin_lock_irqsave(&stream->spinlock, flags);
 
-	stream->length = 0;
-	stream->data = 0;
+	stream->data_length = 0;
+	stream->buffer_size = 0;
+    stream->buffer = 0;
 
-	return stream;
+	spin_unlock_irqrestore(&stream->spinlock, flags);
 }
 
 void fscc_stream_delete(struct fscc_stream *stream)
 {
+	unsigned long flags = 0;
+
 	return_if_untrue(stream);
 
-	if (stream->data)
-		kfree(stream->data);
+	spin_lock_irqsave(&stream->spinlock, flags);
 
-	kfree(stream);
+    fscc_stream_update_buffer_size(stream, 0);
+
+	spin_unlock_irqrestore(&stream->spinlock, flags);
 }
 
 unsigned fscc_stream_get_length(struct fscc_stream *stream)
 {
 	return_val_if_untrue(stream, 0);
 
-	return stream->length;
+	return stream->data_length;
+}
+
+//TODO: This could cause an issue w here data_length is less before it makes
+//it into remove_Data
+void fscc_stream_clear(struct fscc_stream *stream)
+{
+    fscc_stream_remove_data(stream, NULL, stream->data_length);
 }
 
 unsigned fscc_stream_is_empty(struct fscc_stream *stream)
 {
 	return_val_if_untrue(stream, 0);
 
-	return !fscc_stream_get_length(stream);
+    return stream->data_length == 0;
 }
 
-void fscc_stream_add_data(struct fscc_stream *stream, const char *data,
+int fscc_stream_add_data(struct fscc_stream *stream, const char *data,
 						  unsigned length)
 {
-	unsigned old_length = 0;
+	unsigned long flags = 0;
 
-	return_if_untrue(stream);
-
-	old_length = stream->length;
-
-	fscc_stream_update_buffer_size(stream, stream->length + length);
-	
-	memmove(stream->data + old_length, data, length);
-}
-
-void fscc_stream_remove_data(struct fscc_stream *stream, unsigned length)
-{
-	unsigned new_length = 0;
-
-	return_if_untrue(stream);
-
-	if (length == 0)
-		return;
-
-	if (stream->length == 0)
-		return;
-
-	new_length = stream->length - length;
-
-	memmove(stream->data, stream->data + length, new_length);
-
-	fscc_stream_update_buffer_size(stream, new_length);
-}
-
-char *fscc_stream_get_data(struct fscc_stream *stream)
-{
 	return_val_if_untrue(stream, 0);
 
-	return stream->data;
+	spin_lock_irqsave(&stream->spinlock, flags);
+
+    /* Only update buffer size if there isn't enough space already */
+    if (stream->data_length + length > stream->buffer_size) {
+        if (fscc_stream_update_buffer_size(stream, stream->data_length + length) == 0) {
+	        spin_unlock_irqrestore(&stream->spinlock, flags);
+    		return 0;
+        }
+    }
+
+    /* Copy the new data to the end of the stream */
+    memmove(stream->buffer + stream->data_length, data, length);
+
+    stream->data_length += length;
+
+	spin_unlock_irqrestore(&stream->spinlock, flags);
+
+	return 1;
 }
 
-void fscc_stream_update_buffer_size(struct fscc_stream *stream,
-									unsigned length)
+
+// Destination must be a user address so copy_to_user works
+int fscc_stream_remove_data(struct fscc_stream *stream, char *destination, unsigned length)
 {
-	char *new_data = 0;
+	unsigned long flags = 0;
+
+    return_val_if_untrue(stream, 0);
+
+    if (length == 0)
+        return 1;
+
+	spin_lock_irqsave(&stream->spinlock, flags);
+
+    if (stream->data_length == 0) {
+	    spin_unlock_irqrestore(&stream->spinlock, flags);
+        return 1;
+    }
+
+    /* Make sure we don't remove remove data than we have */
+    if (length > stream->data_length) {
+	    spin_unlock_irqrestore(&stream->spinlock, flags);
+        return 0;
+    }
+
+    /* Copy the data into the outside buffer */
+    if (destination)
+        copy_to_user(destination, stream->buffer, length);
+
+    stream->data_length -= length;
+
+    /* Move the data up in the buffer (essentially removing the old data) */
+    memmove(stream->buffer, stream->buffer + length, stream->data_length);
+
+	spin_unlock_irqrestore(&stream->spinlock, flags);
+
+    return 1;
+}
+
+int fscc_stream_update_buffer_size(struct fscc_stream *stream,
+									unsigned size)
+{
+	char *new_buffer = 0;
 	int malloc_flags = 0;
 
-	return_if_untrue(stream);
+	return_val_if_untrue(stream, 0);
 
-	if (length == 0) {
-		if (stream->data) {
-			kfree(stream->data);
-			stream->data = 0;
+	if (size == 0) {
+		if (stream->buffer) {
+			kfree(stream->buffer);
+			stream->buffer = 0;
 		}
 
-		stream->length = 0;
-		return;
+        stream->buffer_size = 0;
+		stream->data_length = 0;
+
+		return 1;
 	}
 
 	malloc_flags |= GFP_ATOMIC;
 
-	new_data = kmalloc(length, malloc_flags);
+	new_buffer = kmalloc(size, malloc_flags);
 
-	return_if_untrue(new_data);
+	return_val_if_untrue(new_buffer, 0);
 
-	memset(new_data, 0, length);
+	memset(new_buffer, 0, size);
 
-	if (stream->data) {
-		if (stream->length)
-			memmove(new_data, stream->data, min(stream->length, length));
+	if (stream->buffer) {
+		if (stream->data_length) {
+            /* Truncate data length if the new buffer size is less than the data length */
+            stream->data_length = min(stream->data_length, size);
 
-		kfree(stream->data);
+            /* Copy over the old buffer data to the new buffer */
+            memmove(new_buffer, stream->buffer, stream->data_length);
+		}
+
+		kfree(stream->buffer);
 	}
 
-	stream->data = new_data;
-	stream->length = length;
+	stream->buffer = new_buffer;
+	stream->buffer_size = size;
+
+	return 1;
 }
 
