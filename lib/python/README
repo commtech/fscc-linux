@@ -1,0 +1,6 @@
+Requirements & Installation
+---------------------------
+The pyfscc module requires Python, and can be installed with the standard 
+Python installation procedure:
+
+   > python setup.py install
