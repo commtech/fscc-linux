@@ -14,3 +14,4 @@
 *.o.d
 *.orig
 sysfs
+*.so
