@@ -27,7 +27,7 @@
 struct pciserial_board pci_board = {
 	.flags = FL_BASE1,
 	.num_ports = 2,
-	.base_baud = 921600,
+	.base_baud = 1152000,
 	.uart_offset = 8,
 };
 
