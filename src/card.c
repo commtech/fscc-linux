@@ -60,7 +60,7 @@ struct fscc_card *fscc_card_new(struct pci_dev *pdev,
 	switch (pdev->device) {
 	case SFSCC_ID:
 	case SFSCC_104_LVDS_ID:
-	case SFSCC_NO950_ID:
+	case SFSCC_104_UA_ID:
 	case SFSCC_4_UA_ID:
 	case SFSCC_UA_ID:
 	case SFSCC_LVDS_ID:
@@ -367,27 +367,25 @@ char *fscc_card_get_name(struct fscc_card *card)
 {
 	switch (card->pci_dev->device) {
 	case FSCC_ID:
+	case FSCC_UA_ID:
 		return "FSCC PCI";
 	case SFSCC_ID:
-		return "SuperFSCC PCI";
-	case SFSCC_104_LVDS_ID:
-		return "SuperFSCC-104-LVDS";
-	case FSCC_232_ID:
-		return "FSCC-232 PCI";
-	case SFSCC_NO950_ID:
-		return "SuperFSCC PCI";
-	case SFSCC_4_UA_ID:
-		return "SuperFSCC/4 PCI";
 	case SFSCC_UA_ID:
 		return "SuperFSCC PCI";
+	case SFSCC_104_LVDS_ID:
+		return "SuperFSCC-104-LVDS PC/104+";
+	case FSCC_232_ID:
+		return "FSCC-232 PCI";
+	case SFSCC_104_UA_ID:
+		return "SuperFSCC-104 PC/104+";
+	case SFSCC_4_UA_ID:
+		return "SuperFSCC/4 PCI";
 	case SFSCC_LVDS_ID:
 		return "SuperFSCC-LVDS PCI";
 	case FSCC_4_UA_ID:
 		return "FSCC/4 PCI";
 	case SFSCC_4_LVDS_ID:
 		return "SuperFSCC/4-LVDS PCI";
-	case FSCC_UA_ID:
-		return "FSCC PCI";
 	case SFSCCe_4_ID:
 		return "SuperFSCC/4 PCIe";
 	case SFSCC_4_CPCI_ID:
