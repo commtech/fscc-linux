@@ -40,7 +40,7 @@ unsigned force_fifo = DEFAULT_FORCE_FIFO_VALUE;
 	
 LIST_HEAD(fscc_cards);
 
-struct pci_device_id fscc_id_table[] __devinitdata = {
+struct pci_device_id fscc_id_table[] = {
 	{ COMMTECH_VENDOR_ID, FSCC_ID, PCI_ANY_ID, 0, 0, 0 },
 	{ COMMTECH_VENDOR_ID, SFSCC_ID, PCI_ANY_ID, 0, 0, 0 },
 	{ COMMTECH_VENDOR_ID, SFSCC_104_LVDS_ID, PCI_ANY_ID, 0, 0, 0 },
@@ -282,7 +282,7 @@ static struct file_operations fscc_fops = {
 #endif
 };
 
-static int __devinit fscc_probe(struct pci_dev *pdev,
+static int fscc_probe(struct pci_dev *pdev,
 								const struct pci_device_id *id)
 {
 	struct fscc_card *new_card = 0;
@@ -299,7 +299,7 @@ static int __devinit fscc_probe(struct pci_dev *pdev,
 	return 0;
 }
 
-static void __devexit fscc_remove(struct pci_dev *pdev)
+static void fscc_remove(struct pci_dev *pdev)
 {
 	struct fscc_card *card = 0;
 
