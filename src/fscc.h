@@ -101,7 +101,7 @@ extern struct list_head fscc_cards;
 #define SFSCC_ID 0x0014
 #define SFSCC_104_LVDS_ID 0x0015
 #define FSCC_232_ID 0x0016
-#define SFSCC_NO950_ID 0x0017  //SuperFSCC/104
+#define SFSCC_104_UA_ID 0x0017
 #define SFSCC_4_UA_ID 0x0018
 #define SFSCC_UA_ID 0x0019
 #define SFSCC_LVDS_ID 0x001a
