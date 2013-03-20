@@ -20,6 +20,8 @@
 
 #include <linux/slab.h> /* kmalloc */
 
+#include <asm/uaccess.h> /* copy_to_user */
+
 #include "stream.h"
 #include "utils.h" /* return_{val_}if_true */
 
