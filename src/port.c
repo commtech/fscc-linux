@@ -385,7 +385,7 @@ ssize_t fscc_port_frame_read(struct fscc_port *port, char *buf, size_t buf_lengt
 	return_val_if_untrue(port, 0);
 
     max_data_length = buf_length;
-    max_data_length -= (port->append_status) ? 2 : 0;
+    max_data_length -= (!port->append_status) ? 2 : 0;
 
 	frame = fscc_flist_remove_frame_if_lte(&port->iframes, max_data_length);
 
@@ -397,6 +397,7 @@ ssize_t fscc_port_frame_read(struct fscc_port *port, char *buf, size_t buf_lengt
         return -ENOBUFS;
 
     out_length = fscc_frame_get_target_length(frame);
+    out_length -= (!port->append_status) ? 2 : 0;
 
     copy_to_user(buf, fscc_frame_get_remaining_data(frame),
 								      out_length);
