@@ -32,7 +32,6 @@
 
 #include "fscc.h" /* struct fscc_registers */
 #include "descriptor.h" /* struct fscc_descriptor */
-#include "stream.h" /* struct fscc_descriptor */
 #include "debug.h" /* stuct debug_interrupt_tracker */
 #include "flist.h" /* struct fscc_registers */
 
@@ -114,7 +113,7 @@ struct fscc_port {
 	struct fscc_frame *pending_iframe; /* Frame retrieving from the FIFO */
 	struct fscc_frame *pending_oframe; /* Frame being put in the FIFO */
 
-	struct fscc_stream istream; /* Transparent stream */
+	struct fscc_frame *istream; /* Transparent stream */
 
 	struct fscc_registers register_storage; /* Only valid on suspend/resume */
 

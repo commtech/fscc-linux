@@ -90,7 +90,7 @@ struct fscc_frame *fscc_flist_remove_frame_if_lte(struct fscc_flist *flist, unsi
 		break; // Breaks after setting frame to the head // TODO
 	}
 
-    if (fscc_frame_get_current_length(frame) > size) {
+    if (fscc_frame_get_length(frame) > size) {
 	    spin_unlock_irqrestore(&flist->spinlock, flags);
         return 0;
     }
@@ -137,7 +137,7 @@ unsigned fscc_flist_calculate_memory_usage(struct fscc_flist *flist)
 	spin_lock_irqsave(&flist->spinlock, flags);
 
 	list_for_each_entry(current_frame, &flist->frames, list) {
-        memory += fscc_frame_get_current_length(current_frame);
+        memory += fscc_frame_get_length(current_frame);
 	}
 
 	spin_unlock_irqrestore(&flist->spinlock, flags);

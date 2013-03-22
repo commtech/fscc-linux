@@ -110,7 +110,7 @@ struct fscc_port *fscc_port_new(struct fscc_card *card, unsigned channel,
 	port->channel = channel;
 	port->card = card;
 
-	fscc_stream_init(&port->istream);
+	port->istream = fscc_frame_new(0, port);
 
 	fscc_port_set_append_status(port, DEFAULT_APPEND_STATUS_VALUE);
 	fscc_port_set_ignore_timeout(port, DEFAULT_IGNORE_TIMEOUT_VALUE);
@@ -288,7 +288,7 @@ void fscc_port_delete(struct fscc_port *port)
 		fscc_port_set_register(port, 2, DMA_TX_BASE_OFFSET, 0x00000000);
 	}
 
-	fscc_stream_delete(&port->istream);
+	fscc_frame_delete(port->istream);
 	fscc_flist_delete(&port->iframes);
 	fscc_flist_delete(&port->oframes);
 
@@ -353,7 +353,7 @@ int fscc_port_write(struct fscc_port *port, const char *data, unsigned length)
 	uncopied_bytes = copy_from_user(temp_storage, data, length);
 	return_val_if_untrue(!uncopied_bytes, 0);
 
-	frame = fscc_frame_new(length, port->card->dma, port);
+	frame = fscc_frame_new(port->card->dma, port);
 
 	if (!frame) {
 	   kfree(temp_storage);
@@ -396,11 +396,11 @@ ssize_t fscc_port_frame_read(struct fscc_port *port, char *buf, size_t buf_lengt
     if (!frame)
         return -ENOBUFS;
 
-    out_length = fscc_frame_get_target_length(frame);
+    out_length = fscc_frame_get_length(frame);
     out_length -= (!port->append_status) ? 2 : 0;
 
-    copy_to_user(buf, fscc_frame_get_remaining_data(frame),
-								      out_length);
+    fscc_frame_remove_data(frame, buf, out_length);
+
     fscc_frame_delete(frame);
 
     return out_length;
@@ -417,9 +417,9 @@ ssize_t fscc_port_stream_read(struct fscc_port *port, char *buf,
 
 	return_val_if_untrue(port, 0);
 
-	out_length = min(buf_length, (size_t)fscc_stream_get_length(&port->istream));
+	out_length = min(buf_length, (size_t)fscc_frame_get_length(port->istream));
 
-	fscc_stream_remove_data(&port->istream, buf, out_length);
+	fscc_frame_remove_data(port->istream, buf, out_length);
 
 	return out_length;
 }
@@ -446,7 +446,7 @@ unsigned fscc_port_has_incoming_data(struct fscc_port *port)
 	return_val_if_untrue(port, 0);
 
 	if (fscc_port_is_streaming(port))
-		status =  (fscc_stream_is_empty(&port->istream)) ? 0 : 1;
+		status =  (fscc_frame_is_empty(port->istream)) ? 0 : 1;
 	else if (fscc_flist_is_empty(&port->iframes) == 0)
 		status = 1;
 
@@ -729,7 +729,7 @@ int fscc_port_purge_rx(struct fscc_port *port)
 		return error_code;
 
     fscc_flist_clear(&port->iframes);
-	fscc_stream_clear(&port->istream);
+	fscc_frame_clear(port->istream);
 
 	return 1;
 }
@@ -773,7 +773,7 @@ unsigned fscc_port_get_input_memory_usage(struct fscc_port *port,
 	value = fscc_flist_calculate_memory_usage(&port->iframes);
 
     if (port->pending_oframe)
-        value += fscc_frame_get_current_length(port->pending_iframe);
+        value += fscc_frame_get_length(port->pending_iframe);
 
     return value;
 }
@@ -788,7 +788,7 @@ unsigned fscc_port_get_output_memory_usage(struct fscc_port *port,
 	value = fscc_flist_calculate_memory_usage(&port->oframes);
 
     if (port->pending_oframe)
-        value += fscc_frame_get_current_length(port->pending_oframe);
+        value += fscc_frame_get_length(port->pending_oframe);
 
     return value;
 }
