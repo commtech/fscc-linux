@@ -1,3 +1,10 @@
+version 2.2.2 (03/25/2013)
+--------------------------------------------------------------------------------
+	* Performance improvements
+	* Fix a bug where asynchronous baud rates were off
+	* Fix compiler errors introduced in linux 3.8
+	* Fix random crash in framing based modes 
+
 version 2.2.1 (11/16/2012)
 --------------------------------------------------------------------------------
 	* Fix a bug where X-Sync mode wasn't considered stream data if there
