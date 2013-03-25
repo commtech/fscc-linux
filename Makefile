@@ -4,7 +4,7 @@ PWD	:= $(shell pwd)
 IGNORE	:=
 fscc-objs := src/main.o src/port.o src/card.o src/isr.o src/utils.o \
              src/frame.o src/sysfs.o src/descriptor.o src/debug.o \
-             src/stream.o src/flist.o
+             src/flist.o
 
 ifeq ($(DEBUG),1)
 	EXTRA_CFLAGS += -DDEBUG
