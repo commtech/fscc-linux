@@ -208,7 +208,7 @@ name of the register you would like to modify.
 echo 030000ff > /sys/class/fscc/fscc0/registers/bgr
 ```
 
-Use the FSCC_SET_REGISTERS ioctl to set the values of any registers you
+Use the `FSCC_SET_REGISTERS` ioctl to set the values of any registers you
 need to modify from within C code. This ioctl can be found within
 `<fscc/fscc.h>` after you install the header files (see section IV).
 
@@ -258,7 +258,7 @@ cat /sys/class/fscc/fscc0/registers/bgr
 00000001
 ```
 
-Use the FSCC_GET_REGISTERS ioctl to get the values of any registers you
+Use the `FSCC_GET_REGISTERS` ioctl to get the values of any registers you
 need to read from within code. This ioctl can be found within
 `<fscc/fscc.h>` after you install the header files (see section IV).
 
@@ -346,7 +346,7 @@ Using one of the synchronous modes you can only receive data consistently
 up to 30 Mbit (when you are using a external clock). If you are transmitting
 data using an internal clock you can safely go up 50 Mbit.
 
-Use the FSCC_SET_CLOCK_BITS ioctl to set the frequency from within code.
+Use the `FSCC_SET_CLOCK_BITS` ioctl to set the frequency from within code.
 
 ```c
 /* 10 MHz */
@@ -435,7 +435,7 @@ on the mode you are using.
 
 In a frame based mode the length argument specifies the maximum frame size
 to return. If the next queued frame is larger than the size you specified
-the error -ENOBUFS is returned and the data will remain waiting for a read()
+the error `-ENOBUFS` is returned and the data will remain waiting for a read()
 of a larger value. If a `read()` length is specified that is larger than the
 length of multiple frames in queue you will still only receive one frame per
 read() call.
@@ -453,7 +453,7 @@ streaming mode and receive a stream of data. When calling `read()` you will
 receive the the streaming data until you switch back into a frame based
 mode then do a `read()`.
 
-In in addition to the standard errors that the read() function returns
+In in addition to the standard errors that the `read()` function returns
 there are a couple errors specific to the FSCC you might run into.
 
 -ENOBUFS: If the size parameter passed into the read() function is smaller
