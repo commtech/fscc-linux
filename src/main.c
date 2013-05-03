@@ -135,14 +135,14 @@ ssize_t fscc_write(struct file *file, const char *buf, size_t count,
 	if (down_interruptible(&port->write_semaphore))
 		return -ERESTARTSYS;
 
-	while (fscc_port_get_output_memory_usage(port, 1) + count > fscc_port_get_output_memory_cap(port)) {
+	while (fscc_port_get_output_memory_usage(port) + count > fscc_port_get_output_memory_cap(port)) {
 		up(&port->write_semaphore);
 
 		if (file->f_flags & O_NONBLOCK)
 			return -EAGAIN;
 
 		if (wait_event_interruptible(port->output_queue,
-				fscc_port_get_output_memory_usage(port, 1) + count <= fscc_port_get_output_memory_cap(port))) {
+				fscc_port_get_output_memory_usage(port) + count <= fscc_port_get_output_memory_cap(port))) {
 			return -ERESTARTSYS;
 		}
 
@@ -172,7 +172,7 @@ unsigned fscc_poll(struct file *file, struct poll_table_struct *wait)
 	if (fscc_port_has_incoming_data(port))
 		mask |= POLLIN | POLLRDNORM;
 
-	if (fscc_port_get_output_memory_usage(port, 1) < fscc_port_get_output_memory_cap(port))
+	if (fscc_port_get_output_memory_usage(port) < fscc_port_get_output_memory_cap(port))
 		mask |= POLLOUT | POLLWRNORM;
 
 	up(&port->poll_semaphore);

@@ -56,6 +56,9 @@ unsigned fscc_frame_get_buffer_size(struct fscc_frame *frame);
 int fscc_frame_add_data(struct fscc_frame *frame, const char *data,
 						 unsigned length);
 
+int fscc_frame_add_data_from_port(struct fscc_frame *frame, struct fscc_port *port,
+                                  unsigned length);
+
 int fscc_frame_remove_data(struct fscc_frame *frame, char *destination,
                            unsigned length);
 unsigned fscc_frame_is_empty(struct fscc_frame *frame);

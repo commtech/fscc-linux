@@ -93,10 +93,15 @@ void iframe_worker(unsigned long data)
 	unsigned finished_frame = 0;
 	unsigned long flags = 0;
 	static int rejected_last_frame = 0;
+    unsigned current_memory = 0;
+    unsigned memory_cap = 0;
 
 	port = (struct fscc_port *)data;
 
 	return_if_untrue(port);
+
+    current_memory = fscc_port_get_input_memory_usage(port);
+    memory_cap = fscc_port_get_input_memory_cap(port);
 
 	spin_lock_irqsave(&port->board_rx_spinlock, flags);
 
@@ -125,81 +130,61 @@ void iframe_worker(unsigned long data)
 		receive_length -= receive_length % 4;
 	}
 
-	if (receive_length > 0) {
-		char *buffer = 0;
+	if (receive_length <= 0) {
+		spin_unlock_irqrestore(&port->board_rx_spinlock, flags);
+		return;
+	}
+
+	/* Make sure we don't go over the user's memory constraint. */
+	if (current_memory + receive_length > memory_cap) {
+		if (rejected_last_frame == 0) {
+			dev_warn(port->device,
+                     "Rejecting frames (memory constraint)\n");
+            rejected_last_frame = 1; /* Track that we dropped a frame so we
+                            don't have to warn the user again. */
+		}
+
+        if (port->pending_iframe) {
+		    fscc_frame_delete(port->pending_iframe);
+		    port->pending_iframe = 0;
+        }
+
+		spin_unlock_irqrestore(&port->board_rx_spinlock, flags);
+		return;
+	}
+
+	if (!port->pending_iframe) {
+		//port->pending_iframe = fscc_frame_new(0, fscc_port_has_dma(port), port);
+		port->pending_iframe = fscc_frame_new(0, port);
 
 		if (!port->pending_iframe) {
-			//port->pending_iframe = fscc_frame_new(0, fscc_port_has_dma(port), port);
-			port->pending_iframe = fscc_frame_new(0, port);
-
-			if (!port->pending_iframe) {
-				spin_unlock_irqrestore(&port->board_rx_spinlock, flags);
-				return;
-			}
-		}
-
-		/* Make sure we don't go over the user's memory constraint. */
-		if (fscc_port_get_input_memory_usage(port, 0) + receive_length > fscc_port_get_input_memory_cap(port)) {
-			if (rejected_last_frame == 0) {
-				dev_warn(port->device,
-                         "Rejecting frames (memory constraint)\n");
-			}
-
-			dev_dbg(port->device, "F#%i rejected (memory constraint)\n",
-					port->pending_iframe->number);
-
-			fscc_frame_delete(port->pending_iframe);
-
-			port->pending_iframe = 0;
-			rejected_last_frame = 1; /* Track that we dropped a frame so we
-                                        don't have to warn the user again. */
-
 			spin_unlock_irqrestore(&port->board_rx_spinlock, flags);
 			return;
 		}
+	}
 
-		buffer = kmalloc(receive_length, GFP_ATOMIC);
-
-		/* Make sure the kernel gives us enough memory to receive the data. */
-		if (buffer == NULL) {
-			dev_warn(port->device, "F#%i rejected (kmalloc of %i bytes)\n",
-					 port->pending_iframe->number, receive_length);
-
-			fscc_frame_delete(port->pending_iframe);
-			port->pending_iframe = 0;
-
-			spin_unlock_irqrestore(&port->board_rx_spinlock, flags);
-			return;
-		}
-
-		fscc_port_get_register_rep(port, 0, FIFO_OFFSET, buffer, receive_length);
-		fscc_frame_add_data(port->pending_iframe, buffer, receive_length);
-
-		kfree(buffer);
+	fscc_frame_add_data_from_port(port->pending_iframe, port, receive_length);
 
 #ifdef __BIG_ENDIAN
-		{
-			char status[STATUS_LENGTH];
+	{
+		char status[STATUS_LENGTH];
 
-			/* Moves the status bytes to the end. */
-			memmove(&status, port->pending_iframe->data, STATUS_LENGTH);
-			memmove(port->pending_iframe->data, port->pending_iframe->data + STATUS_LENGTH, port->pending_iframe->current_length - STATUS_LENGTH);
-			memmove(port->pending_iframe->data + port->pending_iframe->current_length - STATUS_LENGTH, &status, STATUS_LENGTH);
-		}
+		/* Moves the status bytes to the end. */
+		memmove(&status, port->pending_iframe->data, STATUS_LENGTH);
+		memmove(port->pending_iframe->data, port->pending_iframe->data + STATUS_LENGTH, port->pending_iframe->current_length - STATUS_LENGTH);
+		memmove(port->pending_iframe->data + port->pending_iframe->current_length - STATUS_LENGTH, &status, STATUS_LENGTH);
+	}
 #endif
 
-		dev_dbg(port->device, "F#%i <= %i byte%s (%sfinished)\n",
-				port->pending_iframe->number, receive_length,
-				(receive_length == 1) ? "" : "s",
-				(finished_frame) ? "" : "un");
-	}
+	dev_dbg(port->device, "F#%i <= %i byte%s (%sfinished)\n",
+			port->pending_iframe->number, receive_length,
+			(receive_length == 1) ? "" : "s",
+			(finished_frame) ? "" : "un");
 
 	if (!finished_frame) {
 		spin_unlock_irqrestore(&port->board_rx_spinlock, flags);
 		return;
 	}
-
-	fscc_frame_trim(port->pending_iframe);
 
 	if (port->pending_iframe)
         fscc_flist_add_frame(&port->iframes, port->pending_iframe);
@@ -223,25 +208,24 @@ void istream_worker(unsigned long data)
 	unsigned current_memory = 0;
 	unsigned memory_cap = 0;
 	static int rejected_last_stream = 0;
-	char buffer[8192];
 	unsigned status;
 
 	port = (struct fscc_port *)data;
 
 	return_if_untrue(port);
 
-	current_memory = fscc_port_get_input_memory_usage(port, 0);
+	current_memory = fscc_port_get_input_memory_usage(port);
 	memory_cap = fscc_port_get_input_memory_cap(port);
 
 	/* Leave the interrupt handler if we are at our memory cap. */
-	if (current_memory == memory_cap) {
-		if (rejected_last_stream == 0)
+	if (current_memory >= memory_cap) {
+		if (rejected_last_stream == 0) {
 			dev_warn(port->device, "Rejecting stream (memory constraint)\n");
-		else
-			dev_dbg(port->device, "Stream rejected (memory constraint)\n");
 
-		rejected_last_stream = 1; /* Track that we dropped stream data so we
+		    rejected_last_stream = 1; /* Track that we dropped stream data so we
                                      don't have to warn the user again. */
+        }
+
 		return;
 	}
 
@@ -255,7 +239,7 @@ void istream_worker(unsigned long data)
 	receive_length -= receive_length % 4;
 
 	/* Leave the interrupt handler if there is no data to read. */
-	if (receive_length == 0) {
+	if (receive_length <= 0) {
 		spin_unlock_irqrestore(&port->board_rx_spinlock, flags);
 		return;
 	}
@@ -265,17 +249,14 @@ void istream_worker(unsigned long data)
 	if (receive_length + current_memory > memory_cap)
 		receive_length = memory_cap - current_memory;
 
-	fscc_port_get_register_rep(port, 0, FIFO_OFFSET, buffer,
-							   receive_length);
-
-	spin_unlock_irqrestore(&port->board_rx_spinlock, flags);
-
-	status = fscc_frame_add_data(port->istream, buffer, receive_length);
-
+	status = fscc_frame_add_data_from_port(port->istream, port, receive_length);
     if (status == 0) {
 	    dev_err(port->device, "Error adding stream data");
+	    spin_unlock_irqrestore(&port->board_rx_spinlock, flags);
 	    return;
     }
+
+	spin_unlock_irqrestore(&port->board_rx_spinlock, flags);
 
 	rejected_last_stream = 0; /* Track that we received stream data to reset
                                  the memory constraint warning print message.

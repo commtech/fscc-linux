@@ -256,7 +256,7 @@ static ssize_t output_memory(struct kobject *kobj, struct kobj_attribute *attr,
 
 	port = (struct fscc_port *)dev_get_drvdata((struct device *)kobj);
 
-	return sprintf(buf, "%i\n", fscc_port_get_output_memory_usage(port, 1));
+	return sprintf(buf, "%i\n", fscc_port_get_output_memory_usage(port));
 }
 
 static ssize_t input_memory(struct kobject *kobj, struct kobj_attribute *attr,
@@ -266,7 +266,7 @@ static ssize_t input_memory(struct kobject *kobj, struct kobj_attribute *attr,
 
 	port = (struct fscc_port *)dev_get_drvdata((struct device *)kobj);
 
-	return sprintf(buf, "%i\n", fscc_port_get_input_memory_usage(port, 1));
+	return sprintf(buf, "%i\n", fscc_port_get_input_memory_usage(port));
 }
 
 static ssize_t output_frames(struct kobject *kobj, struct kobj_attribute *attr,
