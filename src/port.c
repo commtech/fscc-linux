@@ -322,7 +322,7 @@ unsigned fscc_port_timed_out(struct fscc_port *port)
 
 	return_val_if_untrue(port, 0);
 
-	for (i = 0; i < 5; i++) {
+	for (i = 0; i < DEFAULT_TIMEOUT_VALUE; i++) {
 		star_value = fscc_port_get_register(port, 0, STAR_OFFSET);
 
 		if ((star_value & CE_BIT) == 0)
