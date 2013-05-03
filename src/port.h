@@ -173,7 +173,7 @@ int fscc_port_purge_tx(struct fscc_port *port);
 int fscc_port_purge_rx(struct fscc_port *port);
 
 __u32 fscc_port_get_TXCNT(struct fscc_port *port);
-__u32 fscc_port_get_RXCNT(struct fscc_port *port);
+unsigned fscc_port_get_RXCNT(struct fscc_port *port);
 
 __u8 fscc_port_get_FREV(struct fscc_port *port);
 __u8 fscc_port_get_PREV(struct fscc_port *port);
