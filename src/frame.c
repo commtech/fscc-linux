@@ -19,6 +19,7 @@
 */
 
 #include <linux/slab.h> /* kmalloc */
+#include <linux/uaccess.h>
 
 #include "frame.h"
 #include "utils.h" /* return_{val_}if_true */
