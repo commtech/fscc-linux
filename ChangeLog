@@ -1,9 +1,15 @@
+version 2.2.3 (06/13/2013)
+--------------------------------------------------------------------------------
+    * Fixed a bug where having NTB set wouldn't put you in a frame based mode
+    * Fixed a compiler issue on older kernels
+    * Several small performance improvements when handling incoming frames
+
 version 2.2.2 (03/25/2013)
 --------------------------------------------------------------------------------
 	* Performance improvements
 	* Fix a bug where asynchronous baud rates were off
 	* Fix compiler errors introduced in linux 3.8
-	* Fix random crash in framing based modes 
+	* Fix random crash in framing based modes
 
 version 2.2.1 (11/16/2012)
 --------------------------------------------------------------------------------
