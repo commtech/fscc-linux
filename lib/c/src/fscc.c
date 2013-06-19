@@ -391,6 +391,79 @@ int fscc_disable_ignore_timeout(int fd)
 
 	return (result != -1) ? 0 : errno;
 }
+/******************************************************************************/
+/*!
+
+  \brief Gets a port's receive multiple value.
+
+  \param[in] h 
+    HANDLE to the port
+  \param[out] status
+    the rx multiple value
+      
+  \return 0 
+    if the operation completed successfully
+  \return >= 1 
+    if the operation failed (see MSDN 'System Error Codes')
+
+*/
+/******************************************************************************/
+int fscc_get_rx_multiple(int fd, unsigned *status)
+{
+	int result;
+
+    result = ioctl(fd, FSCC_GET_RX_MULTIPLE, status);
+
+	return (result != -1) ? 0 : errno;
+}
+
+/******************************************************************************/
+/*!
+
+  \brief Receive frames in groups.
+
+  \param[in] h 
+    HANDLE to the port
+      
+  \return 0
+    if the operation completed successfully
+  \return >= 1 
+    if the operation failed (see MSDN 'System Error Codes')
+
+*/
+/******************************************************************************/
+int fscc_enable_rx_multiple(int fd)
+{
+	int result;
+
+    result = ioctl(fd, FSCC_ENABLE_RX_MULTIPLE);
+
+	return (result != -1) ? 0 : errno;
+}
+
+/******************************************************************************/
+/*!
+
+  \brief Disable receive multiple.
+
+  \param[in] h 
+    HANDLE to the port
+      
+  \return 0 
+    if the operation completed successfully
+  \return >= 1
+    if the operation failed (see MSDN 'System Error Codes')
+
+*/
+/******************************************************************************/
+int fscc_disable_rx_multiple(int fd)
+{
+	int result;
+
+    result = ioctl(fd, FSCC_DISABLE_RX_MULTIPLE);
+
+	return (result != -1) ? 0 : errno;
+}
 
 /******************************************************************************/
 /*!

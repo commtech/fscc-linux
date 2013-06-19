@@ -115,6 +115,7 @@ struct fscc_port *fscc_port_new(struct fscc_card *card, unsigned channel,
 	fscc_port_set_append_status(port, DEFAULT_APPEND_STATUS_VALUE);
 	fscc_port_set_ignore_timeout(port, DEFAULT_IGNORE_TIMEOUT_VALUE);
 	fscc_port_set_tx_modifiers(port, DEFAULT_TX_MODIFIERS_VALUE);
+	fscc_port_set_rx_multiple(port, DEFAULT_RX_MULTIPLE_VALUE);
 
 	port->memory_cap.input = DEFAULT_INPUT_MEMORY_CAP_VALUE;
 	port->memory_cap.output = DEFAULT_OUTPUT_MEMORY_CAP_VALUE;
@@ -379,29 +380,33 @@ int fscc_port_write(struct fscc_port *port, const char *data, unsigned length)
 ssize_t fscc_port_frame_read(struct fscc_port *port, char *buf, size_t buf_length)
 {
 	struct fscc_frame *frame = 0;
-    unsigned max_data_length = 0;
-	unsigned out_length = 0;
+    unsigned remaining_data_length = 0;
+    unsigned current_frame_length = 0;
+    unsigned out_length = 0;
 
 	return_val_if_untrue(port, 0);
 
-    max_data_length = buf_length;
-    max_data_length += (!port->append_status) ? 2 : 0;
+    do {
+        remaining_data_length = buf_length - out_length;
+        remaining_data_length += (!port->append_status) ? 2 : 0;
+        
+        frame = fscc_flist_remove_frame_if_lte(&port->iframes, remaining_data_length);
 
-	frame = fscc_flist_remove_frame_if_lte(&port->iframes, max_data_length);
+        if (!frame)
+            break;
 
-	//TODO: This should never occur but it would be nice to have it in there
-    //if (!frame)
-    //    return 0;
+        current_frame_length = fscc_frame_get_length(frame);
+        current_frame_length -= (!port->append_status) ? 2 : 0;
 
-    if (!frame)
+        fscc_frame_remove_data(frame, buf + out_length, current_frame_length);
+        fscc_frame_delete(frame);
+
+        out_length += current_frame_length;
+    }
+    while (port->rx_multiple);
+
+    if (out_length == 0)
         return -ENOBUFS;
-
-    out_length = fscc_frame_get_length(frame);
-    out_length -= (!port->append_status) ? 2 : 0;
-
-    fscc_frame_remove_data(frame, buf, out_length);
-
-    fscc_frame_delete(frame);
 
     return out_length;
 }
@@ -939,6 +944,14 @@ void fscc_port_set_ignore_timeout(struct fscc_port *port,
 	port->ignore_timeout = (ignore_timeout) ? 1 : 0;
 }
 
+void fscc_port_set_rx_multiple(struct fscc_port *port,
+							   unsigned rx_multiple)
+{
+	return_if_untrue(port);
+
+	port->rx_multiple = (rx_multiple) ? 1 : 0;
+}
+
 unsigned fscc_port_get_append_status(struct fscc_port *port)
 {
 	return_val_if_untrue(port, 0);
@@ -951,6 +964,13 @@ unsigned fscc_port_get_ignore_timeout(struct fscc_port *port)
 	return_val_if_untrue(port, 0);
 
 	return port->ignore_timeout;
+}
+
+unsigned fscc_port_get_rx_multiple(struct fscc_port *port)
+{
+	return_val_if_untrue(port, 0);
+
+	return port->rx_multiple;
 }
 
 int fscc_port_execute_TRES(struct fscc_port *port)

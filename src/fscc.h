@@ -52,6 +52,11 @@
 #define FSCC_SET_TX_MODIFIERS _IOW(FSCC_IOCTL_MAGIC, 12, const int)
 #define FSCC_GET_TX_MODIFIERS _IOR(FSCC_IOCTL_MAGIC, 14, unsigned *)
 
+#define FSCC_ENABLE_RX_MULTIPLE _IO(FSCC_IOCTL_MAGIC, 16)
+#define FSCC_DISABLE_RX_MULTIPLE _IO(FSCC_IOCTL_MAGIC, 17)
+#define FSCC_GET_RX_MULTIPLE _IOR(FSCC_IOCTL_MAGIC, 18, unsigned *)
+
+
 enum transmit_modifiers { XF=0, XREP=1, TXT=2, TXEXT=4 };
 typedef __s64 fscc_register;
 
@@ -110,6 +115,9 @@ extern struct list_head fscc_cards;
 #define FSCC_UA_ID 0x001d
 #define SFSCCe_4_ID 0x001e
 #define SFSCC_4_CPCI_ID 0x001f
+#define SFSCC_4_UA_CPCI_ID 0x0023
+#define SFSCC_UA_LVDS_ID 0x0024
+#define SFSCC_4_UA_LVDS_ID 0x0025
 
 #define STATUS_LENGTH 2
 

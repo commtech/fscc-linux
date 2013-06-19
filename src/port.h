@@ -132,6 +132,7 @@ struct fscc_port {
 
 	struct fscc_memory_cap memory_cap;
 	unsigned ignore_timeout;
+	unsigned rx_multiple;
 	int tx_modifiers;
 
 	struct timer_list timer;
@@ -197,6 +198,10 @@ void fscc_port_set_memory_cap(struct fscc_port *port,
 void fscc_port_set_ignore_timeout(struct fscc_port *port,
 								  unsigned ignore_timeout);
 unsigned fscc_port_get_ignore_timeout(struct fscc_port *port);
+
+void fscc_port_set_rx_multiple(struct fscc_port *port,
+								  unsigned rx_multiple);
+unsigned fscc_port_get_rx_multiple(struct fscc_port *port);
 
 void fscc_port_set_clock_bits(struct fscc_port *port,
 							  unsigned char *clock_data);

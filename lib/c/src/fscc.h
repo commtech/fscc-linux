@@ -82,6 +82,10 @@ struct fscc_memory_cap {
 #define FSCC_SET_TX_MODIFIERS _IOW(FSCC_IOCTL_MAGIC, 12, const int)
 #define FSCC_GET_TX_MODIFIERS _IOR(FSCC_IOCTL_MAGIC, 14, unsigned *)
 
+#define FSCC_ENABLE_RX_MULTIPLE _IO(FSCC_IOCTL_MAGIC, 16)
+#define FSCC_DISABLE_RX_MULTIPLE _IO(FSCC_IOCTL_MAGIC, 17)
+#define FSCC_GET_RX_MULTIPLE _IOR(FSCC_IOCTL_MAGIC, 18, unsigned *)
+
 /******************************************************************************/
 /*!
 
@@ -108,6 +112,9 @@ int fscc_disable_append_status(int fd);
 int fscc_get_ignore_timeout(int fd, unsigned *status);
 int fscc_enable_ignore_timeout(int fd);
 int fscc_disable_ignore_timeout(int fd);
+int fscc_get_rx_multiple(int fd, unsigned *status);
+int fscc_enable_rx_multiple(int fd);
+int fscc_disable_rx_multiple(int fd);
 int fscc_purge(int fd, unsigned tx, unsigned rx);
 int fscc_write(int fd, char *buf, unsigned size, unsigned *bytes_written);
 int fscc_read(int fd, char *buf, unsigned size, unsigned *bytes_read);

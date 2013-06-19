@@ -53,6 +53,9 @@ struct pci_device_id fscc_id_table[] = {
 	{ COMMTECH_VENDOR_ID, SFSCC_4_LVDS_ID, PCI_ANY_ID, 0, 0, 0 },
 	{ COMMTECH_VENDOR_ID, FSCC_UA_ID, PCI_ANY_ID, 0, 0, 0 },
 	{ COMMTECH_VENDOR_ID, SFSCCe_4_ID, PCI_ANY_ID, 0, 0, 0 },
+	{ COMMTECH_VENDOR_ID, SFSCC_4_UA_CPCI_ID, PCI_ANY_ID, 0, 0, 0 },
+	{ COMMTECH_VENDOR_ID, SFSCC_UA_LVDS_ID, PCI_ANY_ID, 0, 0, 0 },
+	{ COMMTECH_VENDOR_ID, SFSCC_4_UA_LVDS_ID, PCI_ANY_ID, 0, 0, 0 },
 	{ 0, },
 };
 
@@ -259,6 +262,18 @@ int fscc_ioctl(struct inode *inode, struct file *file, unsigned int cmd,
 		
 	case FSCC_GET_TX_MODIFIERS:
 		*(unsigned *)arg = fscc_port_get_tx_modifiers(port);
+		break;
+
+	case FSCC_ENABLE_RX_MULTIPLE:
+		fscc_port_set_rx_multiple(port, 1);
+		break;
+
+	case FSCC_DISABLE_RX_MULTIPLE:
+		fscc_port_set_rx_multiple(port, 0);
+		break;
+
+	case FSCC_GET_RX_MULTIPLE:
+		*(unsigned *)arg = fscc_port_get_rx_multiple(port);
 		break;
 
 	default:
