@@ -1,3 +1,8 @@
+version 2.2.4 (06/20/2013)
+--------------------------------------------------------------------------------
+    * Add support for returning multiple frames per read call
+    * Add support for new card ID's (0x23, 0x24, 0x25)
+
 version 2.2.3 (06/13/2013)
 --------------------------------------------------------------------------------
     * Fixed a bug where having NTB set wouldn't put you in a frame based mode
