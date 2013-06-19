@@ -379,6 +379,33 @@ static ssize_t ignore_timeout_show(struct kobject *kobj,
 	return sprintf(buf, "%i\n", fscc_port_get_ignore_timeout(port));
 }
 
+static ssize_t rx_multiple_store(struct kobject *kobj,
+								    struct kobj_attribute *attr, const char *buf,
+								    size_t count)
+{
+	struct fscc_port *port = 0;
+	unsigned value = 0;
+	char *end = 0;
+
+	port = (struct fscc_port *)dev_get_drvdata((struct device *)kobj);
+
+	value = (unsigned)simple_strtoul(buf, &end, 16);
+
+	fscc_port_set_rx_multiple(port, value);
+
+	return count;
+}
+
+static ssize_t rx_multiple_show(struct kobject *kobj,
+								   struct kobj_attribute *attr, char *buf)
+{
+	struct fscc_port *port = 0;
+
+	port = (struct fscc_port *)dev_get_drvdata((struct device *)kobj);
+
+	return sprintf(buf, "%i\n", fscc_port_get_rx_multiple(port));
+}
+
 static ssize_t append_status_store(struct kobject *kobj,
 								   struct kobj_attribute *attr, const char *buf,
 								   size_t count)
@@ -476,6 +503,9 @@ static struct kobj_attribute output_memory_cap_attribute =
 static struct kobj_attribute ignore_timeout_attribute =
 	__ATTR(ignore_timeout, SYSFS_READ_WRITE_MODE, ignore_timeout_show, ignore_timeout_store);
 
+static struct kobj_attribute rx_multiple_attribute =
+	__ATTR(rx_multiple, SYSFS_READ_WRITE_MODE, rx_multiple_show, rx_multiple_store);
+
 static struct kobj_attribute tx_modifiers_attribute =
 	__ATTR(tx_modifiers, SYSFS_READ_WRITE_MODE, tx_modifiers_show, tx_modifiers_store);
 
@@ -484,6 +514,7 @@ static struct attribute *settings_attrs[] = {
 	&input_memory_cap_attribute.attr,
 	&output_memory_cap_attribute.attr,
 	&ignore_timeout_attribute.attr,
+	&rx_multiple_attribute.attr,
 	&tx_modifiers_attribute.attr,
 	NULL,
 };
