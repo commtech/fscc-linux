@@ -371,8 +371,6 @@ struct pci_driver fscc_pci_driver = {
 
 static int __init fscc_init(void)
 {
-	unsigned registered_devices = 0;
-	unsigned num_devices = 0;
 	int error_code = 0;
 
 	fscc_class = class_create(THIS_MODULE, DEVICE_NAME);
@@ -390,36 +388,22 @@ static int __init fscc_init(void)
 		return error_code;
 	}
 
-	registered_devices = error_code = pci_register_driver(&fscc_pci_driver);
+	error_code = pci_register_driver(&fscc_pci_driver);
 
-	if (registered_devices < 0) {
+	if (error_code < 0) {
 		printk(KERN_ERR DEVICE_NAME " pci_register_driver failed\n");
 		unregister_chrdev(fscc_major_number, "fscc");
 		class_destroy(fscc_class);
 		return error_code;
 	}
 
-	if (hot_plug == 0 && registered_devices == 0) {
-		struct pci_dev *pdev = NULL;
-
-		pdev = pci_get_device(COMMTECH_VENDOR_ID, PCI_ANY_ID, pdev);
-
-		while (pdev != NULL) {
-			if (is_fscc_device(pdev))
-				++num_devices;
-
-			pdev = pci_get_device(COMMTECH_VENDOR_ID, PCI_ANY_ID, pdev);
-		}
-
-		if (num_devices == 0) {
-			pci_unregister_driver(&fscc_pci_driver);
-			unregister_chrdev(fscc_major_number, "fscc");
-			class_destroy(fscc_class);
-			
-			return -ENODEV;
-		}
+	if (hot_plug == 0 && list_empty(&fscc_cards)) {
+		pci_unregister_driver(&fscc_pci_driver);
+		unregister_chrdev(fscc_major_number, "fscc");
+		class_destroy(fscc_class);
+		return -ENODEV;
 	}
-	
+
 #ifdef DEBUG
 	printk(KERN_INFO DEVICE_NAME " setting: debug (on)\n");
 

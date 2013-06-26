@@ -196,13 +196,3 @@ unsigned port_exists(void *port)
 	return 0;
 }
 
-unsigned is_fscc_device(struct pci_dev *pdev)
-{
-	if (pdev->device == FSCC_ID || 
-	    (pdev->device >= SFSCC_ID && pdev->device <= SFSCC_4_CPCI_ID)) {
-		return 1;
-	} else {
-		return 0;
-	}
-}
-
