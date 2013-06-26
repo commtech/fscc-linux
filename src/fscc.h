@@ -116,8 +116,8 @@ extern struct list_head fscc_cards;
 #define SFSCCe_4_ID 0x001e
 #define SFSCC_4_CPCI_ID 0x001f
 #define SFSCC_4_UA_CPCI_ID 0x0023
-#define SFSCC_UA_LVDS_ID 0x0024
 #define SFSCC_4_UA_LVDS_ID 0x0025
+#define SFSCC_UA_LVDS_ID 0x0026
 
 #define STATUS_LENGTH 2
 
