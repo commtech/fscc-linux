@@ -60,7 +60,7 @@ static ssize_t register_show(struct kobject *kobj, struct kobj_attribute *attr,
 
 	if (register_offset >= 0) {
 		return sprintf(buf, "%08x\n", fscc_port_get_register(port, bar_number, 
-		               (unsigned)register_offset));
+					   (unsigned)register_offset));
 	}
 
 	return 0;
@@ -276,9 +276,9 @@ static ssize_t output_frames(struct kobject *kobj, struct kobj_attribute *attr,
 
 	port = (struct fscc_port *)dev_get_drvdata((struct device *)kobj);
 
-    //TODO
-    sprintf(buf, "0\n");
-    return 2; 
+	//TODO
+	sprintf(buf, "0\n");
+	return 2; 
 	//return sprintf(buf, "%i\n", fscc_port_get_oframes_qty(port));
 }
 
@@ -289,9 +289,9 @@ static ssize_t input_frames(struct kobject *kobj, struct kobj_attribute *attr,
 
 	port = (struct fscc_port *)dev_get_drvdata((struct device *)kobj);
 
-    //TODO
-    sprintf(buf, "0\n");
-    return 2; 
+	//TODO
+	sprintf(buf, "0\n");
+	return 2; 
 	//return sprintf(buf, "%i\n", fscc_port_get_iframes_qty(port));
 }
 
@@ -353,8 +353,8 @@ static ssize_t tx_modifiers_show(struct kobject *kobj,
 }
 
 static ssize_t ignore_timeout_store(struct kobject *kobj,
-								    struct kobj_attribute *attr, const char *buf,
-								    size_t count)
+									struct kobj_attribute *attr, const char *buf,
+									size_t count)
 {
 	struct fscc_port *port = 0;
 	unsigned value = 0;
@@ -380,8 +380,8 @@ static ssize_t ignore_timeout_show(struct kobject *kobj,
 }
 
 static ssize_t rx_multiple_store(struct kobject *kobj,
-								    struct kobj_attribute *attr, const char *buf,
-								    size_t count)
+									struct kobj_attribute *attr, const char *buf,
+									size_t count)
 {
 	struct fscc_port *port = 0;
 	unsigned value = 0;

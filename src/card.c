@@ -33,10 +33,10 @@ struct pciserial_board pci_board = {
 
 
 /* 
-    This handles initialization on a card (2 port) level. So anything that 
-    isn't specific to a single port like managing the pci space and calling the 
-    port specific functions will happen here.
-*/    
+	This handles initialization on a card (2 port) level. So anything that 
+	isn't specific to a single port like managing the pci space and calling the 
+	port specific functions will happen here.
+*/	
 struct fscc_card *fscc_card_new(struct pci_dev *pdev,
 								unsigned major_number,
 								struct class *class,
@@ -80,7 +80,7 @@ struct fscc_card *fscc_card_new(struct pci_dev *pdev,
 		break;
 	}
 
-    /* BAR 1 is handled by the serial driver so shouldn't be requested here */
+	/* BAR 1 is handled by the serial driver so shouldn't be requested here */
 	if (pci_request_region(card->pci_dev, 0, DEVICE_NAME) != 0) {
 		dev_err(&card->pci_dev->dev, "pci_request_regions failed\n");
 		return 0;
@@ -207,9 +207,9 @@ void __iomem *fscc_card_get_BAR(struct fscc_card *card, unsigned number)
 }
 
 /* 
-    At the card level there is no offset manipulation to get to the second port
-    on each card. If you would like to pass in a register offset and get the
-    appropriate address on a port basis use the fscc_port_* functions.
+	At the card level there is no offset manipulation to get to the second port
+	on each card. If you would like to pass in a register offset and get the
+	appropriate address on a port basis use the fscc_port_* functions.
 */
 __u32 fscc_card_get_register(struct fscc_card *card, unsigned bar,
 							 unsigned offset)
@@ -229,9 +229,9 @@ __u32 fscc_card_get_register(struct fscc_card *card, unsigned bar,
 }
 
 /* 
-    At the card level there is no offset manipulation to get to the second port
-    on each card. If you would like to pass in a register offset and get the
-    appropriate address on a port basis use the fscc_port_* functions.
+	At the card level there is no offset manipulation to get to the second port
+	on each card. If you would like to pass in a register offset and get the
+	appropriate address on a port basis use the fscc_port_* functions.
 */
 void fscc_card_set_register(struct fscc_card *card, unsigned bar,
 							unsigned offset, __u32 value)
@@ -249,9 +249,9 @@ void fscc_card_set_register(struct fscc_card *card, unsigned bar,
 }
 
 /* 
-    At the card level there is no offset manipulation to get to the second port
-    on each card. If you would like to pass in a register offset and get the
-    appropriate address on a port basis use the fscc_port_* functions.
+	At the card level there is no offset manipulation to get to the second port
+	on each card. If you would like to pass in a register offset and get the
+	appropriate address on a port basis use the fscc_port_* functions.
 */
 void fscc_card_get_register_rep(struct fscc_card *card, unsigned bar,
 								unsigned offset, char *buf,
@@ -298,9 +298,9 @@ void fscc_card_get_register_rep(struct fscc_card *card, unsigned bar,
 }
 
 /* 
-    At the card level there is no offset manipulation to get to the second port
-    on each card. If you would like to pass in a register offset and get the
-    appropriate address on a port basis use the fscc_port_* functions.
+	At the card level there is no offset manipulation to get to the second port
+	on each card. If you would like to pass in a register offset and get the
+	appropriate address on a port basis use the fscc_port_* functions.
 */
 void fscc_card_set_register_rep(struct fscc_card *card, unsigned bar,
 								unsigned offset, const char *data,

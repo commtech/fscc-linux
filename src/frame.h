@@ -32,7 +32,7 @@ struct fscc_frame {
 	unsigned number;
 	unsigned dma;
 
-    spinlock_t spinlock;
+	spinlock_t spinlock;
 
 	struct fscc_descriptor *d1;
 	struct fscc_descriptor *d2;
@@ -57,10 +57,10 @@ int fscc_frame_add_data(struct fscc_frame *frame, const char *data,
 						 unsigned length);
 
 int fscc_frame_add_data_from_port(struct fscc_frame *frame, struct fscc_port *port,
-                                  unsigned length);
+								  unsigned length);
 
 int fscc_frame_remove_data(struct fscc_frame *frame, char *destination,
-                           unsigned length);
+						   unsigned length);
 unsigned fscc_frame_is_empty(struct fscc_frame *frame);
 
 void fscc_frame_clear(struct fscc_frame *frame);

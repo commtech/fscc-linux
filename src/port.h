@@ -107,8 +107,8 @@ struct fscc_port {
 	wait_queue_head_t input_queue;
 	wait_queue_head_t output_queue;
 
-    struct fscc_flist iframes; /* Frames already retrieved from the FIFO */
-    struct fscc_flist oframes; /* Frames not yet in the FIFO yet */
+	struct fscc_flist iframes; /* Frames already retrieved from the FIFO */
+	struct fscc_flist oframes; /* Frames not yet in the FIFO yet */
 
 	struct fscc_frame *pending_iframe; /* Frame retrieving from the FIFO */
 	struct fscc_frame *pending_oframe; /* Frame being put in the FIFO */
@@ -126,9 +126,9 @@ struct fscc_port {
 	unsigned append_status;
 
 	spinlock_t oframe_spinlock;
-    spinlock_t board_settings_spinlock; /* Anything that will alter the settings at a board level */
-    spinlock_t board_rx_spinlock; /* Anything that will alter the state of rx at a board level */
-    spinlock_t board_tx_spinlock; /* Anything that will alter the state of rx at a board level */
+	spinlock_t board_settings_spinlock; /* Anything that will alter the settings at a board level */
+	spinlock_t board_rx_spinlock; /* Anything that will alter the state of rx at a board level */
+	spinlock_t board_tx_spinlock; /* Anything that will alter the state of rx at a board level */
 
 	struct fscc_memory_cap memory_cap;
 	unsigned ignore_timeout;

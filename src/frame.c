@@ -48,9 +48,9 @@ struct fscc_frame *fscc_frame_new(unsigned dma, struct fscc_port *port)
 
 	INIT_LIST_HEAD(&frame->list);
 
-    frame->data_length = 0;
-    frame->buffer_size = 0;
-    frame->buffer = 0;
+	frame->data_length = 0;
+	frame->buffer_size = 0;
+	frame->buffer = 0;
 	frame->handled = 0;
 	frame->dma = dma;
 	frame->port = port;
@@ -205,18 +205,18 @@ int fscc_frame_add_data(struct fscc_frame *frame, const char *data,
 						 frame->data_length, DMA_TO_DEVICE);
 	}
 
-    /* Only update buffer size if there isn't enough space already */
-    if (frame->data_length + length > frame->buffer_size) {
-        if (fscc_frame_update_buffer_size(frame, frame->data_length + length) == 0) {
-            spin_unlock_irqrestore(&frame->spinlock, flags);
-            return 0;
-        }
-    }
+	/* Only update buffer size if there isn't enough space already */
+	if (frame->data_length + length > frame->buffer_size) {
+		if (fscc_frame_update_buffer_size(frame, frame->data_length + length) == 0) {
+			spin_unlock_irqrestore(&frame->spinlock, flags);
+			return 0;
+		}
+	}
 
-    /* Copy the new data to the end of the frame */
-    memmove(frame->buffer + frame->data_length, data, length);
+	/* Copy the new data to the end of the frame */
+	memmove(frame->buffer + frame->data_length, data, length);
 
-    frame->data_length += length;
+	frame->data_length += length;
 
 	if (frame->dma && frame->buffer) {
 		frame->data_handle = pci_map_single(frame->port->card->pci_dev,
@@ -249,18 +249,18 @@ int fscc_frame_add_data_from_port(struct fscc_frame *frame, struct fscc_port *po
 						 frame->data_length, DMA_TO_DEVICE);
 	}
 
-    /* Only update buffer size if there isn't enough space already */
-    if (frame->data_length + length > frame->buffer_size) {
-        if (fscc_frame_update_buffer_size(frame, frame->data_length + length) == 0) {
-            spin_unlock_irqrestore(&frame->spinlock, flags);
-            return 0;
-        }
-    }
+	/* Only update buffer size if there isn't enough space already */
+	if (frame->data_length + length > frame->buffer_size) {
+		if (fscc_frame_update_buffer_size(frame, frame->data_length + length) == 0) {
+			spin_unlock_irqrestore(&frame->spinlock, flags);
+			return 0;
+		}
+	}
 
-    /* Copy the new data to the end of the frame */
-    fscc_port_get_register_rep(port, 0, FIFO_OFFSET, frame->buffer + frame->data_length, length);
+	/* Copy the new data to the end of the frame */
+	fscc_port_get_register_rep(port, 0, FIFO_OFFSET, frame->buffer + frame->data_length, length);
 
-    frame->data_length += length;
+	frame->data_length += length;
 
 	if (frame->dma && frame->buffer) {
 		frame->data_handle = pci_map_single(frame->port->card->pci_dev,
@@ -279,38 +279,38 @@ int fscc_frame_add_data_from_port(struct fscc_frame *frame, struct fscc_port *po
 }
 
 int fscc_frame_remove_data(struct fscc_frame *frame, char *destination,
-                            unsigned length)
+							unsigned length)
 {
 	unsigned long flags = 0;
 
 	return_val_if_untrue(frame, 0);
 
 	if (length == 0)
-	    return 1;
+		return 1;
 
 	spin_lock_irqsave(&frame->spinlock, flags);
 
-    if (frame->data_length == 0) {
+	if (frame->data_length == 0) {
 		dev_warn(frame->port->device, "attempting data removal from empty frame\n");
-        spin_unlock_irqrestore(&frame->spinlock, flags);
-        return 1;
-    }
+		spin_unlock_irqrestore(&frame->spinlock, flags);
+		return 1;
+	}
 
-    /* Make sure we don't remove more data than we have */
-    if (length > frame->data_length) {
+	/* Make sure we don't remove more data than we have */
+	if (length > frame->data_length) {
 		dev_warn(frame->port->device, "attempting removal of more data than available\n"); 
-        spin_unlock_irqrestore(&frame->spinlock, flags);
-        return 0;
-    }
+		spin_unlock_irqrestore(&frame->spinlock, flags);
+		return 0;
+	}
 
-    /* Copy the data into the outside buffer */
-    if (destination)
-        copy_to_user(destination, frame->buffer, length);
+	/* Copy the data into the outside buffer */
+	if (destination)
+		copy_to_user(destination, frame->buffer, length);
 
-    frame->data_length -= length;
+	frame->data_length -= length;
 
-    /* Move the data up in the buffer (essentially removing the old data) */
-    memmove(frame->buffer, frame->buffer + length, frame->data_length);
+	/* Move the data up in the buffer (essentially removing the old data) */
+	memmove(frame->buffer, frame->buffer + length, frame->data_length);
 
 	spin_unlock_irqrestore(&frame->spinlock, flags);
 
@@ -320,7 +320,7 @@ int fscc_frame_remove_data(struct fscc_frame *frame, char *destination,
 //TODO: This could cause an issue w here data_length is less before it makes it into remove_Data
 void fscc_frame_clear(struct fscc_frame *frame)
 {
-    fscc_frame_remove_data(frame, NULL, frame->data_length);
+	fscc_frame_remove_data(frame, NULL, frame->data_length);
 }
 
 void fscc_frame_trim(struct fscc_frame *frame)
@@ -332,49 +332,49 @@ void fscc_frame_trim(struct fscc_frame *frame)
 
 int fscc_frame_update_buffer_size(struct fscc_frame *frame, unsigned size)
 {
-    char *new_buffer = 0;
+	char *new_buffer = 0;
 	int malloc_flags = 0;
 
-    return_val_if_untrue(frame, 0);
+	return_val_if_untrue(frame, 0);
 
-    if (size == 0) {
-        if (frame->buffer) {
-            kfree(frame->buffer);
-            frame->buffer = 0;
-        }
+	if (size == 0) {
+		if (frame->buffer) {
+			kfree(frame->buffer);
+			frame->buffer = 0;
+		}
 
-        frame->buffer_size = 0;
-        frame->data_length = 0;
+		frame->buffer_size = 0;
+		frame->data_length = 0;
 
-        return 1;
-    }
+		return 1;
+	}
 
 	malloc_flags |= GFP_ATOMIC;
 
-    new_buffer = kmalloc(size, malloc_flags);
+	new_buffer = kmalloc(size, malloc_flags);
 
-    if (new_buffer == NULL) {
-        dev_err(frame->port->device, "not enough memory to update frame buffer size\n");
-        return 0;
-    }
+	if (new_buffer == NULL) {
+		dev_err(frame->port->device, "not enough memory to update frame buffer size\n");
+		return 0;
+	}
 
-    memset(new_buffer, 0, size);
+	memset(new_buffer, 0, size);
 
-    if (frame->buffer) {
-        if (frame->data_length) {
-            /* Truncate data length if the new buffer size is less than the data length */
-            frame->data_length = min(frame->data_length, size);
+	if (frame->buffer) {
+		if (frame->data_length) {
+			/* Truncate data length if the new buffer size is less than the data length */
+			frame->data_length = min(frame->data_length, size);
 
-            /* Copy over the old buffer data to the new buffer */
-            memmove(new_buffer, frame->buffer, frame->data_length);
-        }
+			/* Copy over the old buffer data to the new buffer */
+			memmove(new_buffer, frame->buffer, frame->data_length);
+		}
 
-        kfree(frame->buffer);
-    }
+		kfree(frame->buffer);
+	}
 
-    frame->buffer = new_buffer;
-    frame->buffer_size = size;
+	frame->buffer = new_buffer;
+	frame->buffer_size = size;
 
-    return 1;
+	return 1;
 }
 

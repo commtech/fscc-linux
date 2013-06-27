@@ -197,12 +197,12 @@ int fscc_ioctl(struct inode *inode, struct file *file, unsigned int cmd,
 
 	switch (cmd) {
 	case FSCC_GET_REGISTERS:
-	    //TODO: board_settings_spinlock
+		//TODO: board_settings_spinlock
 		fscc_port_get_registers(port, (struct fscc_registers *)arg);
 		break;
 
 	case FSCC_SET_REGISTERS:
-	    //TODO: board_settings_spinlock
+		//TODO: board_settings_spinlock
 		fscc_port_set_registers(port, (struct fscc_registers *)arg);
 		break;
 
@@ -408,10 +408,10 @@ static int __init fscc_init(void)
 	printk(KERN_INFO DEVICE_NAME " setting: debug (on)\n");
 
 	printk(KERN_INFO DEVICE_NAME " setting: hot plug (%s)\n", 
-	       (hot_plug) ? "on" : "off");
+		   (hot_plug) ? "on" : "off");
 
 	printk(KERN_INFO DEVICE_NAME " setting: force_fifo (%s)\n", 
-	       (force_fifo) ? "on" : "off");
+		   (force_fifo) ? "on" : "off");
 #endif
 
 	return 0;

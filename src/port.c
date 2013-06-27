@@ -39,9 +39,9 @@ void fscc_port_execute_RST_R(struct fscc_port *port);
 extern unsigned force_fifo;
 
 /* 
-    This handles initialization on a port level. So things that each port have
-    will be initialized in this function. /dev/ nodes, registers, clock,
-    and interrupts all happen here because it is specific to the port.
+	This handles initialization on a port level. So things that each port have
+	will be initialized in this function. /dev/ nodes, registers, clock,
+	and interrupts all happen here because it is specific to the port.
 */
 struct fscc_port *fscc_port_new(struct fscc_card *card, unsigned channel,
 								unsigned major_number, unsigned minor_number,
@@ -363,7 +363,7 @@ int fscc_port_write(struct fscc_port *port, const char *data, unsigned length)
 
 	fscc_frame_add_data(frame, temp_storage, length);
 
-    //TODO: Remove this malloc/free
+	//TODO: Remove this malloc/free
 	kfree(temp_storage);
 
 	fscc_flist_add_frame(&port->oframes, frame);
@@ -374,49 +374,49 @@ int fscc_port_write(struct fscc_port *port, const char *data, unsigned length)
 }
 
 /* 
-    Handles taking the frames already retrieved from the card and giving them
-    to the user. This is purely a helper for the fscc_port_read function.
-*/    
+	Handles taking the frames already retrieved from the card and giving them
+	to the user. This is purely a helper for the fscc_port_read function.
+*/	
 ssize_t fscc_port_frame_read(struct fscc_port *port, char *buf, size_t buf_length)
 {
 	struct fscc_frame *frame = 0;
-    unsigned remaining_data_length = 0;
-    unsigned current_frame_length = 0;
-    unsigned out_length = 0;
+	unsigned remaining_data_length = 0;
+	unsigned current_frame_length = 0;
+	unsigned out_length = 0;
 
 	return_val_if_untrue(port, 0);
 
-    do {
-        remaining_data_length = buf_length - out_length;
-        remaining_data_length += (!port->append_status) ? 2 : 0;
-        
-        frame = fscc_flist_remove_frame_if_lte(&port->iframes, remaining_data_length);
+	do {
+		remaining_data_length = buf_length - out_length;
+		remaining_data_length += (!port->append_status) ? 2 : 0;
+		
+		frame = fscc_flist_remove_frame_if_lte(&port->iframes, remaining_data_length);
 
-        if (!frame)
-            break;
+		if (!frame)
+			break;
 
-        current_frame_length = fscc_frame_get_length(frame);
-        current_frame_length -= (!port->append_status) ? 2 : 0;
+		current_frame_length = fscc_frame_get_length(frame);
+		current_frame_length -= (!port->append_status) ? 2 : 0;
 
-        fscc_frame_remove_data(frame, buf + out_length, current_frame_length);
-        fscc_frame_delete(frame);
+		fscc_frame_remove_data(frame, buf + out_length, current_frame_length);
+		fscc_frame_delete(frame);
 
-        out_length += current_frame_length;
-    }
-    while (port->rx_multiple);
+		out_length += current_frame_length;
+	}
+	while (port->rx_multiple);
 
-    if (out_length == 0)
-        return -ENOBUFS;
+	if (out_length == 0)
+		return -ENOBUFS;
 
-    return out_length;
+	return out_length;
 }
 
 /*
-    Handles taking the streams already retrieved from the card and giving them
-    to the user. This is purely a helper for the fscc_port_read function.
+	Handles taking the streams already retrieved from the card and giving them
+	to the user. This is purely a helper for the fscc_port_read function.
 */
 ssize_t fscc_port_stream_read(struct fscc_port *port, char *buf,
-                              size_t buf_length)
+							  size_t buf_length)
 {
 	unsigned out_length = 0;
 
@@ -430,8 +430,8 @@ ssize_t fscc_port_stream_read(struct fscc_port *port, char *buf,
 }
 
 /*
-    Returns -ENOBUFS if count is smaller than pending frame size
-    Buf needs to be a user buffer
+	Returns -ENOBUFS if count is smaller than pending frame size
+	Buf needs to be a user buffer
 */
 ssize_t fscc_port_read(struct fscc_port *port, char *buf, size_t count)
 {
@@ -446,7 +446,7 @@ ssize_t fscc_port_read(struct fscc_port *port, char *buf, size_t count)
 */
 unsigned fscc_port_has_incoming_data(struct fscc_port *port)
 {
-    unsigned status = 0;
+	unsigned status = 0;
 
 	return_val_if_untrue(port, 0);
 
@@ -460,8 +460,8 @@ unsigned fscc_port_has_incoming_data(struct fscc_port *port)
 
 
 /* 
-    At the port level the offset will automatically be converted to the port
-    specific offset.
+	At the port level the offset will automatically be converted to the port
+	specific offset.
 */
 __u32 fscc_port_get_register(struct fscc_port *port, unsigned bar,
 							 unsigned register_offset)
@@ -473,14 +473,14 @@ __u32 fscc_port_get_register(struct fscc_port *port, unsigned bar,
 	return_val_if_untrue(bar <= 2, 0);
 
 	offset = port_offset(port, bar, register_offset);
-    value = fscc_card_get_register(port->card, bar, offset);
+	value = fscc_card_get_register(port->card, bar, offset);
 
-    return value;
+	return value;
 }
 
 /* 
-    At the port level the offset will automatically be converted to the port
-    specific offset.
+	At the port level the offset will automatically be converted to the port
+	specific offset.
 */
 int fscc_port_set_register(struct fscc_port *port, unsigned bar,
 						   unsigned register_offset, __u32 value)
@@ -501,16 +501,16 @@ int fscc_port_set_register(struct fscc_port *port, unsigned bar,
 	fscc_card_set_register(port->card, bar, offset, value);
 
 	if (bar == 0) {
-	    fscc_register old_value = ((fscc_register *)&port->register_storage)[register_offset / 4];
+		fscc_register old_value = ((fscc_register *)&port->register_storage)[register_offset / 4];
 		((fscc_register *)&port->register_storage)[register_offset / 4] = value;
 		
 		if (old_value != value) {
-		    dev_dbg(port->device, "%i:%02x 0x%08x => 0x%08x\n", bar, 
-		            register_offset, (unsigned int)old_value, value);
+			dev_dbg(port->device, "%i:%02x 0x%08x => 0x%08x\n", bar, 
+					register_offset, (unsigned int)old_value, value);
 		}
 		else {
-		    dev_dbg(port->device, "%i:%02x 0x%08x\n", bar, register_offset, 
-		            value);
+			dev_dbg(port->device, "%i:%02x 0x%08x\n", bar, register_offset, 
+					value);
 		}
 	}
 	else if (register_offset == FCR_OFFSET) {
@@ -518,11 +518,11 @@ int fscc_port_set_register(struct fscc_port *port, unsigned bar,
 		port->register_storage.FCR = value;
 		
 		if (old_value != value) {
-		    dev_dbg(port->device, "2:00 0x%08x => 0x%08x\n", 
-		            (unsigned int)old_value, value);
+			dev_dbg(port->device, "2:00 0x%08x => 0x%08x\n", 
+					(unsigned int)old_value, value);
 		}
 		else {
-		    dev_dbg(port->device, "2:00 0x%08x\n", value);
+			dev_dbg(port->device, "2:00 0x%08x\n", value);
 		}
 	}
 		
@@ -530,8 +530,8 @@ int fscc_port_set_register(struct fscc_port *port, unsigned bar,
 }
 
 /* 
-    At the port level the offset will automatically be converted to the port
-    specific offset.
+	At the port level the offset will automatically be converted to the port
+	specific offset.
 */
 void fscc_port_get_register_rep(struct fscc_port *port, unsigned bar,
 								unsigned register_offset, char *buf,
@@ -550,8 +550,8 @@ void fscc_port_get_register_rep(struct fscc_port *port, unsigned bar,
 }
 
 /* 
-    At the port level the offset will automatically be converted to the port
-    specific offset.
+	At the port level the offset will automatically be converted to the port
+	specific offset.
 */
 void fscc_port_set_register_rep(struct fscc_port *port, unsigned bar,
 								unsigned register_offset, const char *data,
@@ -570,8 +570,8 @@ void fscc_port_set_register_rep(struct fscc_port *port, unsigned bar,
 }
 
 /* 
-    At the port level the offset will automatically be converted to the port
-    specific offset.
+	At the port level the offset will automatically be converted to the port
+	specific offset.
 */
 int fscc_port_set_registers(struct fscc_port *port,
 							const struct fscc_registers *regs)
@@ -736,7 +736,7 @@ int fscc_port_purge_rx(struct fscc_port *port)
 	if (error_code < 0)
 		return error_code;
 
-    fscc_flist_clear(&port->iframes);
+	fscc_flist_clear(&port->iframes);
 	fscc_frame_clear(port->istream);
 
 	return 1;
@@ -758,13 +758,13 @@ int fscc_port_purge_tx(struct fscc_port *port)
 	if (error_code < 0)
 		return error_code;
 
-    fscc_flist_clear(&port->oframes);
+	fscc_flist_clear(&port->oframes);
 
-    //TODO: Should pending frames be attached to flist? What about syncronization???
+	//TODO: Should pending frames be attached to flist? What about syncronization???
 	if (port->pending_oframe) {
-        fscc_frame_delete(port->pending_oframe);
-        port->pending_oframe = 0;
-    }
+		fscc_frame_delete(port->pending_oframe);
+		port->pending_oframe = 0;
+	}
 
 	wake_up_interruptible(&port->output_queue);
 
@@ -775,28 +775,28 @@ unsigned fscc_port_get_input_memory_usage(struct fscc_port *port)
 {
 	unsigned value = 0;
 
-    return_val_if_untrue(port, 0);
+	return_val_if_untrue(port, 0);
 
 	value = fscc_flist_calculate_memory_usage(&port->iframes);
 
-    if (port->pending_oframe)
-        value += fscc_frame_get_length(port->pending_iframe);
+	if (port->pending_oframe)
+		value += fscc_frame_get_length(port->pending_iframe);
 
-    return value;
+	return value;
 }
 
 unsigned fscc_port_get_output_memory_usage(struct fscc_port *port)
 {
 	unsigned value = 0;
 
-    return_val_if_untrue(port, 0);
+	return_val_if_untrue(port, 0);
 
 	value = fscc_flist_calculate_memory_usage(&port->oframes);
 
-    if (port->pending_oframe)
-        value += fscc_frame_get_length(port->pending_oframe);
+	if (port->pending_oframe)
+		value += fscc_frame_get_length(port->pending_oframe);
 
-    return value;
+	return value;
 }
 
 unsigned fscc_port_get_input_memory_cap(struct fscc_port *port)
@@ -1031,8 +1031,8 @@ unsigned fscc_port_using_async(struct fscc_port *port)
 {
 	return_val_if_untrue(port, 0);
 
-    /* We must refresh FCR because it is shared with serialfc */
-    port->register_storage.FCR = fscc_port_get_register(port, 2, FCR_OFFSET);
+	/* We must refresh FCR because it is shared with serialfc */
+	port->register_storage.FCR = fscc_port_get_register(port, 2, FCR_OFFSET);
 
 	switch (port->channel) {
 	case 0:
@@ -1103,7 +1103,7 @@ int fscc_port_set_tx_modifiers(struct fscc_port *port, int value)
 		case XREP:
 		case XREP|TXT:
 		case XREP|TXEXT:
-		    if (port->tx_modifiers != value) {
+			if (port->tx_modifiers != value) {
 				dev_dbg(port->device, "tx modifiers 0x%x => 0x%x\n", 
 						port->tx_modifiers, value);
 			}
@@ -1112,13 +1112,13 @@ int fscc_port_set_tx_modifiers(struct fscc_port *port, int value)
 						value);
 			}
 			
-		    port->tx_modifiers = value;
+			port->tx_modifiers = value;
 			
 			break;
 			
 		default:
 			dev_warn(port->device, "tx modifiers (invalid value 0x%x)\n",
-			         value);
+					 value);
 			
 			return -EINVAL;
 	}

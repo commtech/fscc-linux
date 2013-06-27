@@ -93,15 +93,15 @@ void iframe_worker(unsigned long data)
 	unsigned finished_frame = 0;
 	unsigned long flags = 0;
 	static int rejected_last_frame = 0;
-    unsigned current_memory = 0;
-    unsigned memory_cap = 0;
+	unsigned current_memory = 0;
+	unsigned memory_cap = 0;
 
 	port = (struct fscc_port *)data;
 
 	return_if_untrue(port);
 
-    current_memory = fscc_port_get_input_memory_usage(port);
-    memory_cap = fscc_port_get_input_memory_cap(port);
+	current_memory = fscc_port_get_input_memory_usage(port);
+	memory_cap = fscc_port_get_input_memory_cap(port);
 
 	spin_lock_irqsave(&port->board_rx_spinlock, flags);
 
@@ -139,15 +139,15 @@ void iframe_worker(unsigned long data)
 	if (current_memory + receive_length > memory_cap) {
 		if (rejected_last_frame == 0) {
 			dev_warn(port->device,
-                     "Rejecting frames (memory constraint)\n");
-            rejected_last_frame = 1; /* Track that we dropped a frame so we
-                            don't have to warn the user again. */
+					 "Rejecting frames (memory constraint)\n");
+			rejected_last_frame = 1; /* Track that we dropped a frame so we
+							don't have to warn the user again. */
 		}
 
-        if (port->pending_iframe) {
-		    fscc_frame_delete(port->pending_iframe);
-		    port->pending_iframe = 0;
-        }
+		if (port->pending_iframe) {
+			fscc_frame_delete(port->pending_iframe);
+			port->pending_iframe = 0;
+		}
 
 		spin_unlock_irqrestore(&port->board_rx_spinlock, flags);
 		return;
@@ -187,10 +187,10 @@ void iframe_worker(unsigned long data)
 	}
 
 	if (port->pending_iframe)
-        fscc_flist_add_frame(&port->iframes, port->pending_iframe);
+		fscc_flist_add_frame(&port->iframes, port->pending_iframe);
 
 	rejected_last_frame = 0; /* Track that we received a frame to reset the
-                                memory constraint warning print message. */
+								memory constraint warning print message. */
 
 	port->pending_iframe = 0;
 
@@ -222,9 +222,9 @@ void istream_worker(unsigned long data)
 		if (rejected_last_stream == 0) {
 			dev_warn(port->device, "Rejecting stream (memory constraint)\n");
 
-		    rejected_last_stream = 1; /* Track that we dropped stream data so we
-                                     don't have to warn the user again. */
-        }
+			rejected_last_stream = 1; /* Track that we dropped stream data so we
+									 don't have to warn the user again. */
+		}
 
 		return;
 	}
@@ -250,17 +250,17 @@ void istream_worker(unsigned long data)
 		receive_length = memory_cap - current_memory;
 
 	status = fscc_frame_add_data_from_port(port->istream, port, receive_length);
-    if (status == 0) {
-	    dev_err(port->device, "Error adding stream data");
-	    spin_unlock_irqrestore(&port->board_rx_spinlock, flags);
-	    return;
-    }
+	if (status == 0) {
+		dev_err(port->device, "Error adding stream data");
+		spin_unlock_irqrestore(&port->board_rx_spinlock, flags);
+		return;
+	}
 
 	spin_unlock_irqrestore(&port->board_rx_spinlock, flags);
 
 	rejected_last_stream = 0; /* Track that we received stream data to reset
-                                 the memory constraint warning print message.
-                              */
+								 the memory constraint warning print message.
+							  */
 
 	dev_dbg(port->device, "Stream <= %i byte%s\n", receive_length,
 			(receive_length == 1) ? "" : "s");
@@ -288,13 +288,13 @@ void oframe_worker(unsigned long data)
 
 	/* Check if exists and if so, grabs the frame to transmit. */
 	if (!port->pending_oframe) {
-	    port->pending_oframe = fscc_flist_remove_frame(&port->oframes);
+		port->pending_oframe = fscc_flist_remove_frame(&port->oframes);
 
-        /* No frames in queue to transmit */
-        if (!port->pending_oframe) {
+		/* No frames in queue to transmit */
+		if (!port->pending_oframe) {
 			spin_unlock_irqrestore(&port->oframe_spinlock, flags);
-            return;
-        }
+			return;
+		}
 	}
 
 	if (fscc_port_has_dma(port)) {
