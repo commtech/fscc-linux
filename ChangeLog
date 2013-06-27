@@ -1,7 +1,8 @@
 version 2.2.4 (06/20/2013)
 --------------------------------------------------------------------------------
-    * Add support for returning multiple frames per read call
-    * Add support for new card ID's (0x23, 0x24, 0x25)
+    * Added support for returning multiple frames per read call
+    * Added support for new card ID's
+
 
 version 2.2.3 (06/13/2013)
 --------------------------------------------------------------------------------
@@ -9,108 +10,115 @@ version 2.2.3 (06/13/2013)
     * Fixed a compiler issue on older kernels
     * Several small performance improvements when handling incoming frames
 
+
 version 2.2.2 (03/25/2013)
 --------------------------------------------------------------------------------
-	* Performance improvements
-	* Fix a bug where asynchronous baud rates were off
-	* Fix compiler errors introduced in linux 3.8
-	* Fix random crash in framing based modes
+    * Performance improvements
+    * Fixed a bug where asynchronous baud rates were off
+    * Fixed compiler errors introduced in linux 3.8
+    * Fixed random crash in framing based modes
+
 
 version 2.2.1 (11/16/2012)
 --------------------------------------------------------------------------------
-	* Fix a bug where X-Sync mode wasn't considered stream data if there
-	  wasn't any framing
-	* Fix a data loss bug in transparent mode
-	* Improved debug prints
+    * Fixed a bug where X-Sync mode wasn't considered stream data if there
+      wasn't any framing
+    * Fixed a data loss bug in transparent mode
+    * Improved debug prints
+
 
 version 2.2.0 (10/09/2012)
 --------------------------------------------------------------------------------
-	* Add install option to Makefile
-	* Improve debug prints
-	* Fix typos
-	* Include the gui, cli and pyfscc into the project
-	* Add some 'get' ioctls
-	* Add additional examples
-	* Rename flush{tx,rx} to purge{tx,rx}
-	* Update licenses
-	* Added fscc.rules file
-	* Fixed a bug causing the number of frames to be incorrect
-	* Add driver specific registers to sysfs when in debug mode
-	* Fix an issue where a frame was left in the FIFO
-	* Optimize the memory consumtion while in streaming mode
-	* Fixes setting the clock on older green cards.
+    * Added install option to Makefile
+    * Improve debug prints
+    * Fixed typos
+    * Include the gui, cli and pyfscc into the project
+    * Added some 'get' ioctls
+    * Added additional examples
+    * Rename flush{tx,rx} to purge{tx,rx}
+    * Update licenses
+    * Added fscc.rules file
+    * Fixed a bug causing the number of frames to be incorrect
+    * Added driver specific registers to sysfs when in debug mode
+    * Fixed an issue where a frame was left in the FIFO
+    * Optimize the memory consumtion while in streaming mode
+    * Fixes setting the clock on older green cards.
+
 
 version 2.1.3 (02/06/2012)
 --------------------------------------------------------------------------------
-	* Fix typos
-	* Remove sudo from install_tools
-	* Remove make all
-	* Add default transmit_modifiers
-	* Add tx_modifiers and ignore_timeout to sysfs
-	* Rearrange initialization code
-	* Use sema_init exclusively
-	* Clean up code
-	* See changesets for full list of changes
+    * Fixed typos
+    * Remove sudo from install_tools
+    * Remove make all
+    * Added default transmit_modifiers
+    * Added tx_modifiers and ignore_timeout to sysfs
+    * Rearrange initialization code
+    * Use sema_init exclusively
+    * Clean up code
+    * See changesets for full list of changes
+
 
 version 2.1.2 (09/14/2011)
 --------------------------------------------------------------------------------
-	* init_MUTEX(x) removed in 2.6.37, I replaced it with sema_init(x,1)
+    * init_MUTEX(x) removed in 2.6.37, I replaced it with sema_init(x,1)
+
 
 version 2.1.1 (07/19/2011)
 --------------------------------------------------------------------------------
-	* Fix bug that caused the SuperFSCC/4-LVDS to not install correctly
+    * Fixed bug that caused the SuperFSCC/4-LVDS to not install correctly
+
 
 version 2.1.0 (05/02/2011)
 --------------------------------------------------------------------------------
-	* Fix comments in code
-	* Add make help target
-	* Migrate from google code to bitbucket
-	* Added code and examples for various transmit modes
-	* Fixed dma insmod parameter
-	* Add SuperFSCC-LVDS and SuperFSCC/104 to the driver
-	* See changesets for full list of changes
+    * Fixed comments in code
+    * Added make help target
+    * Migrate from google code to bitbucket
+    * Added code and examples for various transmit modes
+    * Fixed dma insmod parameter
+    * Added SuperFSCC-LVDS and SuperFSCC/104 to the driver
+    * See changesets for full list of changes
+
 
 version 2.0.5 (02/17/2011)
 --------------------------------------------------------------------------------
+    * Added a force_fifo option that prevents DMA operation
+    * Added a simple example showing how to use the select() function to
+      determine how much data is available in the card
 
-	* Add a force_fifo option that prevents DMA operation
-	* Add a simple example showing how to use the select() function to 
-	  determine how much data is available in the card
-	  
 
 version 2.0.4 (02/09/2011)
 --------------------------------------------------------------------------------
 Bugfix release targeting old DMA APIs.
 
-	* Fix a build error with kernels prior to 2.6.27 that used an older dma 
-	  mapping function than we currently use
-	* Added a makefile command for removing the C headers
-	* Added a script to soft link against our sysfs directory
-	* Added a script to easily download related software
-	* Updated the README to address some confusing sections
-	  
+    * Fixed a build error with kernels prior to 2.6.27 that used an older dma
+      mapping function than we currently use
+    * Added a makefile command for removing the C headers
+    * Added a script to soft link against our sysfs directory
+    * Added a script to easily download related software
+    * Updated the README to address some confusing sections
+
 
 version 2.0.3 (01/13/2011)
 --------------------------------------------------------------------------------
 Bugfix release clarifying what should be considered "streaming" data.
 
-	* Don't consider being in transparent mode as necessarily being streaming
-	  data
-	
+    * Don't consider being in transparent mode as necessarily being streaming
+      data
+    
 
 version 2.0.2 (01/12/2011)
 --------------------------------------------------------------------------------
 Version number update.
 
-	* Synchronize version number of module with repo.
-	
+    * Synchronize version number of module with repo.
+    
 
 version 2.0.1 (01/12/2011)
 --------------------------------------------------------------------------------
 Bugfix release targeting transparent mode.
 
-	* Add memory constraint checks when in transparent mode
-	* Use atomic memory allocation when in transparent mode
+    * Added memory constraint checks when in transparent mode
+    * Use atomic memory allocation when in transparent mode
 
 
 version 2.0.0 (01/07/2011)
