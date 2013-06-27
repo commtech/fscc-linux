@@ -26,12 +26,12 @@
 #define result_array_size 512
 
 struct ResultStruct {
-    double target; 
+    double target;
     double freq;
     double errorPPM;
     int VCO_Div;
     int refDiv;
-    int outDiv; 
+    int outDiv;
     int failed;
 };
 
@@ -55,16 +55,16 @@ int calculate_clock_bits(unsigned long freq,unsigned long ppm, unsigned char *pr
     unsigned char progwords[20];
     struct ResultStruct solutiona;  //final results for ResultStruct data calculations
     struct IcpRsStruct solutionb;   //final results for IcpRsStruct data calculations
-    
+
     //printf("desired freq:%ld ppm:%ld\n",freq,ppm);
     desiredppm = ppm;
 
     memset(&solutiona,0,sizeof(struct ResultStruct));
-    memset(&solutionb,0,sizeof(struct IcpRsStruct));    
+    memset(&solutionb,0,sizeof(struct IcpRsStruct));
     t=GetICS30703Data(freq, desiredppm, &solutiona, &solutionb, &progwords[0]);
         switch(t)
         {
-        case 0: 
+        case 0:
             //printf("ICS30703: GetICS30703Data returned successfully.\n");
             //printf("programming word:\n");
             //for(i=19;i>=0;i--) printf("%x:",progwords[i]);
@@ -102,7 +102,7 @@ int calculate_clock_bits(unsigned long freq,unsigned long ppm, unsigned char *pr
             printf("ICS30703: Unknown error number.\n");
             goto drop;
         }
-        
+
         /*
         printk("The One:\n");
         printk(" RD = %4i, ",solutiona.refDiv);
@@ -110,7 +110,7 @@ int calculate_clock_bits(unsigned long freq,unsigned long ppm, unsigned char *pr
         printk("OD = %4i, ",solutiona.outDiv);
         printk("freq_MHz = %12.3f, ",solutiona.freq);
         printk(" error_PPM= %4.3f\n",solutiona.errorPPM);
-        
+
           printk(" Rs=%5d, ",solutionb.Rs);
           printk("Icp=%6.2f, ",(solutionb.icp)*10e5);
           printk("pdf=%12.2f, ",solutionb.pdf);
@@ -118,16 +118,16 @@ int calculate_clock_bits(unsigned long freq,unsigned long ppm, unsigned char *pr
           printk("ratio=%5.4f, ",solutionb.ratio);
           printk("df=%6.3f\n\n",solutionb.df);
         */
-        
+
         /*      printk("ICS30703: Programming word is: \n  0x");
         for(t=20;t>0;t--)
         {
         printk("%2.2X ", progwords[t-1]);
         }
         */
-    for(i=0;i<20;i++) progbytes[i]=progwords[i];    
+    for(i=0;i<20;i++) progbytes[i]=progwords[i];
 drop:
-        
+
 if(t==0)    return 0;
 else return 1;
 }
@@ -137,7 +137,7 @@ int GetICS30703Data(unsigned long desired, unsigned long ppm, struct ResultStruc
 {
     //  double inputfreq=18432000.0;
     double inputfreq=24000000.0;
-    
+
     unsigned long od=0; //Output Divider
     unsigned r=0;
     unsigned v=0;
@@ -156,7 +156,7 @@ int GetICS30703Data(unsigned long desired, unsigned long ppm, struct ResultStruc
     unsigned long Rs;
     double rule1, rule2;
     int tempint;
-    
+
     int InputDivider=0;
     int VCODivider=0;
     unsigned long ChargePumpCurrent=0;
@@ -164,9 +164,9 @@ int GetICS30703Data(unsigned long desired, unsigned long ppm, struct ResultStruc
     unsigned long OutputDividerOut1=0;
     unsigned long temp=0;
     unsigned long requestedppm;
-    
+
     requestedppm=ppm;
-    
+
     if( inputfreq == 18432000.0) 
     {
         maxR = 921;
@@ -177,12 +177,12 @@ int GetICS30703Data(unsigned long desired, unsigned long ppm, struct ResultStruc
         maxR = 1200;
         minR = 1;
     }
-    
+
     ppm=0;
 increaseppm:
     //printf("ICS30703: ppm = %ld\n",ppm);
     allowable_error  = ppm * desired/1e6; // * 1e6
-    
+
     for( r = minR; r <= maxR; r++ )
     {
         rule2 = inputfreq /(double)r;
@@ -191,27 +191,27 @@ increaseppm:
             //          printk("Rule2(r=%d): 20,000<%f<100000000\n",r,rule2);
             continue;   //next r
         }
-        
+
         od=8232;
         while(od > 1)
         {
             //set starting VCO setting with output freq just below target
             V_Divstart = (int) (((desired - (allowable_error) ) * r * od) / (inputfreq));
-            
+
             //check if starting VCO setting too low
             if (V_Divstart < min_V)
                 V_Divstart = min_V;
-            
+
             //check if starting VCO setting too high
             else if (V_Divstart > max_V)
                 V_Divstart = max_V;
-            
+
             /** Loop thru VCO divide settings**/
             //Loop through all VCO divider ratios
             for( v = V_Divstart; v <= max_V; v++ ) //Check all Vco divider settings
             {
                 rule1 = (inputfreq * ((double)v / (double)r) );
-                
+
                         if(od==2)
                 {
                     if( (rule1 < 90000000.0) || (rule1 > 540000000.0)  )
@@ -240,10 +240,10 @@ increaseppm:
                         continue;   //next VCO_Div
                     }
                 }
-        
+
                 freq = (inputfreq * ((double)v / ((double)r * (double)od)));
                 freq_err    = fabs(freq - desired) ; //Hz
-                
+
                 if ((freq_err) > allowable_error)
                 {
                     continue; //next VCO_Div
@@ -270,7 +270,7 @@ increaseppm:
                         default:
                             return 1;
                         }
-                        
+
                         for(j=0;j<20;j++)
                         {
                             IRStruct.Rs=Rs;
@@ -363,48 +363,48 @@ increaseppm:
 
                             //                          printf("Rs=%5d ",IRStruct.Rs);
                             //                          printf("Icp=%2.2f ",IRStruct.icp*10e5);
-                            
+
                             IRStruct.pdf = (inputfreq / (double)r) ;
                             //                          printf("pdf=%12.2f ",IRStruct.pdf);
-                            
+
                             IRStruct.nbw = ( ((double)IRStruct.Rs * IRStruct.icp * 310.0e6) / (2.0 * 3.14159 * (double)v) );
                             //                          printf("nbw=%15.3f ",IRStruct.nbw);
-                            
+
                             IRStruct.ratio = (IRStruct.pdf/IRStruct.nbw);
-                            
+
                             tempint = (int)(IRStruct.ratio*10.0);
                             if((IRStruct.ratio*10.0)-tempint>=0.0) tempint++;
                             IRStruct.ratio = (double)tempint/10.0;
-                            
+
                             //                          IRStruct.ratio = ceil(IRStruct.ratio*10.0); //these two statements make the
                             //                          IRStruct.ratio = IRStruct.ratio/10.0;       //ratio a little nicer to compare
-                            
+
                             //                          printf("ratio=%2.4f ",IRStruct.ratio);
-                            
+
                             IRStruct.df = ( ((double)IRStruct.Rs / 2) * (sqrt( ((IRStruct.icp * 0.093) / (double)v))) );
                             //                          printf("ndf=%12.3f\n",IRStruct.df);
-                            
+
                             count++;
                             if( (IRStruct.ratio>30) || (IRStruct.ratio<7) || (IRStruct.df>2.0) || (IRStruct.df<0.2) )
                             {
                                 continue;
                             }
-                            else 
+                            else
                             {
-                                Results.target    = desired; 
+                                Results.target    = desired;
                                 Results.freq      = freq;
                                 Results.errorPPM     = freq_err / desired * 1.0e6 ;
                                 Results.VCO_Div   = v;
                                 Results.refDiv    = r;
-                                Results.outDiv    = od; 
+                                Results.outDiv    = od;
                                 Results.failed = 1;
-                                goto finished;                              
+                                goto finished;
                             }
                         }//end for(j=0;j<20;j++)
                     }//end for(i=0;i<4;i++)
                 }
             }//end of for( v = V_Divstart; v < max_V; v++ )
-            
+
             if(od<=1030)
                 od--;
             else if(od<=2060)
@@ -412,25 +412,25 @@ increaseppm:
             else if(od<=4120)
                 od=od-4;
             else od=od-8;
-            
+
         }//end of while(od <= 8232)
     }//end of for( r = maxR, *saved_result_num = 0; r >= minR; r-- )
-    
+
     ppm++;
     if(ppm>requestedppm)
     {
         return 2;
     }
-    else 
+    else
     {
         //      printk("ICS30703: increasing ppm to %d\n",ppm);
         goto increaseppm;
     }
-    
+
 finished:
-    
+
     memcpy(theOne,&Results,sizeof(struct ResultStruct));
-    
+
     memcpy(theOther,&IRStruct,sizeof(struct IcpRsStruct));
     /*
     printf("ICS30703: Best result is \n");
@@ -438,7 +438,7 @@ finished:
     printf(" VD = %4i,",Results.VCO_Div);
     printf(" OD = %4i,",Results.outDiv);
     printf(" freq_Hz = %ld,\n",(unsigned long)Results.freq);
-    
+
     printf("\tRs = %5ld, ",IRStruct.Rs);
     printf("Icp = %ld, ",(unsigned long)(IRStruct.icp*1e6));
     //  printk("pdf = %d, ",(ULONG)IRStruct.pdf);
@@ -448,13 +448,13 @@ finished:
     */
     /*
     first, choose the best dividers (V, R, and OD) with
-    
+
       1st key best accuracy
       2nd key lowest reference divide
       3rd key highest VCO frequency (OD)
-      
+
         then choose the best loop filter with
-        
+
           1st key best PDF/NBW ratio (between 7 and 30, 15 is optimal)
           2nd key best damping factor (between 0.2 and 2, 0.7 is optimal)
     */
@@ -504,7 +504,7 @@ finished:
     progdata[0]=0x12;
     goto doitnow;
     */
-    
+
     progdata[19]=0xff;
     progdata[18]=0xff;
     progdata[17]=0xff;
@@ -525,29 +525,29 @@ finished:
     progdata[2]=0x00;
     progdata[1]=0x00;
     progdata[0]=0x00;
-    
+
     //  progdata[16]|=0x02; //enable CLK3
-    //  progdata[15]&=0xef; //CLK3 source select: 1=CLK1, 0=CLK1 before OD 
+    //  progdata[15]&=0xef; //CLK3 source select: 1=CLK1, 0=CLK1 before OD
     //  progdata[15]|=0x08; //CLK2 source select: 1=CLK1, 0=CLK1 before OD
     //  progdata[15]|=0x40; //reference source is: 1=crystal, 0=clock
     progdata[14]|=0x01; //1=Power up, 0=power down feedback counter, charge pump and VCO
     //  progdata[13]|=0x80; //enable CLK2
     progdata[13]|=0x40; //enable CLK1
-    
+
     InputDivider = theOne->refDiv;
     VCODivider = theOne->VCO_Div;
     ChargePumpCurrent = theOther->icpnum;
     LoopFilterResistor = theOther->Rs;
     OutputDividerOut1 = theOne->outDiv;
-    
+
     //InputDivider=2;
     //VCODivider=60;
     //OutputDividerOut1 = 45;
     //LoopFilterResistor=16000;
     //ChargePumpCurrent=3500;
-    
+
     /* Table 1: Input Divider */
-    
+
     if( (InputDivider==1)||(InputDivider==2) )
     {
         switch(InputDivider)
@@ -569,10 +569,10 @@ finished:
         temp=~(InputDivider-2);
         temp = (temp << 2);
         progdata[0]=(unsigned char)temp&0xff;
-        
+
         progdata[0]&=0x3e;  //set bit 0 to a 0
         progdata[0]|=0x02;  //set bit 1 to a 1
-        
+
         //      printf("2 0x%2.2X,0x%2.2X\n",progdata[1],progdata[0]);
     }
     else if( (InputDivider>=18) && (InputDivider<=2055) )
@@ -581,17 +581,17 @@ finished:
         temp = (temp << 2);
         progdata[0]=(unsigned char)temp&0xff;
         progdata[1]=(unsigned char)((temp>>8)&0xff);
-        
+
         progdata[0]|=0x03;  //set bit 0 and 1 to a 1
-        
+
         //      printf("3 0x%2.2X,0x%2.2X\n",progdata[1],progdata[0]);
-        
+
     }
-    else 
+    else
         return 3;
-    
+
     /* Table 2 VCO Divider */
-    
+
     if( (VCODivider >= 12) && (VCODivider <=2055) )
     {
         temp=VCODivider-8;
@@ -601,9 +601,9 @@ finished:
         //      printf("4 0x%2.2X,0x%2.2X\n",progdata[2],progdata[1]);
     }
     else return 4;
-    
+
     /* Table 4 Loop Filter Resistor */
-    
+
     switch(LoopFilterResistor)
     {
     case 64000:
@@ -624,9 +624,9 @@ finished:
         return 5;
     }
     //  printf("5 0x%2.2X\n",progdata[11]);
-    
+
     /* Table 3 Charge Pump Current */
-    
+
     switch(ChargePumpCurrent)
     {
     case 125:
@@ -635,138 +635,138 @@ finished:
         progdata[16]&=0xfe;
         //      printf("125\n");
         break;
-        
+
     case 250:
         progdata[11]|=0x38;
         progdata[15]|=0x80;
         progdata[16]&=0xfe;
         break;
-        
+
     case 375:
         progdata[11]|=0x38;
         progdata[15]&=0x7f;
         progdata[16]|=0x01;
         break;
-        
+
     case 500:
         progdata[11]|=0x38;
         progdata[15]|=0x80;
-        progdata[16]|=0x01;             
+        progdata[16]|=0x01;
         break;
-        
+
     case 625:
         progdata[11]|=0x18;
         progdata[11]&=0xdf;
         progdata[15]&=0x7f;
         progdata[16]&=0xfe;
         break;
-        
+
     case 750:
         progdata[11]|=0x10;
         progdata[11]&=0xd7;
         progdata[15]&=0x7f;
         progdata[16]&=0xfe;
         break;
-        
+
     case 875:
         progdata[11]|=0x08;
         progdata[11]&=0xcf;
         progdata[15]&=0x7f;
         progdata[16]&=0xfe;
         break;
-        
+
     case 1000:
         progdata[11]&=0xc7;
         progdata[15]&=0x7f;
         progdata[16]&=0xfe;
         break;
-        
+
     case 1125:
         progdata[11]|=0x28;
         progdata[11]&=0xef;
         progdata[15]&=0x7f;
         progdata[16]|=0x01;
         break;
-        
+
     case 1250:
         progdata[11]|=0x18;
         progdata[11]&=0xdf;
         progdata[15]|=0x80;
         progdata[16]&=0xfe;
         break;
-        
+
     case 1500:
         progdata[11]|=0x28;
         progdata[11]&=0xef;
         progdata[15]|=0x80;
-        progdata[16]|=0x01;             
+        progdata[16]|=0x01;
         break;
 
-        
+
     case 1750:
         progdata[11]|=0x08;
         progdata[11]&=0xcf;
         progdata[15]|=0x80;
         progdata[16]&=0xfe;
         break;
-        
+
     case 1875:
         progdata[11]|=0x18;
         progdata[11]&=0xdf;
         progdata[15]&=0x7f;
         progdata[16]|=0x01;
         break;
-        
+
     case 2000:
         progdata[11]&=0xc7;
         progdata[15]|=0x80;
         progdata[16]&=0xfe;
         break;
-        
+
     case 2250:
         progdata[11]|=0x10;
         progdata[15]&=0x7f;
         progdata[16]|=0x01;
         break;
-        
+
     case 2500:
         progdata[11]|=0x18;
         progdata[11]&=0xdf;
         progdata[15]|=0x80;
         progdata[16]|=0x01;
         break;
-        
+
     case 2625:
         progdata[11]|=0x08;
         progdata[11]&=0xcf;
         progdata[15]&=0x7f;
         progdata[16]|=0x01;
         break;
-        
+
     case 3000:
         progdata[11]&=0xc7;
         progdata[15]&=0x7f;
         progdata[16]|=0x01;
         break;
-        
+
     case 3500:
         progdata[11]|=0x08;
         progdata[11]&=0xcf;
         progdata[15]|=0x80;
         progdata[16]|=0x01;
         break;
-        
+
     case 4000:
         progdata[11]&=0xc7;
         progdata[15]|=0x80;
         progdata[16]|=0x01;
         break;
-        
+
     default:
         return 6;
     }//end switch(j)
     //  printf("6 0x%2.2X, 0x%2.2X, 0x%2.2X\n",progdata[16],progdata[15],progdata[11]);
-    
+
     /* Table 5 Output Divider for Output 1 */
     //OutputDividerOut1=38;
     if( (OutputDividerOut1 >= 2) && (OutputDividerOut1 <= 8232) )
@@ -778,70 +778,70 @@ finished:
             progdata[12]&=0x00;
             progdata[13]&=0xc0;
             break;
-            
+
         case 3:
             progdata[11]|=0x80;
             progdata[12]&=0x00;
             progdata[13]&=0xc0;
             break;
-            
+
         case 4:
             progdata[11]&=0x7f;
             progdata[12]|=0x04;
             progdata[13]&=0xc0;
             break;
-            
+
         case 5:
             progdata[11]&=0x7f;
             progdata[12]|=0x01;
             progdata[13]&=0xc0;
             break;
-            
+
         case 6:
             progdata[11]|=0x80;
             progdata[12]|=0x04;
             progdata[13]&=0xc0;
             break;
-            
+
         case 7:
             progdata[11]|=0x80;
             progdata[12]|=0x01;
             progdata[13]&=0xc0;
             break;
-            
+
         case 11:
             progdata[11]|=0x80;
             progdata[12]|=0x09;
             progdata[13]&=0xc0;
             break;
-            
+
         case 9:
             progdata[11]|=0x80;
             progdata[12]|=0x05;
             progdata[13]&=0xc0;
             break;
-            
+
         case 13:
             progdata[11]|=0x80;
             progdata[12]|=0x0d;
             progdata[13]&=0xc0;
             break;
-            
+
         case 8: case 10: case 12: case 14: case 15: case 16: case 17:case 18: case 19:
         case 20: case 21: case 22: case 23: case 24: case 25: case 26: case 27: case 28:
         case 29: case 30: case 31: case 32: case 33: case 34: case 35: case 36: case 37:
             temp = ~(OutputDividerOut1-6);
             temp = (temp << 2);
             progdata[12] = (unsigned char)temp & 0x7f;
-            
+
             progdata[11]&=0x7f;
             progdata[12]&=0xfe;
             progdata[12]|=0x02;
             progdata[13]&=0xc0;
             break;
-            
+
         default:
-            
+
             for(i=0;i<512;i++)
             {
                 if( OutputDividerOut1 == ((((i+3)*2)+0)*(1)) )
@@ -850,89 +850,89 @@ finished:
                     temp = (i<< 5);
                     progdata[12]|=(temp & 0xff);
                     progdata[13]|=(temp >> 8)&0xff;
-                    
+
                     progdata[12]&=0xe7;
                     progdata[12]|=0x04;
                     break;
                 }
-                
+
                 else if( OutputDividerOut1 == ((((i+3)*2)+0)*(2)) )
                 {
                     //                  printf("2 x=%d, y=0, z=1\n",i);
                     temp = (i<< 5);
                     progdata[12]|=(temp & 0xff);
                     progdata[13]|=(temp >> 8)&0xff;
-                    
+
                     progdata[12]&=0xef;
                     progdata[12]|=0x0c;
                     break;
                 }
-                
+
                 else if( OutputDividerOut1 == ((((i+3)*2)+0)*(4)) )
                 {
                     //                  printf("3 x=%d, y=0, z=2\n",i);
                     temp = (i<< 5);
                     progdata[12]|=(temp & 0xff);
                     progdata[13]|=(temp >> 8)&0xff;
-                    
+
                     progdata[12]&=0xf7;
                     progdata[12]|=0x14;
                     break;
                 }
-                
+
                 else if( OutputDividerOut1 == ( (((i+3)*2)+0)*(8)) )
                 {
                     //                  printf("4 x=%d, y=0, z=3\n",i);
                     temp = (i<< 5);
                     progdata[12]|=(temp & 0xff);
                     progdata[13]|=(temp >> 8)&0xff;
-                    
+
                     progdata[12]|=0x1c;
                     break;
                 }
-                
+
                 else if( OutputDividerOut1 == ((((i+3)*2)+1)*(1)) )
                 {
                     //                  printf("5 x=%d, y=1, z=0\n",i);
                     temp = (i<< 5);
                     progdata[12]|=(temp & 0xff);
                     progdata[13]|=(temp >> 8)&0xff;
-                    
+
                     progdata[12]&=0xe3;
                     break;
                 }
-                
+
                 else if( OutputDividerOut1 == ((((i+3)*2)+1)*(2)) )
                 {
                     //                  printf("6 x=%d, y=1, z=1\n",i);
                     temp = (i<< 5);
                     progdata[12]|=(temp & 0xff);
                     progdata[13]|=(temp >> 8)&0xff;
-                    
+
                     progdata[12]&=0xeb; //power of 1
                     progdata[12]|=0x08;
                     break;
                 }
-                
+
                 else if( OutputDividerOut1 == ((((i+3)*2)+1)*(4)) )
                 {
                     //                  printf("7 x=%d, y=1, z=2\n",i);
                     temp = (i<< 5);
                     progdata[12]|=(temp & 0xff);
                     progdata[13]|=(temp >> 8)&0xff;
-                    
+
                     progdata[12]&=0xf7;
                     progdata[12]|=0x10;
                     break;
                 }
-                
+
                 else if( OutputDividerOut1 == ((((i+3)*2)+1)*(8)) )
                 {
                     //                  printf("8 x=%d, y=1, z=3\n",i);
                     temp = (i<< 5);
                     progdata[12]|=(temp & 0xff);
                     progdata[13]|=(temp >> 8)&0xff;
-                    
+
                     progdata[12]&=0xfb;
                     progdata[12]|=0x18;
                     break;
@@ -946,11 +946,11 @@ finished:
     }
     else return 7;
     //doitnow:
-    
+
     /*  progdata[15]|=0x03; //this will set
     progdata[14]|=0xc0; //the OD of clock 3
     progdata[11]&=0xbf; //to 2
     */
     return 0;
-    
+
 }//end of GetICS30703Bits

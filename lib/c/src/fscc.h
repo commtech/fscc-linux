@@ -1,10 +1,10 @@
-/*! \file */ 
+/*! \file */
 
 #ifndef FSCC_H
 #define FSCC_H
 
 #ifdef __cplusplus
-extern "C" 
+extern "C"
 {
 #endif
 
@@ -20,36 +20,36 @@ enum transmit_type { XF=0, XREP=1, TXT=2, TXEXT=4 };
 typedef int64_t fscc_register;
 
 struct fscc_registers {
-	/* BAR 0 */
-	fscc_register reserved1[2];
+    /* BAR 0 */
+    fscc_register reserved1[2];
 
-	fscc_register FIFOT;
+    fscc_register FIFOT;
 
-	fscc_register reserved2[2];
+    fscc_register reserved2[2];
 
-	fscc_register CMDR;
-	fscc_register STAR; /* Read-only */
-	fscc_register CCR0;
-	fscc_register CCR1;
-	fscc_register CCR2;
-	fscc_register BGR;
-	fscc_register SSR;
-	fscc_register SMR;
-	fscc_register TSR;
-	fscc_register TMR;
-	fscc_register RAR;
-	fscc_register RAMR;
-	fscc_register PPR;
-	fscc_register TCR;
-	fscc_register VSTR; /* Read-only */
+    fscc_register CMDR;
+    fscc_register STAR; /* Read-only */
+    fscc_register CCR0;
+    fscc_register CCR1;
+    fscc_register CCR2;
+    fscc_register BGR;
+    fscc_register SSR;
+    fscc_register SMR;
+    fscc_register TSR;
+    fscc_register TMR;
+    fscc_register RAR;
+    fscc_register RAMR;
+    fscc_register PPR;
+    fscc_register TCR;
+    fscc_register VSTR; /* Read-only */
 
-	fscc_register reserved3[1];
+    fscc_register reserved3[1];
 
-	fscc_register IMR;
-	fscc_register DPLLR;
+    fscc_register IMR;
+    fscc_register DPLLR;
 
-	/* BAR 2 */
-	fscc_register FCR;
+    /* BAR 2 */
+    fscc_register FCR;
 };
 
 struct fscc_memory_cap {

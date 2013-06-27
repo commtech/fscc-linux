@@ -9,10 +9,10 @@ fscc-objs := src/main.o src/port.o src/card.o src/isr.o src/utils.o \
 ifeq ($(DEBUG),1)
 	EXTRA_CFLAGS += -DDEBUG
 endif
-             
+
 default:
 	$(MAKE) -C $(KDIR) SUBDIRS=$(PWD) modules
-	
+
 install:
 	cp fscc.rules /etc/udev/rules.d/
 	cp fscc.ko /lib/modules/`uname -r`/kernel/drivers/char/
@@ -21,7 +21,7 @@ install:
 	cp include/fscc.h /usr/local/include/fscc/
 	cd lib/python/; python setup.py install
 	cd cli/; python setup.py install
-	
+
 uninstall:
 	rm /lib/modules/`uname -r`/kernel/drivers/char/fscc.ko
 	depmod

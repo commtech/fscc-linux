@@ -256,8 +256,8 @@ class Port(io.FileIO):
         self.registers = Port.Registers(self)
 
         try:
-        	self.append_status = append_status
-       	except IOError as e:
+            self.append_status = append_status
+        except IOError as e:
             raise InvalidPortError(file_name)
 
     def purge(self, tx=True, rx=True):

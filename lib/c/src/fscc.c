@@ -1,4 +1,4 @@
-/*! \file */ 
+/*! \file */
 #include <stdio.h>
 #include <fcntl.h> /* open, O_RDWR */
 #include <unistd.h> /* write, close */
@@ -14,34 +14,34 @@
 
   \brief Opens a handle to an FSCC port.
 
-  \param[in] port_num 
+  \param[in] port_num
     the FSCC port number
-  \param[in] overlapped 
+  \param[in] overlapped
     whether you would like to use the port in overlapped mode
-  \param[out] h 
+  \param[out] h
     user variable that the port's HANDLE will be assigned to
-      
-  \return 0 
+
+  \return 0
     if the operation completed successfully
-  \return >= 1 
+  \return >= 1
     if the operation failed (see MSDN 'System Error Codes')
 
   \note
     Opening a handle using this API will only give you access to the
-	synchronous functionality of the card. You will need to use the COM ports
-	if you would like to use the asynchronous functionality.
+    synchronous functionality of the card. You will need to use the COM ports
+    if you would like to use the asynchronous functionality.
 
 */
 /******************************************************************************/
 int fscc_connect(unsigned port_num, int *fd)
 {
-	char name[MAX_NAME_LENGTH];
+    char name[MAX_NAME_LENGTH];
 
-	sprintf(name, "/dev/fscc%u", port_num);
+    sprintf(name, "/dev/fscc%u", port_num);
 
     *fd = open(name, O_RDWR);
 
-	return (*fd != -1) ? 0 : errno;
+    return (*fd != -1) ? 0 : errno;
 }
 
 /******************************************************************************/
@@ -49,14 +49,14 @@ int fscc_connect(unsigned port_num, int *fd)
 
   \brief Sets the transmit modifiers for the port.
 
-  \param[in] h 
+  \param[in] h
     HANDLE to the port
-  \param[in] modifiers 
+  \param[in] modifiers
     bit mask of the transmit modifier values
-      
-  \return 0 
+
+  \return 0
     if the operation completed successfully
-  \return >= 1 
+  \return >= 1
     if the operation failed (see MSDN 'System Error Codes')
 
   \note
@@ -72,11 +72,11 @@ int fscc_connect(unsigned port_num, int *fd)
 /******************************************************************************/
 int fscc_set_tx_modifiers(int fd, unsigned modifiers)
 {
-	int result;
+    int result;
 
     result = ioctl(fd, FSCC_SET_TX_MODIFIERS, modifiers);
 
-	return (result != -1) ? 0 : errno;
+    return (result != -1) ? 0 : errno;
 }
 
 /******************************************************************************/
@@ -84,14 +84,14 @@ int fscc_set_tx_modifiers(int fd, unsigned modifiers)
 
   \brief Gets the transmit modifiers for the port.
 
-  \param[in] h 
+  \param[in] h
     HANDLE to the port
-  \param[out] modifiers 
+  \param[out] modifiers
     bit mask of the transmit modifier values
-      
-  \return 0 
+
+  \return 0
     if the operation completed successfully
-  \return >= 1 
+  \return >= 1
     if the operation failed (see MSDN 'System Error Codes')
 
   \note
@@ -107,11 +107,11 @@ int fscc_set_tx_modifiers(int fd, unsigned modifiers)
 /******************************************************************************/
 int fscc_get_tx_modifiers(int fd, unsigned *modifiers)
 {
-	int result;
+    int result;
 
     result = ioctl(fd, FSCC_GET_TX_MODIFIERS, modifiers);
 
-	return (result != -1) ? 0 : errno;
+    return (result != -1) ? 0 : errno;
 }
 
 /******************************************************************************/
@@ -119,14 +119,14 @@ int fscc_get_tx_modifiers(int fd, unsigned *modifiers)
 
   \brief Sets the FSCC driver's memory caps.
 
-  \param[in] h 
+  \param[in] h
     HANDLE to the port
-  \param[in] memcap 
+  \param[in] memcap
     input and output memory cap values
-      
-  \return 0 
+
+  \return 0
     if the operation completed successfully
-  \return >= 1 
+  \return >= 1
     if the operation failed (see MSDN 'System Error Codes')
 
   \snippet set-memory-cap.c Setup variables
@@ -136,11 +136,11 @@ int fscc_get_tx_modifiers(int fd, unsigned *modifiers)
 /******************************************************************************/
 int fscc_set_memory_cap(int fd, const struct fscc_memory_cap *memcap)
 {
-	int result;
+    int result;
 
     result = ioctl(fd, FSCC_SET_MEMORY_CAP, memcap);
 
-	return (result != -1) ? 0 : errno;
+    return (result != -1) ? 0 : errno;
 }
 
 /******************************************************************************/
@@ -148,14 +148,14 @@ int fscc_set_memory_cap(int fd, const struct fscc_memory_cap *memcap)
 
   \brief Gets the FSCC driver's memory caps.
 
-  \param[in] h 
+  \param[in] h
     HANDLE to the port
-  \param[in] memcap 
+  \param[in] memcap
     input and output memory cap values
-      
-  \return 0 
+
+  \return 0
     if the operation completed successfully
-  \return >= 1 
+  \return >= 1
     if the operation failed (see MSDN 'System Error Codes')
 
   \snippet get-memory-cap.c Setup variables
@@ -165,11 +165,11 @@ int fscc_set_memory_cap(int fd, const struct fscc_memory_cap *memcap)
 /******************************************************************************/
 int fscc_get_memory_cap(int fd, struct fscc_memory_cap *memcap)
 {
-	int result;
+    int result;
 
     result = ioctl(fd, FSCC_GET_MEMORY_CAP, memcap);
 
-	return (result != -1) ? 0 : errno;
+    return (result != -1) ? 0 : errno;
 }
 
 /******************************************************************************/
@@ -177,14 +177,14 @@ int fscc_get_memory_cap(int fd, struct fscc_memory_cap *memcap)
 
   \brief Sets a port's register values.
 
-  \param[in] h 
+  \param[in] h
     HANDLE to the port
   \param[in] regs
     the new register values
-      
-  \return 0 
+
+  \return 0
     if the operation completed successfully
-  \return >= 1 
+  \return >= 1
     if the operation failed (see MSDN 'System Error Codes')
 
   \snippet set-registers.c Setup variables
@@ -194,11 +194,11 @@ int fscc_get_memory_cap(int fd, struct fscc_memory_cap *memcap)
 /******************************************************************************/
 int fscc_set_registers(int fd, const struct fscc_registers *regs)
 {
-	int result;
+    int result;
 
     result = ioctl(fd, FSCC_SET_REGISTERS, regs);
 
-	return (result != -1) ? 0 : errno;
+    return (result != -1) ? 0 : errno;
 }
 
 /******************************************************************************/
@@ -206,14 +206,14 @@ int fscc_set_registers(int fd, const struct fscc_registers *regs)
 
   \brief Gets a port's register values.
 
-  \param[in] h 
+  \param[in] h
     HANDLE to the port
   \param[out] regs
     the register values
-      
-  \return 0 
+
+  \return 0
     if the operation completed successfully
-  \return >= 1 
+  \return >= 1
     if the operation failed (see MSDN 'System Error Codes')
 
   \snippet get-registers.c Setup variables
@@ -223,11 +223,11 @@ int fscc_set_registers(int fd, const struct fscc_registers *regs)
 /******************************************************************************/
 int fscc_get_registers(int fd, struct fscc_registers *regs)
 {
-	int result;
+    int result;
 
     result = ioctl(fd, FSCC_GET_REGISTERS, regs);
 
-	return (result != -1) ? 0 : errno;
+    return (result != -1) ? 0 : errno;
 }
 
 /******************************************************************************/
@@ -235,14 +235,14 @@ int fscc_get_registers(int fd, struct fscc_registers *regs)
 
   \brief Gets a port's append status value.
 
-  \param[in] h 
+  \param[in] h
     HANDLE to the port
   \param[out] status
     the append status value
-      
-  \return 0 
+
+  \return 0
     if the operation completed successfully
-  \return >= 1 
+  \return >= 1
     if the operation failed (see MSDN 'System Error Codes')
 
   \snippet get-append-status.c Setup variables
@@ -252,11 +252,11 @@ int fscc_get_registers(int fd, struct fscc_registers *regs)
 /******************************************************************************/
 int fscc_get_append_status(int fd, unsigned *status)
 {
-	int result;
+    int result;
 
     result = ioctl(fd, FSCC_GET_APPEND_STATUS, status);
 
-	return (result != -1) ? 0 : errno;
+    return (result != -1) ? 0 : errno;
 }
 
 /******************************************************************************/
@@ -264,12 +264,12 @@ int fscc_get_append_status(int fd, unsigned *status)
 
   \brief Enable appending the status to the received data.
 
-  \param[in] h 
+  \param[in] h
     HANDLE to the port
-      
-  \return 0 
+
+  \return 0
     if the operation completed successfully
-  \return >= 1 
+  \return >= 1
     if the operation failed (see MSDN 'System Error Codes')
 
   \snippet set-append-status.c Enable append status
@@ -278,11 +278,11 @@ int fscc_get_append_status(int fd, unsigned *status)
 /******************************************************************************/
 int fscc_enable_append_status(int fd)
 {
-	int result;
+    int result;
 
     result = ioctl(fd, FSCC_ENABLE_APPEND_STATUS);
 
-	return (result != -1) ? 0 : errno;
+    return (result != -1) ? 0 : errno;
 }
 
 /******************************************************************************/
@@ -290,12 +290,12 @@ int fscc_enable_append_status(int fd)
 
   \brief Disable appending the status to the received data.
 
-  \param[in] h 
+  \param[in] h
     HANDLE to the port
-      
-  \return 0 
+
+  \return 0
     if the operation completed successfully
-  \return >= 1 
+  \return >= 1
     if the operation failed (see MSDN 'System Error Codes')
 
   \snippet set-append-status.c Disable append status
@@ -304,11 +304,11 @@ int fscc_enable_append_status(int fd)
 /******************************************************************************/
 int fscc_disable_append_status(int fd)
 {
-	int result;
+    int result;
 
     result = ioctl(fd, FSCC_DISABLE_APPEND_STATUS);
 
-	return (result != -1) ? 0 : errno;
+    return (result != -1) ? 0 : errno;
 }
 
 /******************************************************************************/
@@ -316,14 +316,14 @@ int fscc_disable_append_status(int fd)
 
   \brief Gets a port's ignore timeout value.
 
-  \param[in] h 
+  \param[in] h
     HANDLE to the port
   \param[out] status
     the append status value
-      
-  \return 0 
+
+  \return 0
     if the operation completed successfully
-  \return >= 1 
+  \return >= 1
     if the operation failed (see MSDN 'System Error Codes')
 
   \snippet get-ignore-timeout.c Setup variables
@@ -333,11 +333,11 @@ int fscc_disable_append_status(int fd)
 /******************************************************************************/
 int fscc_get_ignore_timeout(int fd, unsigned *status)
 {
-	int result;
+    int result;
 
     result = ioctl(fd, FSCC_GET_IGNORE_TIMEOUT, status);
 
-	return (result != -1) ? 0 : errno;
+    return (result != -1) ? 0 : errno;
 }
 
 /******************************************************************************/
@@ -345,12 +345,12 @@ int fscc_get_ignore_timeout(int fd, unsigned *status)
 
   \brief Ignore card timeouts.
 
-  \param[in] h 
+  \param[in] h
     HANDLE to the port
-      
-  \return 0 
+
+  \return 0
     if the operation completed successfully
-  \return >= 1 
+  \return >= 1
     if the operation failed (see MSDN 'System Error Codes')
 
   \snippet set-ignore-timeout.c Enable ignore timeout
@@ -359,11 +359,11 @@ int fscc_get_ignore_timeout(int fd, unsigned *status)
 /******************************************************************************/
 int fscc_enable_ignore_timeout(int fd)
 {
-	int result;
+    int result;
 
     result = ioctl(fd, FSCC_ENABLE_IGNORE_TIMEOUT);
 
-	return (result != -1) ? 0 : errno;
+    return (result != -1) ? 0 : errno;
 }
 
 /******************************************************************************/
@@ -371,12 +371,12 @@ int fscc_enable_ignore_timeout(int fd)
 
   \brief Disable ignore timeout.
 
-  \param[in] h 
+  \param[in] h
     HANDLE to the port
-      
-  \return 0 
+
+  \return 0
     if the operation completed successfully
-  \return >= 1 
+  \return >= 1
     if the operation failed (see MSDN 'System Error Codes')
 
   \snippet set-ignore-timeout.c Disable ignore timeout
@@ -385,36 +385,36 @@ int fscc_enable_ignore_timeout(int fd)
 /******************************************************************************/
 int fscc_disable_ignore_timeout(int fd)
 {
-	int result;
+    int result;
 
     result = ioctl(fd, FSCC_DISABLE_IGNORE_TIMEOUT);
 
-	return (result != -1) ? 0 : errno;
+    return (result != -1) ? 0 : errno;
 }
 /******************************************************************************/
 /*!
 
   \brief Gets a port's receive multiple value.
 
-  \param[in] h 
+  \param[in] h
     HANDLE to the port
   \param[out] status
     the rx multiple value
-      
-  \return 0 
+
+  \return 0
     if the operation completed successfully
-  \return >= 1 
+  \return >= 1
     if the operation failed (see MSDN 'System Error Codes')
 
 */
 /******************************************************************************/
 int fscc_get_rx_multiple(int fd, unsigned *status)
 {
-	int result;
+    int result;
 
     result = ioctl(fd, FSCC_GET_RX_MULTIPLE, status);
 
-	return (result != -1) ? 0 : errno;
+    return (result != -1) ? 0 : errno;
 }
 
 /******************************************************************************/
@@ -422,23 +422,23 @@ int fscc_get_rx_multiple(int fd, unsigned *status)
 
   \brief Receive frames in groups.
 
-  \param[in] h 
+  \param[in] h
     HANDLE to the port
-      
+
   \return 0
     if the operation completed successfully
-  \return >= 1 
+  \return >= 1
     if the operation failed (see MSDN 'System Error Codes')
 
 */
 /******************************************************************************/
 int fscc_enable_rx_multiple(int fd)
 {
-	int result;
+    int result;
 
     result = ioctl(fd, FSCC_ENABLE_RX_MULTIPLE);
 
-	return (result != -1) ? 0 : errno;
+    return (result != -1) ? 0 : errno;
 }
 
 /******************************************************************************/
@@ -446,10 +446,10 @@ int fscc_enable_rx_multiple(int fd)
 
   \brief Disable receive multiple.
 
-  \param[in] h 
+  \param[in] h
     HANDLE to the port
-      
-  \return 0 
+
+  \return 0
     if the operation completed successfully
   \return >= 1
     if the operation failed (see MSDN 'System Error Codes')
@@ -458,11 +458,11 @@ int fscc_enable_rx_multiple(int fd)
 /******************************************************************************/
 int fscc_disable_rx_multiple(int fd)
 {
-	int result;
+    int result;
 
     result = ioctl(fd, FSCC_DISABLE_RX_MULTIPLE);
 
-	return (result != -1) ? 0 : errno;
+    return (result != -1) ? 0 : errno;
 }
 
 /******************************************************************************/
@@ -470,16 +470,16 @@ int fscc_disable_rx_multiple(int fd)
 
   \brief Clears the transmit and/or receive data out of the card.
 
-  \param[in] h 
+  \param[in] h
     HANDLE to the port
   \param[in] tx
     whether to clear the transmit data out
   \param[in] rx
     whether to clear the receive data out
-      
-  \return 0 
+
+  \return 0
     if the operation completed successfully
-  \return >= 1 
+  \return >= 1
     if the operation failed (see MSDN 'System Error Codes')
 
   \note
@@ -496,8 +496,8 @@ int fscc_disable_rx_multiple(int fd)
 */
 /******************************************************************************/
 int fscc_purge(int fd, unsigned tx, unsigned rx)
-{        
-	int result;
+{
+    int result;
 
     if (tx) {
         result = ioctl(fd, FSCC_PURGE_TX);
@@ -513,7 +513,7 @@ int fscc_purge(int fd, unsigned tx, unsigned rx)
             return errno;
     }
 
-	return 0;
+    return 0;
 }
 
 /******************************************************************************/
@@ -521,16 +521,16 @@ int fscc_purge(int fd, unsigned tx, unsigned rx)
 
   \brief Sets a port's clock frequency.
 
-  \param[in] h 
+  \param[in] h
     HANDLE to the port
   \param[in] frequency
     the new clock frequency
   \param[in] ppm
     TODO
-      
-  \return 0 
+
+  \return 0
     if the operation completed successfully
-  \return >= 1 
+  \return >= 1
     if the operation failed (see MSDN 'System Error Codes')
 
   \snippet set-clock-frequency.c Set clock frequency
@@ -542,22 +542,22 @@ int fscc_purge(int fd, unsigned tx, unsigned rx)
 /******************************************************************************/
 int fscc_set_clock_frequency(int fd, unsigned frequency, unsigned ppm)
 {
-	unsigned char clock_bits[20];
-	int result;
+    unsigned char clock_bits[20];
+    int result;
 
-	calculate_clock_bits(frequency, ppm, clock_bits);
+    calculate_clock_bits(frequency, ppm, clock_bits);
 
     result = ioctl(fd, FSCC_SET_CLOCK_BITS, &clock_bits);
 
-	return (result != -1) ? 0 : errno;
+    return (result != -1) ? 0 : errno;
 }
- 
+
 /******************************************************************************/
 /*!
 
   \brief Transmits data out of a port.
 
-  \param[in] h 
+  \param[in] h
     HANDLE to the port
   \param[in] buf
     the buffer containing the data to transmit
@@ -567,10 +567,10 @@ int fscc_set_clock_frequency(int fd, unsigned frequency, unsigned ppm)
     the input variable to store how many bytes were actually written
   \param[in,out] o
     OVERLAPPED structure for asynchronous operation
-      
-  \return 0 
+
+  \return 0
     if the operation completed successfully
-  \return >= 1 
+  \return >= 1
     if the operation failed (see MSDN 'System Error Codes')
 
 */
@@ -579,7 +579,7 @@ int fscc_write(int fd, char *buf, unsigned size, unsigned *bytes_written)
 {
     int ret;
 
-	ret = write(fd, buf, size);
+    ret = write(fd, buf, size);
 
     if (ret == -1)
         return errno;
@@ -594,7 +594,7 @@ int fscc_write(int fd, char *buf, unsigned size, unsigned *bytes_written)
 
   \brief Reads data out of a port.
 
-  \param[in] h 
+  \param[in] h
     HANDLE to the port
   \param[in] buf
     the input buffer used to store the receive data
@@ -604,10 +604,10 @@ int fscc_write(int fd, char *buf, unsigned size, unsigned *bytes_written)
     the user variable to store how many bytes were actually read
   \param[in,out] o
     OVERLAPPED structure for asynchronous operation
-      
-  \return 0 
+
+  \return 0
     if the operation completed successfully
-  \return >= 1 
+  \return >= 1
     if the operation failed (see MSDN 'System Error Codes')
 
 */
@@ -615,8 +615,8 @@ int fscc_write(int fd, char *buf, unsigned size, unsigned *bytes_written)
 int fscc_read(int fd, char *buf, unsigned size, unsigned *bytes_read)
 {
     int ret;
-    
-	ret = read(fd, buf, size);
+
+    ret = read(fd, buf, size);
 
     if (ret == -1)
         return errno;
@@ -631,21 +631,21 @@ int fscc_read(int fd, char *buf, unsigned size, unsigned *bytes_read)
 
   \brief Closes the handle to an FSCC port.
 
-  \param[in] h 
+  \param[in] h
     HANDLE to the port
-      
-  \return 0 
+
+  \return 0
     if closing the port completed successfully
-  \return >= 1 
+  \return >= 1
     if the operation failed (see MSDN 'System Error Codes')
 
 */
 /******************************************************************************/
 int fscc_disconnect(int fd)
 {
-	int result;
+    int result;
 
-	result = close(fd);
+    result = close(fd);
 
-	return (result != -1) ? 0 : errno;
+    return (result != -1) ? 0 : errno;
 }
