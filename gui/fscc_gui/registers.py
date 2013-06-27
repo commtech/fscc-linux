@@ -1,5 +1,5 @@
 """
-    Copyright (C) 2012 Commtech, Inc.
+    Copyright (C) 2013 Commtech, Inc.
 
     This file is part of fscc-gui.
 
@@ -29,9 +29,9 @@ class FIFOT(RegisterGUI):
         ("rxtrg", range(0, 13)),
         ("txtrg", range(16, 28)),
     ]
-    
+
     glade_file = "fifot.glade"
-    
+
 
 class CCR0(RegisterGUI):
     bit_fields = [
@@ -50,9 +50,9 @@ class CCR0(RegisterGUI):
         ("recd", range(25, 26)),
         ("exts", range(28, 30)),
     ]
-    
+
     glade_file = "ccr0.glade"
-    
+
 class CCR1(RegisterGUI):
     bit_fields = [
         ("rts", range(0, 1)),
@@ -84,10 +84,10 @@ class CCR1(RegisterGUI):
         ("tdp", range(27, 28)),
         ("rdp", range(28, 29)),
     ]
-    
+
     glade_file = "ccr1.glade"
-    
-    
+
+
 """
 class CCR2(RegisterGUI):
     bit_fields = [
@@ -95,17 +95,17 @@ class CCR2(RegisterGUI):
         ("fsto", range(4, 8)),
         ("rlc", range(16, 32)),
     ]
-    
+
     glade_file = "ccr2.glade"
-"""    
-    
+"""
+
 class BGR(RegisterGUI):
     bit_fields = [
         ("bgr", range(0, 32)),
     ]
-    
+
     glade_file = "bgr.glade"
-    
+
 
 class SSR(RegisterGUI):
     bit_fields = [
@@ -114,7 +114,7 @@ class SSR(RegisterGUI):
         ("sync3", range(16, 24)),
         ("sync4", range(24, 32)),
     ]
-    
+
     glade_file = "ssr.glade"
 
 
@@ -125,10 +125,10 @@ class SMR(RegisterGUI):
         ("sm3", range(16, 24)),
         ("sm4", range(24, 32)),
     ]
-    
+
     glade_file = "smr.glade"
-    
-    
+
+
 class TSR(RegisterGUI):
     bit_fields = [
         ("term1", range(0, 8)),
@@ -136,7 +136,7 @@ class TSR(RegisterGUI):
         ("term3", range(16, 24)),
         ("term4", range(24, 32)),
     ]
-    
+
     glade_file = "tsr.glade"
 
 
@@ -147,7 +147,7 @@ class TMR(RegisterGUI):
         ("tm3", range(16, 24)),
         ("tm4", range(24, 32)),
     ]
-    
+
     glade_file = "tmr.glade"
 
 
@@ -158,7 +158,7 @@ class RAR(RegisterGUI):
         ("sal", range(16, 24)),
         ("sah", range(24, 32)),
     ]
-    
+
     glade_file = "rar.glade"
 
 
@@ -169,7 +169,7 @@ class RAMR(RegisterGUI):
         ("salm", range(16, 24)),
         ("sahm", range(24, 32)),
     ]
-    
+
     glade_file = "ramr.glade"
 
 
@@ -180,7 +180,7 @@ class PPR(RegisterGUI):
         ("pre", range(16, 24)),
         ("npre", range(24, 32)),
     ]
-    
+
     glade_file = "ppr.glade"
 
 
@@ -190,7 +190,7 @@ class TCR(RegisterGUI):
         ("ttrig", range(2, 3)),
         ("tcnt", range(3, 32)),
     ]
-    
+
     glade_file = "tcr.glade"
 
 
@@ -217,7 +217,7 @@ class IMR(RegisterGUI):
         ("cdc", range(26, 27)),
         ("ctsa", range(27, 28)),
     ]
-    
+
     glade_file = "imr.glade"
 
 
@@ -225,7 +225,7 @@ class DPLLR(RegisterGUI):
     bit_fields = [
         ("dpllr", range(0, 10)),
     ]
-    
+
     glade_file = "dpllr.glade"
 
 
@@ -242,5 +242,5 @@ class FCR(RegisterGUI):
         ("uarta", range(24, 25)),
         ("uartb", range(25, 26)),
     ]
-    
+
     glade_file = "fcr.glade"

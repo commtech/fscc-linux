@@ -1,5 +1,5 @@
 """
-    Copyright (C) 2012 Commtech, Inc.
+    Copyright (C) 2013 Commtech, Inc.
 
     This file is part of fscc-gui.
 
@@ -35,7 +35,7 @@ class AboutDialog(gtk.AboutDialog):
         self.set_website("http://code.google.com/p/fscc-gui/")
         self.set_website_label("Website")
         self.set_authors(["William Fagan <willf@commtech-fastcom.com>"])
-        self.set_copyright("Copyright (C) 2012 Commtech, Inc.")
+        self.set_copyright("Copyright (C) 2013 Commtech, Inc.")
         self.set_license("""
     fscc-gui is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by

@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2012 Commtech, Inc.
+    Copyright (C) 2013 Commtech, Inc.
 
     This file is part of fscc-linux.
 
