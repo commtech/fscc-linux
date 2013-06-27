@@ -371,7 +371,7 @@ void timer_handler(unsigned long data)
 {
 	struct fscc_port *port = (struct fscc_port *)data;
 	unsigned streaming = 0;
-	
+
 	streaming = fscc_port_is_streaming(port);
 
 	if (streaming)

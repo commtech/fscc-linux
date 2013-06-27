@@ -32,11 +32,11 @@ struct pciserial_board pci_board = {
 };
 
 
-/* 
-	This handles initialization on a card (2 port) level. So anything that 
-	isn't specific to a single port like managing the pci space and calling the 
+/*
+	This handles initialization on a card (2 port) level. So anything that
+	isn't specific to a single port like managing the pci space and calling the
 	port specific functions will happen here.
-*/	
+*/
 struct fscc_card *fscc_card_new(struct pci_dev *pdev,
 								unsigned major_number,
 								struct class *class,
@@ -206,7 +206,7 @@ void __iomem *fscc_card_get_BAR(struct fscc_card *card, unsigned number)
 	return card->bar[number];
 }
 
-/* 
+/*
 	At the card level there is no offset manipulation to get to the second port
 	on each card. If you would like to pass in a register offset and get the
 	appropriate address on a port basis use the fscc_port_* functions.
@@ -228,7 +228,7 @@ __u32 fscc_card_get_register(struct fscc_card *card, unsigned bar,
 	return value;
 }
 
-/* 
+/*
 	At the card level there is no offset manipulation to get to the second port
 	on each card. If you would like to pass in a register offset and get the
 	appropriate address on a port basis use the fscc_port_* functions.
@@ -248,7 +248,7 @@ void fscc_card_set_register(struct fscc_card *card, unsigned bar,
 	iowrite32(value, address + offset);
 }
 
-/* 
+/*
 	At the card level there is no offset manipulation to get to the second port
 	on each card. If you would like to pass in a register offset and get the
 	appropriate address on a port basis use the fscc_port_* functions.
@@ -297,7 +297,7 @@ void fscc_card_get_register_rep(struct fscc_card *card, unsigned bar,
 #endif
 }
 
-/* 
+/*
 	At the card level there is no offset manipulation to get to the second port
 	on each card. If you would like to pass in a register offset and get the
 	appropriate address on a port basis use the fscc_port_* functions.

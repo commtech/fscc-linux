@@ -59,7 +59,7 @@ static ssize_t register_show(struct kobject *kobj, struct kobj_attribute *attr,
 	register_offset = str_to_register_offset(attr->attr.name);
 
 	if (register_offset >= 0) {
-		return sprintf(buf, "%08x\n", fscc_port_get_register(port, bar_number, 
+		return sprintf(buf, "%08x\n", fscc_port_get_register(port, bar_number,
 					   (unsigned)register_offset));
 	}
 
@@ -159,7 +159,7 @@ static struct kobj_attribute fifobc_attribute =
 static struct kobj_attribute fifofc_attribute =
 	__ATTR(fifofc, SYSFS_READ_ONLY_MODE, bar0_register_show, bar0_register_store);
 #endif
-	
+
 static struct attribute *register_attrs[] = {
 #ifdef DEBUG
 	&bcfl_attribute.attr,
@@ -278,7 +278,7 @@ static ssize_t output_frames(struct kobject *kobj, struct kobj_attribute *attr,
 
 	//TODO
 	sprintf(buf, "0\n");
-	return 2; 
+	return 2;
 	//return sprintf(buf, "%i\n", fscc_port_get_oframes_qty(port));
 }
 
@@ -291,7 +291,7 @@ static ssize_t input_frames(struct kobject *kobj, struct kobj_attribute *attr,
 
 	//TODO
 	sprintf(buf, "0\n");
-	return 2; 
+	return 2;
 	//return sprintf(buf, "%i\n", fscc_port_get_iframes_qty(port));
 }
 

@@ -37,7 +37,7 @@ static struct class *fscc_class = 0;
 
 unsigned hot_plug = DEFAULT_HOT_PLUG_VALUE;
 unsigned force_fifo = DEFAULT_FORCE_FIFO_VALUE;
-	
+
 LIST_HEAD(fscc_cards);
 
 struct pci_device_id fscc_id_table[] = {
@@ -254,12 +254,12 @@ int fscc_ioctl(struct inode *inode, struct file *file, unsigned int cmd,
 	case FSCC_GET_IGNORE_TIMEOUT:
 		*(unsigned *)arg = fscc_port_get_ignore_timeout(port);
 		break;
-		
+
 	case FSCC_SET_TX_MODIFIERS:
 		if ((error_code = fscc_port_set_tx_modifiers(port, (int)arg)) < 0)
 			return error_code;
 		break;
-		
+
 	case FSCC_GET_TX_MODIFIERS:
 		*(unsigned *)arg = fscc_port_get_tx_modifiers(port);
 		break;
@@ -407,10 +407,10 @@ static int __init fscc_init(void)
 #ifdef DEBUG
 	printk(KERN_INFO DEVICE_NAME " setting: debug (on)\n");
 
-	printk(KERN_INFO DEVICE_NAME " setting: hot plug (%s)\n", 
+	printk(KERN_INFO DEVICE_NAME " setting: hot plug (%s)\n",
 		   (hot_plug) ? "on" : "off");
 
-	printk(KERN_INFO DEVICE_NAME " setting: force_fifo (%s)\n", 
+	printk(KERN_INFO DEVICE_NAME " setting: force_fifo (%s)\n",
 		   (force_fifo) ? "on" : "off");
 #endif
 

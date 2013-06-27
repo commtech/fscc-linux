@@ -38,7 +38,7 @@ void fscc_port_execute_RST_R(struct fscc_port *port);
 
 extern unsigned force_fifo;
 
-/* 
+/*
 	This handles initialization on a port level. So things that each port have
 	will be initialized in this function. /dev/ nodes, registers, clock,
 	and interrupts all happen here because it is specific to the port.
@@ -373,10 +373,10 @@ int fscc_port_write(struct fscc_port *port, const char *data, unsigned length)
 	return 0;
 }
 
-/* 
+/*
 	Handles taking the frames already retrieved from the card and giving them
 	to the user. This is purely a helper for the fscc_port_read function.
-*/	
+*/
 ssize_t fscc_port_frame_read(struct fscc_port *port, char *buf, size_t buf_length)
 {
 	struct fscc_frame *frame = 0;
@@ -389,7 +389,7 @@ ssize_t fscc_port_frame_read(struct fscc_port *port, char *buf, size_t buf_lengt
 	do {
 		remaining_data_length = buf_length - out_length;
 		remaining_data_length += (!port->append_status) ? 2 : 0;
-		
+
 		frame = fscc_flist_remove_frame_if_lte(&port->iframes, remaining_data_length);
 
 		if (!frame)
@@ -459,7 +459,7 @@ unsigned fscc_port_has_incoming_data(struct fscc_port *port)
 }
 
 
-/* 
+/*
 	At the port level the offset will automatically be converted to the port
 	specific offset.
 */
@@ -478,7 +478,7 @@ __u32 fscc_port_get_register(struct fscc_port *port, unsigned bar,
 	return value;
 }
 
-/* 
+/*
 	At the port level the offset will automatically be converted to the port
 	specific offset.
 */
@@ -497,13 +497,13 @@ int fscc_port_set_register(struct fscc_port *port, unsigned bar,
 		&& fscc_port_timed_out(port)) {
 		return -ETIMEDOUT;
 	}
-	
+
 	fscc_card_set_register(port->card, bar, offset, value);
 
 	if (bar == 0) {
 		fscc_register old_value = ((fscc_register *)&port->register_storage)[register_offset / 4];
 		((fscc_register *)&port->register_storage)[register_offset / 4] = value;
-		
+
 		if (old_value != value) {
 			dev_dbg(port->device, "%i:%02x 0x%08x => 0x%08x\n", bar, 
 					register_offset, (unsigned int)old_value, value);
@@ -516,7 +516,7 @@ int fscc_port_set_register(struct fscc_port *port, unsigned bar,
 	else if (register_offset == FCR_OFFSET) {
 		fscc_register old_value = port->register_storage.FCR;
 		port->register_storage.FCR = value;
-		
+
 		if (old_value != value) {
 			dev_dbg(port->device, "2:00 0x%08x => 0x%08x\n", 
 					(unsigned int)old_value, value);
@@ -525,11 +525,11 @@ int fscc_port_set_register(struct fscc_port *port, unsigned bar,
 			dev_dbg(port->device, "2:00 0x%08x\n", value);
 		}
 	}
-		
+
 	return 1;
 }
 
-/* 
+/*
 	At the port level the offset will automatically be converted to the port
 	specific offset.
 */
@@ -549,7 +549,7 @@ void fscc_port_get_register_rep(struct fscc_port *port, unsigned bar,
 	fscc_card_get_register_rep(port->card, bar, offset, buf, byte_count);
 }
 
-/* 
+/*
 	At the port level the offset will automatically be converted to the port
 	specific offset.
 */
@@ -569,7 +569,7 @@ void fscc_port_set_register_rep(struct fscc_port *port, unsigned bar,
 	fscc_card_set_register_rep(port->card, bar, offset, data, byte_count);
 }
 
-/* 
+/*
 	At the port level the offset will automatically be converted to the port
 	specific offset.
 */
@@ -581,7 +581,7 @@ int fscc_port_set_registers(struct fscc_port *port,
 
 	return_val_if_untrue(port, 0);
 	return_val_if_untrue(regs, 0);
-	
+
 	for (i = 0; i < sizeof(*regs) / sizeof(fscc_register); i++) {
 		unsigned register_offset = i * 4;
 
@@ -828,7 +828,7 @@ void fscc_port_set_memory_cap(struct fscc_port *port,
 			dev_dbg(port->device, "memory cap (input) %i\n",
 					value->input);
 		}
-		
+
 		port->memory_cap.input = value->input;
 	}
 
@@ -841,7 +841,7 @@ void fscc_port_set_memory_cap(struct fscc_port *port,
 			dev_dbg(port->device, "memory cap (output) %i\n",
 					value->output);
 		}
-		
+
 		port->memory_cap.output = value->output;
 	}
 }
@@ -1104,22 +1104,22 @@ int fscc_port_set_tx_modifiers(struct fscc_port *port, int value)
 		case XREP|TXT:
 		case XREP|TXEXT:
 			if (port->tx_modifiers != value) {
-				dev_dbg(port->device, "tx modifiers 0x%x => 0x%x\n", 
+				dev_dbg(port->device, "tx modifiers 0x%x => 0x%x\n",
 						port->tx_modifiers, value);
 			}
 			else {
-				dev_dbg(port->device, "tx modifiers 0x%x\n", 
+				dev_dbg(port->device, "tx modifiers 0x%x\n",
 						value);
 			}
-			
+
 			port->tx_modifiers = value;
-			
+
 			break;
-			
+
 		default:
 			dev_warn(port->device, "tx modifiers (invalid value 0x%x)\n",
 					 value);
-			
+
 			return -EINVAL;
 	}
 
@@ -1161,12 +1161,12 @@ void fscc_port_execute_transmit(struct fscc_port *port)
 		command_value = 0x01000000;
 
 		if (port->tx_modifiers & XREP)
-			command_value |= 0x02000000;	
+			command_value |= 0x02000000;
 
 		if (port->tx_modifiers & TXT)
 			command_value |= 0x10000000;
-		
-		if (port->tx_modifiers & TXEXT)	
+
+		if (port->tx_modifiers & TXEXT)
 			command_value |= 0x20000000;
 	}
 
