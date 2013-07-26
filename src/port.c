@@ -337,8 +337,6 @@ unsigned fscc_port_timed_out(struct fscc_port *port)
 int fscc_port_write(struct fscc_port *port, const char *data, unsigned length)
 {
 	struct fscc_frame *frame = 0;
-	char *temp_storage = 0;
-	unsigned uncopied_bytes = 0;
 
 	return_val_if_untrue(port, 0);
 
@@ -348,23 +346,12 @@ int fscc_port_write(struct fscc_port *port, const char *data, unsigned length)
 		return -ETIMEDOUT;
 	}
 
-	temp_storage = kmalloc(length, GFP_KERNEL);
-	return_val_if_untrue(temp_storage != NULL, 0);
-
-	uncopied_bytes = copy_from_user(temp_storage, data, length);
-	return_val_if_untrue(!uncopied_bytes, 0);
-
 	frame = fscc_frame_new(port->card->dma, port);
 
-	if (!frame) {
-	   kfree(temp_storage);
+	if (!frame)
 		return 0; //TODO: Should return something more informative
-   }
 
-	fscc_frame_add_data(frame, temp_storage, length);
-
-	//TODO: Remove this malloc/free
-	kfree(temp_storage);
+	fscc_frame_add_data_from_user(frame, data, length);
 
 	fscc_flist_add_frame(&port->oframes, frame);
 

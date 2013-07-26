@@ -278,6 +278,52 @@ int fscc_frame_add_data_from_port(struct fscc_frame *frame, struct fscc_port *po
 	return 1;
 }
 
+int fscc_frame_add_data_from_user(struct fscc_frame *frame, const char *data,
+						 unsigned length)
+{
+	unsigned long flags = 0;
+	unsigned uncopied_bytes = 0;
+
+	return_val_if_untrue(frame, 0);
+	return_val_if_untrue(length > 0, 0);
+
+	spin_lock_irqsave(&frame->spinlock, flags);
+
+	if (frame->dma && frame->buffer) {
+		pci_unmap_single(frame->port->card->pci_dev, frame->data_handle,
+						 frame->data_length, DMA_TO_DEVICE);
+	}
+
+	/* Only update buffer size if there isn't enough space already */
+	if (frame->data_length + length > frame->buffer_size) {
+		if (fscc_frame_update_buffer_size(frame, frame->data_length + length) == 0) {
+			spin_unlock_irqrestore(&frame->spinlock, flags);
+			return 0;
+		}
+	}
+
+	/* Copy the new data to the end of the frame */
+	uncopied_bytes = copy_from_user(frame->buffer + frame->data_length, data, length);
+	return_val_if_untrue(!uncopied_bytes, 0);
+
+	frame->data_length += length;
+
+	if (frame->dma && frame->buffer) {
+		frame->data_handle = pci_map_single(frame->port->card->pci_dev,
+											frame->buffer,
+											frame->data_length,
+											DMA_TO_DEVICE);
+
+		frame->d1->control = 0xA0000000 | frame->data_length;
+		frame->d1->data_address = cpu_to_le32(frame->data_handle);
+		frame->d1->data_count = frame->data_length;
+	}
+
+	spin_unlock_irqrestore(&frame->spinlock, flags);
+
+	return 1;
+}
+
 int fscc_frame_remove_data(struct fscc_frame *frame, char *destination,
 							unsigned length)
 {
