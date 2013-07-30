@@ -1,83 +1,7 @@
-This is the next generation Linux driver for the FSCC line of cards from
-Commtech, Inc. Version 2 is a complete rewrite from the original. The original
-driver was based largely in code that was written for 2.4 era kernels and then
-ported over so there were some spots where it was not exactly using best
-practices for today's kernels. The version 2 driver is essentially complete.
-There are some features and functions that have not been integrated yet, but
-hopefully we will be able to add them soon. WARNING: THIS DRIVER IS NOT YET
-CONSIDERED A STABLE RELEASE. THERE ARE STILL SOME MISSING FUNCTIONS AND
-FEATURES AND ARE LIKELY SOME BUGS.  Use at your own risk.  If you find a bugfix
-and would like to submit it to us please email the patch or modified code to
-techsupport@commtech-fastcom.com.
+This README file is best viewed on the [GitHub page](http://github.com/commtech/fscc-linux/).
 
-I.     Getting the latest driver software
-       1) Switching between driver versions
-
-II.    Compiling the driver
-       1) Enabling debug prints
-       2) Specifying non-default header files directory
-
-III.   Loading/installed the driver
-       1) Installing the driver
-       2) Enabling hot plugging support
-       3) Disabling DMA support
-
-V.     Changing a port's register values
-       1) Using sysfs from the command line
-       2) Using the ioctl call from within your application code
-       3) Using the Python API from within your application code
-       4) Using the config.h file for modifying the boot defaults
-
-VI.    Reading a port's register values
-       1) Using sysfs from the command line
-       2) Using the ioctl call from within your application code
-       3) Using the Python API from within your application code
-
-VII.   Asynchronous communication
-
-VIII.  Setting the clock frequency
-       1) Using the ioctl call from within your application code
-
-IX.    Operating the driver
-       1) Writing data in C code
-       2) Writing data from the command line
-       3) Writing data using the Python API
-       4) Reading data in C code
-       5) Reading data from the command line
-       6) Reading data using the Python API
-
-X.     Viewing/setting frame status data
-       1) Using sysfs from the command line
-       2) Using the ioctl call from within yzour application code
-       3) Using the config.h file for modifying the boot defaults
-
-XI.    Viewing/setting memory constraints
-       1) Using sysfs from the command line
-       2) Using the ioctl call from within yzour application code
-       3) Using the config.h file for modifying the boot defaults
-
-XII.   Purging data out of driver
-       1) Using sysfs from the command line
-       2) Using the ioctl call from within your application code
-       2) Using the Python API from within your application code
-
-XIII.  Migrating from the 1.x driver to the 2.x driver
-       1) Setting register values
-       2) Getting register values
-       3) Purging transmit and receive data
-       4) Getting the frame status
-       5) Changing the clock frequency
-
-XIV.   FAQ
-       1) Ports are not created even though the driver has loaded
-       2) What does poll() and select() base their information on
-       3) Executing a purge without a clock puts the card in a broken state
-       4) Receiving the error message 'Couldn't register serial port'
-       5) Not seeing card in sysfs
-
-
-## Installation Instructions
-### Downloading Source Code
+### Installing Driver
+##### Downloading Source Code
 The source code for the FSCC driver is hosted on Github code hosting. To check
 out the latest code you will need Git and to run the following in a terminal.
 
@@ -88,7 +12,7 @@ git clone git://github.com/commtech/fscc-linux.git fscc
 NOTE: We prefer you use the above method for downloading the driver (because it
       is the easiest way to stay up to date) but you can also get the driver
       from the
-      [download page](https://github.com/commtech/fscc-linux/tags/).
+      [download page](https://github.com/commtech/fscc-linux/releases/).
 
 Now that you have the latest code checked out you will more than likely want
 to switch to a stable version within the code directory. To do this browse
@@ -101,7 +25,7 @@ git checkout v2.2.1
 ```
 
 
-### Compiling Driver
+##### Compiling Driver
 Compiling the driver is relatively simple assuming you have all of the
 required dependencies. Typically you will need gcc, make and your kernel's
 header files. After assembling all of these things you can build the driver by
@@ -131,7 +55,7 @@ make KDIR="/location/to/kernel_headers/"
 ```
 
 
-### Loading Driver
+##### Loading Driver
 Assuming the driver has been successfully built in the previous step you are
 now ready to load the driver so you can begin using it. To do this you insert
 the driver's kernel object file (fscc.ko) into the kernel.
@@ -167,11 +91,11 @@ disable DMA and allow you to operate in the FIFO based mode.
 insmod fscc.ko force_fifo=1
 ```
 
-NOTE: All driver load time options can be set in your modprobe.conf file for
-      using upon system boot.
+_All driver load time options can be set in your modprobe.conf file for
+using upon system boot_
 
 
-### Installing Driver
+##### Installing Driver
 If you would like the driver to load automatically at boot use the included
 installer.
 
@@ -189,7 +113,7 @@ make uninstall
 ```
 
 
-### Changing Register Values
+##### Changing Register Values
 The FSCC driver is a swiss army knife of sorts with communication. It can
 handle many different situations if configured correctly. Typically to
 configure it to handle your specific situation you need to modify the card's
@@ -223,8 +147,8 @@ regs.FCR = 0x00000000;
 ioctl(port_fd, FSCC_SET_REGISTERS, &regs);
 ```
 
-NOTE: A complete example of how to do this can be found in the file
-      fscc-linux/examples/c/set-registers.c.
+_A complete example of how to do this can be found in the file
+fscc-linux/examples/c/set-registers.c._
 
 Use the Python API to easily set the values of any registers you need to
 modify from within Python code.
@@ -234,18 +158,18 @@ port.registers.BGR = 0x030000ff
 port.registers.FCR = 0x00000000
 ```
 
-NOTE: A complete example of how to do this can be found in the file
-      fscc-linux/examples/python/set-registers.py.
+_A complete example of how to do this can be found in the file
+fscc-linux/examples/python/set-registers.py._
 
 Modify the '#define DEFAULT_[BGR|CCR0|...]_VALUE 0x030000ff' lines within
 the config.h file to be whatever you would like the card to boot up as. You
 will need to recompile the driver after doing this.
 
-NOTE: This will set all ports to this at driver boot up. It is a driver wide
-      setting.
+_This will set all ports to this at driver boot up. It is a driver wide
+setting._
 
 
-### Reading Register Values
+##### Reading Register Values
 There are multiple ways of reading the card's registers varying from simply
 modifying a sysfs file to an ioctl call within code. Here are a few ways of
 doing this.
@@ -276,8 +200,8 @@ ioctl(port_fd, FSCC_GET_REGISTERS, &regs);
 At this point 'regs.BGR' and 'regs.FCR' would be set to their respective
 values.
 
-NOTE: A complete example of how to do this can be found in the file
-      fscc-linux/examples/c/get-registers.c.
+_A complete example of how to do this can be found in the file
+ fscc-linux/examples/c/get-registers.c._
 
 Use the Python API to easily get the values of any registers you need to
 read from within Python code.
@@ -290,11 +214,11 @@ read from within Python code.
 "0x00000000"
 ```
 
-NOTE: A complete example of how to do this can be found in the file
-      fscc-linux/examples/python/get-registers.py.
+_A complete example of how to do this can be found in the file
+fscc-linux/examples/python/get-registers.py._
 
 
-### Asynchronous Communication
+##### Asynchronous Communication
 The FSCC driver lets the built in Linux serial driver handle asynchronous
 communication for our UARTs. The Linux serial driver is highly tested and
 likely more stable than anything we could produce in any reasonably amount of
@@ -337,7 +261,7 @@ echo 03000000 > /sys/class/fscc/fscc0/registers/fcr
 ```
 
 
-### Setting Clock Frequency
+##### Setting Clock Frequency
 The FSCC device has a programmable clock that can be set anywhere from
 20 kbit to 200 Mbit. However, this is not the fully operational range an
 FSCC port.  This is the range that the onboard clock can be set to.
@@ -357,12 +281,12 @@ unsigned char clock_bits[20] = {0x01, 0xa0, 0x04, 0x00, 0x00, 0x00, 0x00,
 ioctl(port_fd, FSCC_SET_CLOCK_BITS, &clock_bits);
 ```
 
-NOTE: A complete example of how to do this along with how to calculate
-      these clock bits can be found in the file
-      fscc-linux/examples/c/set-clock-bits.c.
+_A complete example of how to do this along with how to calculate
+these clock bits can be found in the file
+fscc-linux/examples/c/set-clock-bits.c.#
 
 
-###  Operating Driver
+#####  Operating Driver
 The FSCC driver typically (but not always) works in "frames". This means that
 data typically is packaged together in permanent chunks. If the card received
 two frames of data prior to you retrieving the data you will only get one chunk
@@ -384,21 +308,14 @@ bytes_written = write(port_fd, data, sizeof(data));
 In in addition to the standard errors that the write() function returns
 there are a couple errors specific to the FSCC you might run into.
 
--EOPNOTSUPP: If trying to use a FSCC port with the /dev/fscc nodes while
-             in asynchronous communication mode (should be using /dev/ttyS
-             nodes).
+| Error         | Cause
+| --------------| ----------------------------
+| `-EOPNOTSUPP` | You are using a synchronous handle while in asynchronous mode (use /dev/ttyS node)
+| `-ETIMEDOUT`  | There isn't a transmit clock present (check disabled using 'ignore_timeout' command line parameter)
+| `-ENOBUFS`    | Transmitting the frame will excede your output memory cap
 
--ETIMEDOUT: If trying to use a FSCC port without a transmit clock present.
-            This check can be turned off with the 'ignore_timeout' command
-            line parameter.
-
--ENOBUFS: If the count parameter passed into the write() function is larger
-          than the output cap. If the count parameter is less than the
-          output cap but the amount out of output space isn't enough the
-          driver will block instead of returning this error.
-
-NOTE: A complete example of how to do this can be found in the file
-      fscc-linux/examples/c/sync-write.c.
+_A complete example of how to do this can be found in the file
+fscc-linux/examples/c/sync-write.c._
 
 A simpler but not nearly as useful way of sending data out of a FSCC port is
 by using the built-in linux program echo. This is mainly useful while
@@ -456,16 +373,14 @@ mode then do a `read()`.
 In in addition to the standard errors that the `read()` function returns
 there are a couple errors specific to the FSCC you might run into.
 
--ENOBUFS: If the size parameter passed into the read() function is smaller
-          than the next frame (in a frame based mode).
-
--EOPNOTSUPP: If trying to using a FSCC port using the /dev/fscc nodes while
-             in asynchronous communication mode (should be using /dev/ttyS
-             nodes).
+| Error         | Cause
+| --------------| ----------------------------
+| `-ENOBUFS`    | Your buffer is smaller than the next frame (in a frame based mode)
+| `-EOPNOTSUPP` | You are using a synchronous handle while in asynchronous mode (use /dev/ttyS node)
 
 
-NOTE: A complete example of how to do this can be found in the file
-      fscc-linux/examples/c/sync-read.c.
+_A complete example of how to do this can be found in the file
+fscc-linux/examples/c/sync-read.c._
 
 A simpler but not nearly as useful way of reading data out of a FSCC port is
 by using the built-in linux program cat. This is mainly useful while
@@ -485,17 +400,17 @@ The same errors returned from the C code above can be found while using the
 Python API. The only difference is instead of returning an error they throw
 an IOError exception with the appropriate errno value set.
 
-NOTE: A complete example of how to do this can be found in the file
-      fscc-linux/examples/python/read.py.
+_A complete example of how to do this can be found in the file
+fscc-linux/examples/python/read.py._
 
-NOTE: fread/fwrite are not allowable ways of interfacing with the card. They
-      make assumptions about the data that doesn't hold up with our "frame"
-      perspective. This means Python functions like file.write() and
-      file.read() will not work because they are wrappers around fread/fwrite.
-      You will instead need to use file streams which act more like read/write.
+_fread/fwrite are not allowable ways of interfacing with the card. They
+make assumptions about the data that doesn't hold up with our "frame"
+perspective. This means Python functions like file.write() and
+file.read() will not work because they are wrappers around fread/fwrite.
+You will instead need to use file streams which act more like read/write._
 
 
-### Viewing/Setting Frame Status
+##### Viewing/Setting Frame Status
 It is a good idea to pay attention to the status of each frame. For example if
 you want to see if the frame's CRC check succeeded or failed.
 
@@ -523,19 +438,18 @@ from within your C code.
 ioctl(port_fd, FSCC_ENABLE_APPEND_STATUS);
 ```
 
-NOTE: A complete example of how to do this can be found in the file
-      fscc-linux/examples/c/append-status.c.
+_A complete example of how to do this can be found in the file
+      fscc-linux/examples/c/append-status.c._
 
 Modify the `#define DEFAULT_APPEND_STATUS_VALUE 1` lines within the config.h
 file to be whatever you would like the card to boot up as. You will need to
 recompile the driver after doing this.
 
-NOTE: This will set all ports to this at driver boot up. It is a driver wide
-      setting.
+_This will set all ports to this at driver boot up. It is a driver wide
+      setting._
 
 
-XI. Viewing/Setting Memory Constraints
--------------------------------------------------------------------------------
+##### Viewing/Setting Memory Constraints
 For systems with limited memory available to them there is safety checks in
 place to prevent spurious incoming data from overrunning your system. Each port
 has an option for setting it's input and output memory cap.
@@ -570,22 +484,22 @@ memory_cap.output = 10000;
 ioctl(port_fd, FSCC_SET_MEMORY_CAP, &memory_cap);
 ```
 
-NOTE: You can set only 1 of the 2 values by running the `FSCC_MEMORY_CAP_INIT`
+_You can set only 1 of the 2 values by running the `FSCC_MEMORY_CAP_INIT`
       macro on the `fscc_memory_cap` struct then setting only 1 of the values
       in the structure. The `FSCC_MEMORY_CAP_INIT` structure initializes both
-      values to -1 which will be ignored in the driver.
+      values to -1 which will be ignored in the driver._
 
-NOTE: A complete example of how to do this can be found in the file
-      fscc-linux/examples/c/memory-cap.c.
+_A complete example of how to do this can be found in the file
+      fscc-linux/examples/c/memory-cap.c._
 
 Modify the `#define DEFAULT_{INPUT, OUTPUT}_MEMORY_CAP 100000` lines within
 the config.h file to be whatever you would like the card to boot up as. You
 will need to recompile the driver after doing this.
 
-NOTE: This will set all ports to this at driver boot up. It is a driver wide
-      setting.
+_This will set all ports to this at driver boot up. It is a driver wide
+      setting._
 
-### Purging Data
+##### Purging Data
 Between the hardware FIFO and the driver's software buffers there are multiple
 places data could be at excluding your application code. If you ever need to
 clear this data out and start out fresh there are a couple ways of doing this.
@@ -606,15 +520,15 @@ ioctl(port_fd, FSCC_PURGE_TX);
 ioctl(port_fd, FSCC_PURGE_RX);
 ```
 
-NOTE: A complete example of how to do this can be found in the files
+_A complete example of how to do this can be found in the files
       fscc-linux/examples/c/purge_tx.c and purge_rx.c.
 
 In in addition to the standard errors that the ioctl() function returns
 there is an error specific to the FSCC you might run into.
 
--ETIMEDOUT: If trying to use a FSCC port without a transmit clock present.
-            This check can be turned off with the 'ignore_timeout' command
-            line parameter.
+| Error        | Cause
+| ------------ | ----------------------------
+| `-ETIMEDOUT` | There isn't a transmit clock present (check disabled using 'ignore_timeout' command line parameter)
 
 The Python API makes this easy by calling a couple built-in methods.
 
@@ -624,7 +538,7 @@ port.purge_tx()
 ```
 
 
-### Migrating From 1.x to 2.x
+##### Migrating From 1.x to 2.x
 There are multiple benefits of using the 2.x driver: accurate posix error
 codes, intuitive ioctl calls, backend support for multiple languages (Python,
 C#) and dynamic memory management are some.
@@ -632,9 +546,9 @@ C#) and dynamic memory management are some.
 The 1.x driver and the 2.x driver are very similar so porting from one to the
 other should be rather painless.
 
-NOTE: All ioctl values have changed even if their new names match their old
+_All ioctl values have changed even if their new names match their old
       names. This means even if you use an ioctl with an identical name, it
-      will not work correctly.
+      will not work correctly._
 
 Setting register values was split into two different ioctl's in the 1.x
 driver, setting all the registers at once and one at a time. In the 2.x
@@ -679,64 +593,55 @@ In the 1.x driver you passed in a structure composed of both the desired
 frequency and the clock bits that represent the frequency. In the 2.x driver
 this has been simplified down to just the clock bits.
 
-### FAQ
-Q: Why are the /dev/fscc* ports not created even though the driver has
-   loaded?
+##### Why are the /dev/fscc* ports not created even though the driver has loaded?
+There are a couple of possibilities but you should first check
+/var/log/messages for any helpful information. If that doesn't help you
+out then continue reading.
 
-A: There are a couple of possibilities but you should first check
-   /var/log/messages for any helpful information. If that doesn't help you
-   out then continue reading.
+One possibility is that there is another driver loaded that has claimed
+our cards. For example if your kernel is patched to use our card for
+asynchronous transmission the linux serial driver has more than likely
+claimed the card and in turn we won't receive the appropriate 'probe'
+notifications to load our card.
 
-   One possibility is that there is another driver loaded that has claimed
-   our cards. For example if your kernel is patched to use our card for
-   asynchronous transmission the linux serial driver has more than likely
-   claimed the card and in turn we won't receive the appropriate 'probe'
-   notifications to load our card.
+Another possibility is that you have accidentally tried insmod'ing with
+the 'hot_plug' option enabled and your cards are not actually present.
+Double check that your card shows up in the output of 'lspci' and make
+sure to use hot_plug=0.
 
-   Another possibility is that you have accidentally tried insmod'ing with
-   the 'hot_plug' option enabled and your cards are not actually present.
-   Double check that your card shows up in the output of 'lspci' and make
-   sure to use hot_plug=0.
+##### What does poll() and select() base their information on?
+Whether or not you can read data will be based on if there is at least 1
+byte of data available to be read in your current mode of operation. For
+example, if there is streaming data it will not be considered when in
+a frame based mode.
 
-Q: What does poll() and select() base their information on?
+Whether or not you can write data will be based on if you have hit your
+output memory cap. (see section XI).
 
-A: Whether or not you can read data will be based on if there is at least 1
-   byte of data available to be read in your current mode of operation. For
-   example, if there is streaming data it will not be considered when in
-   a frame based mode.
+##### Why does executing a purge without a clock put the card in a broken state?
+When executing a purge on either the transmitter or receiver there is
+a TRES or RRES (command from the CMDR register) happening behind the
+scenes. If there is no clock available the command will stall until
+a clock is available. This should work in theory but doesn't in
+practice. So whenever you need to execute a purge without a clock, first
+put it into clock mode 7, execute your purge then return to your other
+clock mode.
 
-   Whether or not you can write data will be based on if you have hit your
-   output memory cap. (see section XI).
+##### Why am I receiving the error message 'Couldn't register serial port' when loading the driver.
+When loading, the driver will attempt to register the board's UARTs with
+the built in serial driver. The serial driver statically defines how
+many UARTs can be registered and will report this error if there isn't
+enough room.
 
-Q: Why does executing a purge without a clock put the card in a broken
-   state?
+There are multiple ways of allowing more available UART room which can
+be found in section VII.
 
-A: When executing a purge on either the transmitter or receiver there is
-   a TRES or RRES (command from the CMDR register) happening behind the
-   scenes. If there is no clock available the command will stall until
-   a clock is available. This should work in theory but doesn't in
-   practice. So whenever you need to execute a purge without a clock, first
-   put it into clock mode 7, execute your purge then return to your other
-   clock mode.
+##### Why am I not seeing my card in sysfs?
+There are a couple possibilities but you should first check what kernel
+version you are using. Due to the way we register our card with sysfs it
+won't appear in kernel versions prior to 2.6.25.
 
-Q: Why am I receiving the error message 'Couldn't register serial port'
-   when loading the driver.
-
-A: When loading, the driver will attempt to register the board's UARTs with
-   the built in serial driver. The serial driver statically defines how
-   many UARTs can be registered and will report this error if there isn't
-   enough room.
-
-   There are multiple ways of allowing more available UART room which can
-   be found in section VII.
-
-Q: Why am I not seeing my card in sysfs?
-
-A: There are a couple possibilities but you should first check what kernel
-   version you are using. Due to the way we register our card with sysfs it
-   won't appear in kernel versions prior to 2.6.25.
-
-   Another possibility is that it is located in a different directory than
-   you are checking. Typically fscc/ appears in /sys/class/ but it might
-   appear elsewhere. If it isn't in /sys/class/ do a search in /sys/ for
-   our fscc/ directory.
+Another possibility is that it is located in a different directory than
+you are checking. Typically fscc/ appears in /sys/class/ but it might
+appear elsewhere. If it isn't in /sys/class/ do a search in /sys/ for
+our fscc/ directory.
