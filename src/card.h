@@ -32,7 +32,6 @@ struct fscc_card {
 	struct list_head list;
 	struct list_head ports;
 	struct pci_dev *pci_dev;
-	struct serial_private *serial_priv;
 
 	void __iomem *bar[3];
 

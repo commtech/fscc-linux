@@ -24,13 +24,6 @@
 #include "port.h" /* struct fscc_port */
 #include "utils.h" /* return_{val_}if_true */
 
-struct pciserial_board pci_board = {
-	.flags = FL_BASE1,
-	.num_ports = 2,
-	.base_baud = 1152000,
-	.uart_offset = 8,
-};
-
 
 /*
 	This handles initialization on a card (2 port) level. So anything that
@@ -91,15 +84,6 @@ struct fscc_card *fscc_card_new(struct pci_dev *pdev,
 		return 0;
 	}
 
-	card->serial_priv = pciserial_init_ports(pdev, &pci_board);
-
-	if (IS_ERR(card->serial_priv)) {
-		dev_err(&card->pci_dev->dev, "pciserial_init_ports failed\n");
-		return 0;
-	}
-
-	pci_set_drvdata(pdev, card->serial_priv);
-
 	if (pci_set_dma_mask(pdev, 0xffffffff)) {
 		dev_warn(&card->pci_dev->dev, "no suitable DMA available\n");
 		return 0;
@@ -148,9 +132,6 @@ void fscc_card_delete(struct fscc_card *card)
 	pci_release_region(card->pci_dev, 0);
 	pci_release_region(card->pci_dev, 2);
 
-	pciserial_remove_ports(card->serial_priv);
-	pci_set_drvdata(card->pci_dev, NULL);
-
 	kfree(card);
 }
 
@@ -159,8 +140,6 @@ void fscc_card_suspend(struct fscc_card *card)
 	struct fscc_port *current_port = 0;
 
 	return_if_untrue(card);
-
-	pciserial_suspend_ports(card->serial_priv);
 
 	list_for_each_entry(current_port, &card->ports, list) {
 		fscc_port_suspend(current_port);
@@ -172,8 +151,6 @@ void fscc_card_resume(struct fscc_card *card)
 	struct fscc_port *current_port = 0;
 
 	return_if_untrue(card);
-
-	pciserial_resume_ports(card->serial_priv);
 
 	list_for_each_entry(current_port, &card->ports, list) {
 		fscc_port_resume(current_port);
