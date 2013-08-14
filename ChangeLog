@@ -1,3 +1,9 @@
+version 2.3.0 (08/14/2013)
+--------------------------------------------------------------------------------
+    * Now use serialfc driver for asynchronous data
+    * Optimize write handling
+    * Added sysfs support for returning multiple frames
+
 version 2.2.4 (06/20/2013)
 --------------------------------------------------------------------------------
     * Added support for returning multiple frames per read call
