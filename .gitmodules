@@ -1,0 +1,3 @@
+[submodule "serialfc"]
+	path = serialfc
+	url = git://github.com/commtech/serialfc-linux.git
