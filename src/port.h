@@ -124,6 +124,7 @@ struct fscc_port {
 	unsigned last_isr_value;
 
 	unsigned append_status;
+	unsigned append_timestamp;
 
 	spinlock_t oframe_spinlock;
 	spinlock_t board_settings_spinlock; /* Anything that will alter the settings at a board level */
@@ -208,6 +209,9 @@ void fscc_port_set_clock_bits(struct fscc_port *port,
 
 void fscc_port_set_append_status(struct fscc_port *port, unsigned value);
 unsigned fscc_port_get_append_status(struct fscc_port *port);
+
+void fscc_port_set_append_timestamp(struct fscc_port *port, unsigned value);
+unsigned fscc_port_get_append_timestamp(struct fscc_port *port);
 
 int fscc_port_set_registers(struct fscc_port *port,
 							 const struct fscc_registers *regs);

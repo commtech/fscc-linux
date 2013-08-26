@@ -113,6 +113,7 @@ struct fscc_port *fscc_port_new(struct fscc_card *card, unsigned channel,
 	port->istream = fscc_frame_new(0, port);
 
 	fscc_port_set_append_status(port, DEFAULT_APPEND_STATUS_VALUE);
+	fscc_port_set_append_timestamp(port, DEFAULT_APPEND_TIMESTAMP_VALUE);
 	fscc_port_set_ignore_timeout(port, DEFAULT_IGNORE_TIMEOUT_VALUE);
 	fscc_port_set_tx_modifiers(port, DEFAULT_TX_MODIFIERS_VALUE);
 	fscc_port_set_rx_multiple(port, DEFAULT_RX_MULTIPLE_VALUE);
@@ -376,6 +377,7 @@ ssize_t fscc_port_frame_read(struct fscc_port *port, char *buf, size_t buf_lengt
 	do {
 		remaining_data_length = buf_length - out_length;
 		remaining_data_length += (!port->append_status) ? 2 : 0;
+		remaining_data_length += (!port->append_timestamp) ? sizeof(frame->timestamp) : 0;
 
 		frame = fscc_flist_remove_frame_if_lte(&port->iframes, remaining_data_length);
 
@@ -386,9 +388,15 @@ ssize_t fscc_port_frame_read(struct fscc_port *port, char *buf, size_t buf_lengt
 		current_frame_length -= (!port->append_status) ? 2 : 0;
 
 		fscc_frame_remove_data(frame, buf + out_length, current_frame_length);
-		fscc_frame_delete(frame);
-
 		out_length += current_frame_length;
+
+		if (port->append_timestamp) {
+			memcpy(buf + out_length, &frame->timestamp, sizeof(frame->timestamp));
+			current_frame_length += sizeof(frame->timestamp);
+			out_length += sizeof(frame->timestamp);
+		}
+
+		fscc_frame_delete(frame);
 	}
 	while (port->rx_multiple);
 
@@ -923,6 +931,13 @@ void fscc_port_set_append_status(struct fscc_port *port, unsigned value)
 	port->append_status = (value) ? 1 : 0;
 }
 
+void fscc_port_set_append_timestamp(struct fscc_port *port, unsigned value)
+{
+	return_if_untrue(port);
+
+	port->append_timestamp = (value) ? 1 : 0;
+}
+
 void fscc_port_set_ignore_timeout(struct fscc_port *port,
 								  unsigned ignore_timeout)
 {
@@ -944,6 +959,13 @@ unsigned fscc_port_get_append_status(struct fscc_port *port)
 	return_val_if_untrue(port, 0);
 
 	return port->append_status;
+}
+
+unsigned fscc_port_get_append_timestamp(struct fscc_port *port)
+{
+	return_val_if_untrue(port, 0);
+
+	return port->append_timestamp;
 }
 
 unsigned fscc_port_get_ignore_timeout(struct fscc_port *port)

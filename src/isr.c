@@ -186,8 +186,10 @@ void iframe_worker(unsigned long data)
 		return;
 	}
 
-	if (port->pending_iframe)
+	if (port->pending_iframe) {
+		do_gettimeofday(&port->pending_iframe->timestamp);
 		fscc_flist_add_frame(&port->iframes, port->pending_iframe);
+    }
 
 	rejected_last_frame = 0; /* Track that we received a frame to reset the
 								memory constraint warning print message. */

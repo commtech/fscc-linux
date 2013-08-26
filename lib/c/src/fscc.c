@@ -335,6 +335,80 @@ int fscc_disable_append_status(int fd)
 /******************************************************************************/
 /*!
 
+  \brief Gets a port's append timestamp value.
+
+  \param[in] h
+    HANDLE to the port
+  \param[out] status
+    the append timestamp value
+
+  \return 0
+    if the operation completed successfully
+  \return >= 1
+    if the operation failed (see MSDN 'System Error Codes')
+
+*/
+/******************************************************************************/
+int fscc_get_append_timestamp(int fd, unsigned *timestamp)
+{
+    int result;
+
+    result = ioctl(fd, FSCC_GET_APPEND_TIMESTAMP, timestamp);
+
+    return (result != -1) ? 0 : errno;
+}
+
+/******************************************************************************/
+/*!
+
+  \brief Enable appending the timestamp to the received data.
+
+  \param[in] h
+    HANDLE to the port
+
+  \return 0
+    if the operation completed successfully
+  \return >= 1
+    if the operation failed (see MSDN 'System Error Codes')
+
+*/
+/******************************************************************************/
+int fscc_enable_append_timestamp(int fd)
+{
+    int result;
+
+    result = ioctl(fd, FSCC_ENABLE_APPEND_TIMESTAMP);
+
+    return (result != -1) ? 0 : errno;
+}
+
+/******************************************************************************/
+/*!
+
+  \brief Disable appending the timestamp to the received data.
+
+  \param[in] h
+    HANDLE to the port
+
+  \return 0
+    if the operation completed successfully
+  \return >= 1
+    if the operation failed (see MSDN 'System Error Codes')
+
+*/
+/******************************************************************************/
+int fscc_disable_append_timestamp(int fd)
+{
+    int result;
+
+    result = ioctl(fd, FSCC_DISABLE_APPEND_TIMESTAMP);
+
+    return (result != -1) ? 0 : errno;
+}
+
+/******************************************************************************/
+/*!
+
   \brief Gets a port's ignore timeout value.
 
   \param[in] h

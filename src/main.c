@@ -230,6 +230,18 @@ int fscc_ioctl(struct inode *inode, struct file *file, unsigned int cmd,
 		*(unsigned *)arg = fscc_port_get_append_status(port);
 		break;
 
+	case FSCC_ENABLE_APPEND_TIMESTAMP:
+		fscc_port_set_append_timestamp(port, 1);
+		break;
+
+	case FSCC_DISABLE_APPEND_TIMESTAMP:
+		fscc_port_set_append_timestamp(port, 0);
+		break;
+
+	case FSCC_GET_APPEND_TIMESTAMP:
+		*(unsigned *)arg = fscc_port_get_append_timestamp(port);
+		break;
+
 	case FSCC_SET_MEMORY_CAP:
 		fscc_port_set_memory_cap(port, (struct fscc_memory_cap *)arg);
 		break;

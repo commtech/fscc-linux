@@ -106,6 +106,10 @@ struct fscc_memory_cap {
 #define FSCC_DISABLE_RX_MULTIPLE _IO(FSCC_IOCTL_MAGIC, 17)
 #define FSCC_GET_RX_MULTIPLE _IOR(FSCC_IOCTL_MAGIC, 18, unsigned *)
 
+#define FSCC_ENABLE_APPEND_TIMESTAMP _IO(FSCC_IOCTL_MAGIC, 19)
+#define FSCC_DISABLE_APPEND_TIMESTAMP _IO(FSCC_IOCTL_MAGIC, 20)
+#define FSCC_GET_APPEND_TIMESTAMP _IOR(FSCC_IOCTL_MAGIC, 21, unsigned *)
+
 /******************************************************************************/
 /*!
 
@@ -129,6 +133,9 @@ int fscc_get_registers(int fd, struct fscc_registers *regs);
 int fscc_get_append_status(int fd, unsigned *status);
 int fscc_enable_append_status(int fd);
 int fscc_disable_append_status(int fd);
+int fscc_get_append_timestamp(int fd, unsigned *timestamp);
+int fscc_enable_append_timestamp(int fd);
+int fscc_disable_append_timestamp(int fd);
 int fscc_get_ignore_timeout(int fd, unsigned *status);
 int fscc_enable_ignore_timeout(int fd);
 int fscc_disable_ignore_timeout(int fd);

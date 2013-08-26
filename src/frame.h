@@ -31,6 +31,7 @@ struct fscc_frame {
 	unsigned buffer_size;
 	unsigned number;
 	unsigned dma;
+	struct timeval timestamp;
 
 	spinlock_t spinlock;
 
