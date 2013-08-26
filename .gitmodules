@@ -1,3 +1,6 @@
 [submodule "serialfc"]
 	path = serialfc
 	url = git://github.com/commtech/serialfc-linux.git
+[submodule "lib/python"]
+	path = lib/python
+	url = git://github.com/commtech/pyfscc.git
