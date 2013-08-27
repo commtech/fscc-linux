@@ -124,10 +124,13 @@ struct fscc_port *fscc_port_new(struct fscc_card *card, unsigned channel,
 	port->pending_iframe = 0;
 	port->pending_oframe = 0;
 
-	spin_lock_init(&port->oframe_spinlock);
 	spin_lock_init(&port->board_settings_spinlock);
 	spin_lock_init(&port->board_rx_spinlock);
 	spin_lock_init(&port->board_tx_spinlock);
+
+	spin_lock_init(&port->istream_spinlock);
+	spin_lock_init(&port->pending_iframe_spinlock);
+	spin_lock_init(&port->pending_oframe_spinlock);
 
 	/* Simple check to see if the port is messed up. It won't catch all
 	   instances. */
@@ -414,12 +417,17 @@ ssize_t fscc_port_stream_read(struct fscc_port *port, char *buf,
 							  size_t buf_length)
 {
 	unsigned out_length = 0;
+	unsigned long flags;
 
 	return_val_if_untrue(port, 0);
+
+	spin_lock_irqsave(&port->istream_spinlock, flags);
 
 	out_length = min(buf_length, (size_t)fscc_frame_get_length(port->istream));
 
 	fscc_frame_remove_data(port->istream, buf, out_length);
+
+	spin_unlock_irqrestore(&port->istream_spinlock, flags);
 
 	return out_length;
 }
@@ -732,7 +740,17 @@ int fscc_port_purge_rx(struct fscc_port *port)
 		return error_code;
 
 	fscc_flist_clear(&port->iframes);
+
+	spin_lock_irqsave(&port->istream_spinlock, flags);
 	fscc_frame_clear(port->istream);
+	spin_unlock_irqrestore(&port->istream_spinlock, flags);
+
+	spin_lock_irqsave(&port->pending_iframe_spinlock, flags);
+	if (port->pending_iframe) {
+		fscc_frame_delete(port->pending_iframe);
+		port->pending_iframe = 0;
+	}
+	spin_unlock_irqrestore(&port->pending_iframe_spinlock, flags);
 
 	return 1;
 }
@@ -755,11 +773,12 @@ int fscc_port_purge_tx(struct fscc_port *port)
 
 	fscc_flist_clear(&port->oframes);
 
-	//TODO: Should pending frames be attached to flist? What about syncronization???
+	spin_lock_irqsave(&port->pending_oframe_spinlock, flags);
 	if (port->pending_oframe) {
 		fscc_frame_delete(port->pending_oframe);
 		port->pending_oframe = 0;
 	}
+	spin_unlock_irqrestore(&port->pending_oframe_spinlock, flags);
 
 	wake_up_interruptible(&port->output_queue);
 
@@ -769,13 +788,16 @@ int fscc_port_purge_tx(struct fscc_port *port)
 unsigned fscc_port_get_input_memory_usage(struct fscc_port *port)
 {
 	unsigned value = 0;
+	unsigned long flags;
 
 	return_val_if_untrue(port, 0);
 
 	value = fscc_flist_calculate_memory_usage(&port->iframes);
 
-	if (port->pending_oframe)
+	spin_lock_irqsave(&port->pending_iframe_spinlock, flags);
+	if (port->pending_iframe)
 		value += fscc_frame_get_length(port->pending_iframe);
+	spin_unlock_irqrestore(&port->pending_iframe_spinlock, flags);
 
 	return value;
 }
@@ -783,13 +805,16 @@ unsigned fscc_port_get_input_memory_usage(struct fscc_port *port)
 unsigned fscc_port_get_output_memory_usage(struct fscc_port *port)
 {
 	unsigned value = 0;
+	unsigned long flags;
 
 	return_val_if_untrue(port, 0);
 
 	value = fscc_flist_calculate_memory_usage(&port->oframes);
 
+	spin_lock_irqsave(&port->pending_oframe_spinlock, flags);
 	if (port->pending_oframe)
 		value += fscc_frame_get_length(port->pending_oframe);
+	spin_unlock_irqrestore(&port->pending_oframe_spinlock, flags);
 
 	return value;
 }

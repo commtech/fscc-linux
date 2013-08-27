@@ -91,7 +91,8 @@ void iframe_worker(unsigned long data)
 	struct fscc_port *port = 0;
 	int receive_length = 0; /* Needs to be signed */
 	unsigned finished_frame = 0;
-	unsigned long flags = 0;
+	unsigned long board_flags = 0;
+	unsigned long frame_flags = 0;
 	static int rejected_last_frame = 0;
 	unsigned current_memory = 0;
 	unsigned memory_cap = 0;
@@ -103,7 +104,8 @@ void iframe_worker(unsigned long data)
 	current_memory = fscc_port_get_input_memory_usage(port);
 	memory_cap = fscc_port_get_input_memory_cap(port);
 
-	spin_lock_irqsave(&port->board_rx_spinlock, flags);
+	spin_lock_irqsave(&port->board_rx_spinlock, board_flags);
+	spin_lock_irqsave(&port->pending_iframe_spinlock, frame_flags);
 
 	finished_frame = (fscc_port_get_RFCNT(port) > 0) ? 1 : 0;
 
@@ -131,7 +133,8 @@ void iframe_worker(unsigned long data)
 	}
 
 	if (receive_length <= 0) {
-		spin_unlock_irqrestore(&port->board_rx_spinlock, flags);
+		spin_unlock_irqrestore(&port->pending_iframe_spinlock, frame_flags);
+		spin_unlock_irqrestore(&port->board_rx_spinlock, board_flags);
 		return;
 	}
 
@@ -149,7 +152,8 @@ void iframe_worker(unsigned long data)
 			port->pending_iframe = 0;
 		}
 
-		spin_unlock_irqrestore(&port->board_rx_spinlock, flags);
+		spin_unlock_irqrestore(&port->pending_iframe_spinlock, frame_flags);
+		spin_unlock_irqrestore(&port->board_rx_spinlock, board_flags);
 		return;
 	}
 
@@ -158,7 +162,8 @@ void iframe_worker(unsigned long data)
 		port->pending_iframe = fscc_frame_new(0, port);
 
 		if (!port->pending_iframe) {
-			spin_unlock_irqrestore(&port->board_rx_spinlock, flags);
+		    spin_unlock_irqrestore(&port->pending_iframe_spinlock, frame_flags);
+		    spin_unlock_irqrestore(&port->board_rx_spinlock, board_flags);
 			return;
 		}
 	}
@@ -182,7 +187,8 @@ void iframe_worker(unsigned long data)
 			(finished_frame) ? "" : "un");
 
 	if (!finished_frame) {
-		spin_unlock_irqrestore(&port->board_rx_spinlock, flags);
+		spin_unlock_irqrestore(&port->pending_iframe_spinlock, frame_flags);
+		spin_unlock_irqrestore(&port->board_rx_spinlock, board_flags);
 		return;
 	}
 
@@ -198,7 +204,8 @@ void iframe_worker(unsigned long data)
 
 	wake_up_interruptible(&port->input_queue);
 
-	spin_unlock_irqrestore(&port->board_rx_spinlock, flags);
+	spin_unlock_irqrestore(&port->pending_iframe_spinlock, frame_flags);
+	spin_unlock_irqrestore(&port->board_rx_spinlock, board_flags);
 }
 
 void istream_worker(unsigned long data)
@@ -206,7 +213,8 @@ void istream_worker(unsigned long data)
 	struct fscc_port *port = 0;
 	int receive_length = 0; /* Needs to be signed */
 	unsigned rxcnt = 0;
-	unsigned long flags = 0;
+	unsigned long board_flags = 0;
+	unsigned long stream_flags = 0;
 	unsigned current_memory = 0;
 	unsigned memory_cap = 0;
 	static int rejected_last_stream = 0;
@@ -231,7 +239,7 @@ void istream_worker(unsigned long data)
 		return;
 	}
 
-	spin_lock_irqsave(&port->board_rx_spinlock, flags);
+	spin_lock_irqsave(&port->board_rx_spinlock, board_flags);
 
 	rxcnt = fscc_port_get_RXCNT(port);
 
@@ -242,7 +250,7 @@ void istream_worker(unsigned long data)
 
 	/* Leave the interrupt handler if there is no data to read. */
 	if (receive_length <= 0) {
-		spin_unlock_irqrestore(&port->board_rx_spinlock, flags);
+		spin_unlock_irqrestore(&port->board_rx_spinlock, board_flags);
 		return;
 	}
 
@@ -251,14 +259,16 @@ void istream_worker(unsigned long data)
 	if (receive_length + current_memory > memory_cap)
 		receive_length = memory_cap - current_memory;
 
+	spin_lock_irqsave(&port->istream_spinlock, stream_flags);
 	status = fscc_frame_add_data_from_port(port->istream, port, receive_length);
+	spin_unlock_irqrestore(&port->istream_spinlock, stream_flags);
 	if (status == 0) {
 		dev_err(port->device, "Error adding stream data");
-		spin_unlock_irqrestore(&port->board_rx_spinlock, flags);
+		spin_unlock_irqrestore(&port->board_rx_spinlock, board_flags);
 		return;
 	}
 
-	spin_unlock_irqrestore(&port->board_rx_spinlock, flags);
+	spin_unlock_irqrestore(&port->board_rx_spinlock, board_flags);
 
 	rejected_last_stream = 0; /* Track that we received stream data to reset
 								 the memory constraint warning print message.
@@ -280,13 +290,15 @@ void oframe_worker(unsigned long data)
 	unsigned transmit_length = 0;
 	unsigned size_in_fifo = 0;
 
-	unsigned long flags = 0;
+	unsigned long board_flags = 0;
+	unsigned long frame_flags = 0;
 
 	port = (struct fscc_port *)data;
 
 	return_if_untrue(port);
 
-	spin_lock_irqsave(&port->oframe_spinlock, flags);
+	spin_lock_irqsave(&port->board_tx_spinlock, board_flags);
+	spin_lock_irqsave(&port->pending_oframe_spinlock, frame_flags);
 
 	/* Check if exists and if so, grabs the frame to transmit. */
 	if (!port->pending_oframe) {
@@ -294,7 +306,8 @@ void oframe_worker(unsigned long data)
 
 		/* No frames in queue to transmit */
 		if (!port->pending_oframe) {
-			spin_unlock_irqrestore(&port->oframe_spinlock, flags);
+			spin_unlock_irqrestore(&port->pending_oframe_spinlock, frame_flags);
+			spin_unlock_irqrestore(&port->board_tx_spinlock, board_flags);
 			return;
 		}
 	}
@@ -303,7 +316,8 @@ void oframe_worker(unsigned long data)
 		dma_addr_t *d1_handle = 0;
 
 		if (port->pending_oframe->handled) {
-			spin_unlock_irqrestore(&port->oframe_spinlock, flags);
+			spin_unlock_irqrestore(&port->pending_oframe_spinlock, frame_flags);
+		    spin_unlock_irqrestore(&port->board_tx_spinlock, board_flags);
 			return;
 		}
 
@@ -321,7 +335,8 @@ void oframe_worker(unsigned long data)
 		   frame structure. */
 		port->pending_oframe->handled = 1;
 
-		spin_unlock_irqrestore(&port->oframe_spinlock, flags);
+		spin_unlock_irqrestore(&port->pending_oframe_spinlock, frame_flags);
+		spin_unlock_irqrestore(&port->board_tx_spinlock, board_flags);
 		return;
 	}
 
@@ -337,7 +352,8 @@ void oframe_worker(unsigned long data)
 	transmit_length = (size_in_fifo > fifo_space) ? fifo_space : current_length;
 
 	if (transmit_length == 0) {
-		spin_unlock_irqrestore(&port->oframe_spinlock, flags);
+		spin_unlock_irqrestore(&port->pending_oframe_spinlock, frame_flags);
+		spin_unlock_irqrestore(&port->board_tx_spinlock, board_flags);
 		return;
 	}
 
@@ -366,7 +382,8 @@ void oframe_worker(unsigned long data)
 
 	fscc_port_execute_transmit(port);
 
-	spin_unlock_irqrestore(&port->oframe_spinlock, flags);
+	spin_unlock_irqrestore(&port->pending_oframe_spinlock, frame_flags);
+	spin_unlock_irqrestore(&port->board_tx_spinlock, board_flags);
 }
 
 void timer_handler(unsigned long data)

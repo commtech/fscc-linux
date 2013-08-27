@@ -126,10 +126,13 @@ struct fscc_port {
 	unsigned append_status;
 	unsigned append_timestamp;
 
-	spinlock_t oframe_spinlock;
 	spinlock_t board_settings_spinlock; /* Anything that will alter the settings at a board level */
 	spinlock_t board_rx_spinlock; /* Anything that will alter the state of rx at a board level */
 	spinlock_t board_tx_spinlock; /* Anything that will alter the state of rx at a board level */
+
+	spinlock_t istream_spinlock;
+	spinlock_t pending_iframe_spinlock;
+	spinlock_t pending_oframe_spinlock;
 
 	struct fscc_memory_cap memory_cap;
 	unsigned ignore_timeout;

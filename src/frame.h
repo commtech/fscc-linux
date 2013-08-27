@@ -33,8 +33,6 @@ struct fscc_frame {
 	unsigned dma;
 	struct timeval timestamp;
 
-	spinlock_t spinlock;
-
 	struct fscc_descriptor *d1;
 	struct fscc_descriptor *d2;
 

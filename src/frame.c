@@ -34,17 +34,12 @@ int fscc_frame_setup_descriptors(struct fscc_frame *frame, struct pci_dev *pci_d
 struct fscc_frame *fscc_frame_new(unsigned dma, struct fscc_port *port)
 {
 	struct fscc_frame *frame = 0;
-	unsigned long flags = 0;
 
 	frame = kmalloc(sizeof(*frame), GFP_ATOMIC);
 
 	return_val_if_untrue(frame, 0);
 
 	memset(frame, 0, sizeof(*frame));
-
-	spin_lock_init(&frame->spinlock);
-
-	spin_lock_irqsave(&frame->spinlock, flags);
 
 	INIT_LIST_HEAD(&frame->list);
 
@@ -63,8 +58,6 @@ struct fscc_frame *fscc_frame_new(unsigned dma, struct fscc_port *port)
 		if (!fscc_frame_setup_descriptors(frame, port->card->pci_dev))
 			frame->dma = 0;
 	}
-
-	spin_unlock_irqrestore(&frame->spinlock, flags);
 
 	return frame;
 }
@@ -137,11 +130,7 @@ int fscc_frame_setup_descriptors(struct fscc_frame *frame,
 
 void fscc_frame_delete(struct fscc_frame *frame)
 {
-	unsigned long flags = 0;
-
 	return_if_untrue(frame);
-
-	spin_lock_irqsave(&frame->spinlock, flags);
 
 	if (frame->dma) {
 		pci_unmap_single(frame->port->card->pci_dev, frame->d1_handle,
@@ -163,8 +152,6 @@ void fscc_frame_delete(struct fscc_frame *frame)
 	}
 
 	fscc_frame_update_buffer_size(frame, 0);
-
-	spin_unlock_irqrestore(&frame->spinlock, flags);
 
 	kfree(frame);
 }
@@ -193,12 +180,8 @@ unsigned fscc_frame_is_empty(struct fscc_frame *frame)
 int fscc_frame_add_data(struct fscc_frame *frame, const char *data,
 						 unsigned length)
 {
-	unsigned long flags = 0;
-
 	return_val_if_untrue(frame, 0);
 	return_val_if_untrue(length > 0, 0);
-
-	spin_lock_irqsave(&frame->spinlock, flags);
 
 	if (frame->dma && frame->buffer) {
 		pci_unmap_single(frame->port->card->pci_dev, frame->data_handle,
@@ -208,7 +191,6 @@ int fscc_frame_add_data(struct fscc_frame *frame, const char *data,
 	/* Only update buffer size if there isn't enough space already */
 	if (frame->data_length + length > frame->buffer_size) {
 		if (fscc_frame_update_buffer_size(frame, frame->data_length + length) == 0) {
-			spin_unlock_irqrestore(&frame->spinlock, flags);
 			return 0;
 		}
 	}
@@ -229,20 +211,14 @@ int fscc_frame_add_data(struct fscc_frame *frame, const char *data,
 		frame->d1->data_count = frame->data_length;
 	}
 
-	spin_unlock_irqrestore(&frame->spinlock, flags);
-
 	return 1;
 }
 
 int fscc_frame_add_data_from_port(struct fscc_frame *frame, struct fscc_port *port,
 						 unsigned length)
 {
-	unsigned long flags = 0;
-
 	return_val_if_untrue(frame, 0);
 	return_val_if_untrue(length > 0, 0);
-
-	spin_lock_irqsave(&frame->spinlock, flags);
 
 	if (frame->dma && frame->buffer) {
 		pci_unmap_single(frame->port->card->pci_dev, frame->data_handle,
@@ -252,7 +228,6 @@ int fscc_frame_add_data_from_port(struct fscc_frame *frame, struct fscc_port *po
 	/* Only update buffer size if there isn't enough space already */
 	if (frame->data_length + length > frame->buffer_size) {
 		if (fscc_frame_update_buffer_size(frame, frame->data_length + length) == 0) {
-			spin_unlock_irqrestore(&frame->spinlock, flags);
 			return 0;
 		}
 	}
@@ -273,21 +248,16 @@ int fscc_frame_add_data_from_port(struct fscc_frame *frame, struct fscc_port *po
 		frame->d1->data_count = frame->data_length;
 	}
 
-	spin_unlock_irqrestore(&frame->spinlock, flags);
-
 	return 1;
 }
 
 int fscc_frame_add_data_from_user(struct fscc_frame *frame, const char *data,
 						 unsigned length)
 {
-	unsigned long flags = 0;
 	unsigned uncopied_bytes = 0;
 
 	return_val_if_untrue(frame, 0);
 	return_val_if_untrue(length > 0, 0);
-
-	spin_lock_irqsave(&frame->spinlock, flags);
 
 	if (frame->dma && frame->buffer) {
 		pci_unmap_single(frame->port->card->pci_dev, frame->data_handle,
@@ -297,7 +267,6 @@ int fscc_frame_add_data_from_user(struct fscc_frame *frame, const char *data,
 	/* Only update buffer size if there isn't enough space already */
 	if (frame->data_length + length > frame->buffer_size) {
 		if (fscc_frame_update_buffer_size(frame, frame->data_length + length) == 0) {
-			spin_unlock_irqrestore(&frame->spinlock, flags);
 			return 0;
 		}
 	}
@@ -319,33 +288,25 @@ int fscc_frame_add_data_from_user(struct fscc_frame *frame, const char *data,
 		frame->d1->data_count = frame->data_length;
 	}
 
-	spin_unlock_irqrestore(&frame->spinlock, flags);
-
 	return 1;
 }
 
 int fscc_frame_remove_data(struct fscc_frame *frame, char *destination,
 							unsigned length)
 {
-	unsigned long flags = 0;
-
 	return_val_if_untrue(frame, 0);
 
 	if (length == 0)
 		return 1;
 
-	spin_lock_irqsave(&frame->spinlock, flags);
-
 	if (frame->data_length == 0) {
 		dev_warn(frame->port->device, "attempting data removal from empty frame\n");
-		spin_unlock_irqrestore(&frame->spinlock, flags);
 		return 1;
 	}
 
 	/* Make sure we don't remove more data than we have */
 	if (length > frame->data_length) {
 		dev_warn(frame->port->device, "attempting removal of more data than available\n"); 
-		spin_unlock_irqrestore(&frame->spinlock, flags);
 		return 0;
 	}
 
@@ -357,8 +318,6 @@ int fscc_frame_remove_data(struct fscc_frame *frame, char *destination,
 
 	/* Move the data up in the buffer (essentially removing the old data) */
 	memmove(frame->buffer, frame->buffer + length, frame->data_length);
-
-	spin_unlock_irqrestore(&frame->spinlock, flags);
 
 	return 1;
 }
