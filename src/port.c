@@ -371,18 +371,26 @@ int fscc_port_write(struct fscc_port *port, const char *data, unsigned length)
 ssize_t fscc_port_frame_read(struct fscc_port *port, char *buf, size_t buf_length)
 {
 	struct fscc_frame *frame = 0;
-	unsigned remaining_data_length = 0;
+	unsigned remaining_buf_length = 0;
+	unsigned max_frame_length = 0;
 	unsigned current_frame_length = 0;
 	unsigned out_length = 0;
 
 	return_val_if_untrue(port, 0);
 
 	do {
-		remaining_data_length = buf_length - out_length;
-		remaining_data_length += (!port->append_status) ? 2 : 0;
-		remaining_data_length += (!port->append_timestamp) ? sizeof(frame->timestamp) : 0;
+		remaining_buf_length = buf_length - out_length;
 
-		frame = fscc_flist_remove_frame_if_lte(&port->iframes, remaining_data_length);
+		if (port->append_status && port->append_timestamp)
+			max_frame_length = remaining_buf_length - sizeof(struct timeval);
+		else if (port->append_status)
+			max_frame_length = remaining_buf_length;
+		else if (port->append_timestamp)
+			max_frame_length = remaining_buf_length + 2 - sizeof(struct timeval); // Status length
+		else
+			max_frame_length = remaining_buf_length + 2; // Status length
+
+		frame = fscc_flist_remove_frame_if_lte(&port->iframes, max_frame_length);
 
 		if (!frame)
 			break;
