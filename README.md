@@ -6,7 +6,7 @@ The source code for the FSCC driver is hosted on Github code hosting. To check
 out the latest code you will need Git and to run the following in a terminal.
 
 ```
-git clone git://github.com/commtech/fscc-linux.git fscc
+git clone --recursive git://github.com/commtech/fscc-linux.git fscc
 ```
 
 NOTE: We prefer you use the above method for downloading the driver (because it
