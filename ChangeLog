@@ -1,16 +1,25 @@
+version 2.4.2 (08/28/2013)
+--------------------------------------------------------------------------------
+    * Fixed a bug that would allow you to return more data than your buffer
+      size (introduced in 2.4.0)
+
+
 version 2.4.1 (08/28/2013)
 --------------------------------------------------------------------------------
     * Stability improvements
 
+
 version 2.4.0 (08/26/2013)
 --------------------------------------------------------------------------------
     * Added support for timestamps
+
 
 version 2.3.0 (08/14/2013)
 --------------------------------------------------------------------------------
     * Now use serialfc driver for asynchronous data
     * Optimize write handling
     * Added sysfs support for returning multiple frames
+
 
 version 2.2.4 (06/20/2013)
 --------------------------------------------------------------------------------
