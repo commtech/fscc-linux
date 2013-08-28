@@ -158,8 +158,7 @@ void iframe_worker(unsigned long data)
 	}
 
 	if (!port->pending_iframe) {
-		//port->pending_iframe = fscc_frame_new(0, fscc_port_has_dma(port), port);
-		port->pending_iframe = fscc_frame_new(0, port);
+		port->pending_iframe = fscc_frame_new(port);
 
 		if (!port->pending_iframe) {
 		    spin_unlock_irqrestore(&port->pending_iframe_spinlock, frame_flags);

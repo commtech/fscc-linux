@@ -31,7 +31,7 @@ static unsigned frame_counter = 1;
 int fscc_frame_update_buffer_size(struct fscc_frame *frame, unsigned length);
 int fscc_frame_setup_descriptors(struct fscc_frame *frame, struct pci_dev *pci_dev);
 
-struct fscc_frame *fscc_frame_new(unsigned dma, struct fscc_port *port)
+struct fscc_frame *fscc_frame_new(struct fscc_port *port)
 {
 	struct fscc_frame *frame = 0;
 
@@ -47,7 +47,7 @@ struct fscc_frame *fscc_frame_new(unsigned dma, struct fscc_port *port)
 	frame->buffer_size = 0;
 	frame->buffer = 0;
 	frame->handled = 0;
-	frame->dma = dma;
+	frame->dma = fscc_port_has_dma(port);
 	frame->port = port;
 
 	frame->number = frame_counter;

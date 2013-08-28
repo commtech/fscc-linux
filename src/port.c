@@ -110,7 +110,7 @@ struct fscc_port *fscc_port_new(struct fscc_card *card, unsigned channel,
 	port->channel = channel;
 	port->card = card;
 
-	port->istream = fscc_frame_new(0, port);
+	port->istream = fscc_frame_new(port);
 
 	fscc_port_set_append_status(port, DEFAULT_APPEND_STATUS_VALUE);
 	fscc_port_set_append_timestamp(port, DEFAULT_APPEND_TIMESTAMP_VALUE);
@@ -258,7 +258,7 @@ struct fscc_port *fscc_port_new(struct fscc_card *card, unsigned channel,
 
 	setup_timer(&port->timer, &timer_handler, (unsigned long)port);
 
-	if (port->card->dma) {
+	if (fscc_port_has_dma(port)) {
 		fscc_port_execute_RST_R(port);
 		fscc_port_execute_RST_T(port);
 	}
@@ -283,7 +283,7 @@ void fscc_port_delete(struct fscc_port *port)
 	irq_num = fscc_card_get_irq(port->card);
 	free_irq(irq_num, port);
 
-	if (port->card->dma) {
+	if (fscc_port_has_dma(port)) {
 		fscc_port_execute_STOP_T(port);
 		fscc_port_execute_STOP_R(port);
 		fscc_port_execute_RST_T(port);
@@ -350,7 +350,7 @@ int fscc_port_write(struct fscc_port *port, const char *data, unsigned length)
 		return -ETIMEDOUT;
 	}
 
-	frame = fscc_frame_new(port->card->dma, port);
+	frame = fscc_frame_new(port);
 
 	if (!frame)
 		return 0; //TODO: Should return something more informative
@@ -1024,7 +1024,7 @@ int fscc_port_execute_RRES(struct fscc_port *port)
 void fscc_port_execute_GO_R(struct fscc_port *port)
 {
 	return_if_untrue(port);
-	return_if_untrue(port->card->dma == 1);
+	return_if_untrue(fscc_port_has_dma(port) == 1);
 
 	fscc_port_set_register(port, 2, DMACCR_OFFSET, 0x00000001);
 }
@@ -1032,7 +1032,7 @@ void fscc_port_execute_GO_R(struct fscc_port *port)
 void fscc_port_execute_RST_R(struct fscc_port *port)
 {
 	return_if_untrue(port);
-	return_if_untrue(port->card->dma == 1);
+	return_if_untrue(fscc_port_has_dma(port) == 1);
 
 	fscc_port_set_register(port, 2, DMACCR_OFFSET, 0x00000010);
 }
@@ -1040,7 +1040,7 @@ void fscc_port_execute_RST_R(struct fscc_port *port)
 void fscc_port_execute_RST_T(struct fscc_port *port)
 {
 	return_if_untrue(port);
-	return_if_untrue(port->card->dma == 1);
+	return_if_untrue(fscc_port_has_dma(port) == 1);
 
 	fscc_port_set_register(port, 2, DMACCR_OFFSET, 0x00000020);
 }
@@ -1048,7 +1048,7 @@ void fscc_port_execute_RST_T(struct fscc_port *port)
 void fscc_port_execute_STOP_R(struct fscc_port *port)
 {
 	return_if_untrue(port);
-	return_if_untrue(port->card->dma == 1);
+	return_if_untrue(fscc_port_has_dma(port) == 1);
 
 	fscc_port_set_register(port, 2, DMACCR_OFFSET, 0x00000100);
 }
@@ -1056,7 +1056,7 @@ void fscc_port_execute_STOP_R(struct fscc_port *port)
 void fscc_port_execute_STOP_T(struct fscc_port *port)
 {
 	return_if_untrue(port);
-	return_if_untrue(port->card->dma == 1);
+	return_if_untrue(fscc_port_has_dma(port) == 1);
 
 	fscc_port_set_register(port, 2, DMACCR_OFFSET, 0x00000200);
 }

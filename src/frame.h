@@ -46,7 +46,7 @@ struct fscc_frame {
 	unsigned handled;
 };
 
-struct fscc_frame *fscc_frame_new(unsigned dma, struct fscc_port *port);
+struct fscc_frame *fscc_frame_new(struct fscc_port *port);
 void fscc_frame_delete(struct fscc_frame *frame);
 
 unsigned fscc_frame_get_length(struct fscc_frame *frame);
