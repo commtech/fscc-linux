@@ -79,12 +79,13 @@ only set/receive the registers you need.
 
 
 ## Set
+### IOCTL
 ```c
 FSCC_SET_REGISTERS
 ```
 
 ###### Examples
-```
+```c
 #include <fscc.h>
 ...
 
@@ -98,14 +99,25 @@ regs.BGR = 10;
 ioctl(fd, FSCC_SET_MEMORY_CAP, &regs);
 ```
 
+### sysfs
+```
+/sys/class/fscc/fscc*/registers/*
+```
+
+###### Examples
+```
+echo 0011201c /sys/class/fscc/fscc0/registers/ccr0
+```
+
 
 ## Get
+### IOCTL
 ```c
 FSCC_GET_REGISTERS
 ```
 
 ###### Examples
-```
+```c
 #include <fscc.h>
 ...
 
@@ -121,6 +133,17 @@ ioctl(fd, FSCC_GET_MEMORY_CAP, &regs);
 
 At this point `regs.CCR0` and `regs.BGR` would be set to their respective
 values.
+```
+
+### sysfs
+```
+/sys/class/fscc/fscc*/registers/*
+```
+
+###### Examples
+```
+cat /sys/class/fscc/fscc0/registers/ccr0
+```
 
 
 ### Additional Resources

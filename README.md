@@ -4,12 +4,12 @@ This README file is best viewed [online](http://github.com/commtech/fscc-linux/)
 ## Installing Driver
 
 ##### Downloading Driver Package
-You can download a pre-built driver package directly from our
+You can download a pre-setup driver package directly from our
 [website](http://www.commtech-fastcom.com/CommtechSoftware.html).
 
-We recommend users install the driver using the pre-built package above. If you would like to
-make driver modifications, there is a section in the guide that will walk you through
-getting and building the driver source code.
+We recommend users install the driver using the pre-setup package above. If you
+would like to make driver modifications, there is a section in the guide that
+will walk you through getting and building the driver source code.
 
 
 ## Quick Start Guide
@@ -97,6 +97,7 @@ There are also multiple code libraries to make development easier.
 - [C](https://github.com/commtech/cfscc/)
 - [Python](https://github.com/commtech/pyfscc/)
 
+
 ## Asynchronous Communication
 The FSCC driver includes a slightly modified version of the Windows serial 
 driver for handling the asynchronous communication for our UARTs. The Windows
@@ -112,26 +113,13 @@ More information about using the UART's is available in the
 [SerialFC driver README](https://github.com/commtech/serialfc-windows/blob/master/README.md) file.
 
 
-
-
-
-
-
-This README file is best viewed on the [GitHub page](http://github.com/commtech/fscc-linux/).
-
-### Installing Driver
-##### Downloading Source Code
+## Downloading Source Code
 The source code for the FSCC driver is hosted on Github code hosting. To check
 out the latest code you will need Git and to run the following in a terminal.
 
 ```
 git clone --recursive git://github.com/commtech/fscc-linux.git fscc
 ```
-
-NOTE: We prefer you use the above method for downloading the driver (because it
-      is the easiest way to stay up to date) but you can also get the driver
-      from the
-      [download page](https://github.com/commtech/fscc-linux/releases/).
 
 Now that you have the latest code checked out you will more than likely want
 to switch to a stable version within the code directory. To do this browse
@@ -144,7 +132,7 @@ git checkout v2.2.1
 ```
 
 
-##### Compiling Driver
+## Compiling Driver
 Compiling the driver is relatively simple assuming you have all of the
 required dependencies. Typically you will need gcc, make and your kernel's
 header files. After assembling all of these things you can build the driver by
@@ -174,7 +162,7 @@ make KDIR="/location/to/kernel_headers/"
 ```
 
 
-##### Loading Driver
+## Loading Driver
 Assuming the driver has been successfully built in the previous step you are
 now ready to load the driver so you can begin using it. To do this you insert
 the driver's kernel object file (fscc.ko) into the kernel.
@@ -183,8 +171,8 @@ the driver's kernel object file (fscc.ko) into the kernel.
 insmod fscc.ko
 ```
 
-NOTE: You will more than likely need administrator privileges for this and
-      the following commands.
+_You will more than likely need administrator privileges for this and
+the following commands._
 
 By default if there are no cards present when the driver is loaded the
 insmod will fail with a 'No such device' error. To allow the driver to load
@@ -202,19 +190,11 @@ insmod fscc.ko hot_plug=0
 insmod: error inserting 'fscc.ko': -1 No such device
 ```
 
-If you would like to disable DMA for cards (SuperFSCC* line) that have that
-capability you can do so by using the 'force_fifo' option. This option will
-disable DMA and allow you to operate in the FIFO based mode.
-
-```
-insmod fscc.ko force_fifo=1
-```
-
 _All driver load time options can be set in your modprobe.conf file for
 using upon system boot_
 
 
-##### Installing Driver
+## Installing Driver
 If you would like the driver to load automatically at boot use the included
 installer.
 
@@ -231,110 +211,6 @@ To uninstall, use the included uninstaller.
 make uninstall
 ```
 
-
-##### Changing Register Values
-The FSCC driver is a swiss army knife of sorts with communication. It can
-handle many different situations if configured correctly. Typically to
-configure it to handle your specific situation you need to modify the card's
-register values.
-
-There are multiple ways of modifying the card's registers varying from simply
-modifying a sysfs file to an ioctl call within code. Here are a few ways of
-doing this.
-
-NOTE: For a listing of all of the configuration options please see the manual.
-
-Echo the register value in hexadecimal form to the sysfs file with the same
-name of the register you would like to modify.
-
-```
-echo 030000ff > /sys/class/fscc/fscc0/registers/bgr
-```
-
-Use the `FSCC_SET_REGISTERS` ioctl to set the values of any registers you
-need to modify from within C code. This ioctl can be found within
-`<fscc/fscc.h>` after you install the header files (see section IV).
-
-```c
-struct fscc_registers regs;
-
-FSCC_REGISTERS_INIT(regs);
-
-regs.BGR = 0x030000ff;
-regs.FCR = 0x00000000;
-
-ioctl(port_fd, FSCC_SET_REGISTERS, &regs);
-```
-
-_A complete example of how to do this can be found in the file
-fscc-linux/examples/c/set-registers.c._
-
-Use the Python API to easily set the values of any registers you need to
-modify from within Python code.
-
-```python
-port.registers.BGR = 0x030000ff
-port.registers.FCR = 0x00000000
-```
-
-_A complete example of how to do this can be found in the file
-fscc-linux/examples/python/set-registers.py._
-
-Modify the '#define DEFAULT_[BGR|CCR0|...]_VALUE 0x030000ff' lines within
-the config.h file to be whatever you would like the card to boot up as. You
-will need to recompile the driver after doing this.
-
-_This will set all ports to this at driver boot up. It is a driver wide
-setting._
-
-
-##### Reading Register Values
-There are multiple ways of reading the card's registers varying from simply
-modifying a sysfs file to an ioctl call within code. Here are a few ways of
-doing this.
-
-Cat the register value in hexadecimal form from the sysfs file with the same
-name of the register you would like to view.
-
-```
-cat /sys/class/fscc/fscc0/registers/bgr
-00000001
-```
-
-Use the `FSCC_GET_REGISTERS` ioctl to get the values of any registers you
-need to read from within code. This ioctl can be found within
-`<fscc/fscc.h>` after you install the header files (see section IV).
-
-```c
-struct fscc_registers regs;
-
-FSCC_REGISTERS_INIT(regs);
-
-regs.BGR = FSCC_UPDATE_VALUE;
-regs.FCR = FSCC_UPDATE_VALUE;
-
-ioctl(port_fd, FSCC_GET_REGISTERS, &regs);
-```
-
-At this point 'regs.BGR' and 'regs.FCR' would be set to their respective
-values.
-
-_A complete example of how to do this can be found in the file
- fscc-linux/examples/c/get-registers.c._
-
-Use the Python API to easily get the values of any registers you need to
-read from within Python code.
-
-```python
-"0x%08x" % port.registers.BGR
-"0x00000000"
-
-"0x%08x" % port.registers.FCR
-"0x00000000"
-```
-
-_A complete example of how to do this can be found in the file
-fscc-linux/examples/python/get-registers.py._
 
 
 ##### Asynchronous Communication
@@ -378,31 +254,6 @@ command line.
 ```
 echo 03000000 > /sys/class/fscc/fscc0/registers/fcr
 ```
-
-
-##### Setting Clock Frequency
-The FSCC device has a programmable clock that can be set anywhere from
-20 kbit to 200 Mbit. However, this is not the fully operational range an
-FSCC port.  This is the range that the onboard clock can be set to.
-
-Using one of the synchronous modes you can only receive data consistently
-up to 30 Mbit (when you are using a external clock). If you are transmitting
-data using an internal clock you can safely go up 50 Mbit.
-
-Use the `FSCC_SET_CLOCK_BITS` ioctl to set the frequency from within code.
-
-```c
-/* 10 MHz */
-unsigned char clock_bits[20] = {0x01, 0xa0, 0x04, 0x00, 0x00, 0x00, 0x00,
-                               0x00, 0x00, 0x00, 0x00, 0x9a, 0x4a, 0x41,
-                               0x01, 0x84, 0x01, 0xff, 0xff, 0xff};
-
-ioctl(port_fd, FSCC_SET_CLOCK_BITS, &clock_bits);
-```
-
-_A complete example of how to do this along with how to calculate
-these clock bits can be found in the file
-fscc-linux/examples/c/set-clock-bits.c.#
 
 
 #####  Operating Driver

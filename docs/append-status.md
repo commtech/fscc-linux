@@ -14,6 +14,7 @@ a few methods of enabling this additional data.
 
 
 ## Get
+### IOCTL
 ```c
 FSCC_GET_APPEND_STATUS
 ```
@@ -28,8 +29,19 @@ unsigned status;
 ioctl(fd, FSCC_GET_APPEND_STATUS, &status);
 ```
 
+### sysfs
+```
+/sys/class/fscc/fscc*/settings/append_status
+```
+
+###### Examples
+```
+cat /sys/class/fscc/fscc0/settings/append_status
+```
+
 
 ## Enable
+### IOCTL
 ```c
 FSCC_ENABLE_APPEND_STATUS
 ```
@@ -42,8 +54,19 @@ FSCC_ENABLE_APPEND_STATUS
 ioctl(fd, FSCC_ENABLE_APPEND_STATUS);
 ```
 
+### sysfs
+```
+/sys/class/fscc/fscc*/settings/append_status
+```
+
+###### Examples
+```
+echo 1 > /sys/class/fscc/fscc0/settings/append_status
+```
+
 
 ## Disable
+### IOCTL
 ```c
 FSCC_DISABLE_APPEND_STATUS
 ```
@@ -54,6 +77,16 @@ FSCC_DISABLE_APPEND_STATUS
 ...
 
 ioctl(fd, FSCC_DISABLE_APPEND_STATUS);
+```
+
+### sysfs
+```
+/sys/class/fscc/fscc*/settings/append_status
+```
+
+###### Examples
+```
+echo 0 > /sys/class/fscc/fscc0/settings/append_status
 ```
 
 
