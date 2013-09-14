@@ -1,8 +1,8 @@
-#include <fcntl.h> /* open, O_RDWR */
-#include <unistd.h> /* close */
-#include <stdio.h> /* fprintf */
-#include <stdlib.h> /* EXIT_FAILURE, EXIT_SUCCESS */
-#include <fscc.h> /* FSCC_* */
+#include <fcntl.h>
+#include <unistd.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <fscc.h>
 
 int main(void)
 {

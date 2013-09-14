@@ -21,53 +21,52 @@ _This tutorial has already been set up for you at_
 
 Create a new C file (named tutorial.c) with the following code.
 
-```
+```c
+#include <fcntl.h>
+#include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <Windows.h>
+#include <fscc.h>
 
 int main(void)
 {
-	HANDLE h = 0;
-	DWORD tmp;
-	char odata[] = "Hello world!";
-	char idata[20];
-	
-	/* Open port 0 in a blocking IO mode */
-	h = CreateFile("\\\\.\\FSCC0", GENERIC_READ | GENERIC_WRITE, 0, NULL, 
-	                  OPEN_EXISTING, 0, NULL);
+    int fd = 0;
+    char odata[] = "Hello world!";
+    char idata[20];
 
-	if (h == INVALID_HANDLE_VALUE) { 
-        fprintf(stderr, "CreateFile failed with %d\n", GetLastError());		   
-		return EXIT_FAILURE; 
-	}
-	
-	/* Send "Hello world!" text */
-	WriteFile(h, odata, sizeof(odata), &tmp, NULL);
+    /* Open port 0 in a blocking IO mode */
+    fd = open("/dev/fscc0", O_RDWR);
 
-	/* Read the data back in (with our loopback connector) */
-	ReadFile(h, idata, sizeof(idata), &tmp, NULL);
+    if (fd == -1) {
+        perror("open");
+        return EXIT_FAILURE;
+    }
 
-	fprintf(stdout, "%s\n", idata);
-	
-	CloseHandle(h);
-	
-	return EXIT_SUCCESS;
+    /* Send "Hello world!" text */
+    write(fd, odata, sizeof(odata));
+
+    /* Read the data back in (with our loopback connector) */
+    read(fd, idata, sizeof(idata));
+
+    fprintf(stdout, "%s\n", idata);
+
+    close(fd);
+
+    return EXIT_SUCCESS;
 }
-
 ```
 
 For this example I will use the Visual Studio command line compiler, but
 you can use your compiler of choice.
 
 ```
-# gcc tutorial.c
+# gcc -I ..\lib\raw\ tutorial.c
 ```
 
 Now attach the included loopback connector.
 
 ```
-# tutorial.exe
+# ./a.out
 Hello world!
 ```
 
@@ -79,19 +78,19 @@ You have now transmitted and received an HDLC frame!
 There are likely other configuration options you will need to set up for your 
 own program. All of these options are described on their respective documentation page.
 
-- [Connect](https://github.com/commtech/cfscc/blob/master/docs/connect.md)
-- [Append Status](https://github.com/commtech/cfscc/blob/master/docs/append-status.md)
-- [Append Timestamp](https://github.com/commtech/cfscc/blob/master/docs/append-timestamp.md)
-- [Clock Frequency](https://github.com/commtech/cfscc/blob/master/docs/clock-frequency.md)
-- [Ignore Timeout](https://github.com/commtech/cfscc/blob/master/docs/ignore-timeout.md)
-- [RX Multiple](https://github.com/commtech/cfscc/blob/master/docs/rx-multiple.md)
-- [Memory Cap](https://github.com/commtech/cfscc/blob/master/docs/memory-cap.md)
-- [Purge](https://github.com/commtech/cfscc/blob/master/docs/purge.md)
-- [Registers](https://github.com/commtech/cfscc/blob/master/docs/registers.md)
-- [TX Modifiers](https://github.com/commtech/cfscc/blob/master/docs/tx-modifiers.md)
-- [Write](https://github.com/commtech/cfscc/blob/master/docs/write.md)
-- [Read](https://github.com/commtech/cfscc/blob/master/docs/read.md)
-- [Disconnect](https://github.com/commtech/cfscc/blob/master/docs/disconnect.md)
+- [Connect](https://github.com/commtech/fscc-linux/blob/master/docs/connect.md)
+- [Append Status](https://github.com/commtech/fscc-linux/blob/master/docs/append-status.md)
+- [Append Timestamp](https://github.com/commtech/fscc-linux/blob/master/docs/append-timestamp.md)
+- [Clock Frequency](https://github.com/commtech/fscc-linux/blob/master/docs/clock-frequency.md)
+- [Ignore Timeout](https://github.com/commtech/fscc-linux/blob/master/docs/ignore-timeout.md)
+- [RX Multiple](https://github.com/commtech/fscc-linux/blob/master/docs/rx-multiple.md)
+- [Memory Cap](https://github.com/commtech/fscc-linux/blob/master/docs/memory-cap.md)
+- [Purge](https://github.com/commtech/fscc-linux/blob/master/docs/purge.md)
+- [Registers](https://github.com/commtech/fscc-linux/blob/master/docs/registers.md)
+- [TX Modifiers](https://github.com/commtech/fscc-linux/blob/master/docs/tx-modifiers.md)
+- [Write](https://github.com/commtech/fscc-linux/blob/master/docs/write.md)
+- [Read](https://github.com/commtech/fscc-linux/blob/master/docs/read.md)
+- [Disconnect](https://github.com/commtech/fscc-linux/blob/master/docs/disconnect.md)
 
 
 There are also multiple code libraries to make development easier.
