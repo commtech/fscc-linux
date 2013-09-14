@@ -1,3 +1,123 @@
+# fscc-linux
+This README file is best viewed [online](http://github.com/commtech/fscc-linux/).
+
+## Installing Driver
+
+##### Downloading Driver Package
+You can download a pre-built driver package directly from our
+[website](http://www.commtech-fastcom.com/CommtechSoftware.html).
+
+We recommend users install the driver using the pre-built package above. If you would like to
+make driver modifications, there is a section in the guide that will walk you through
+getting and building the driver source code.
+
+
+## Quick Start Guide
+There is documentation for each specific function listed below, but lets get started
+with a quick programming example for fun.
+
+_This tutorial has already been set up for you at_ 
+[`fscc/lib/fscc/c/tutorial/`](https://github.com/commtech/fscc-linux/tree/master/examples/tutorial.c).
+
+Create a new C file (named tutorial.c) with the following code.
+
+```
+#include <stdio.h>
+#include <stdlib.h>
+#include <Windows.h>
+
+int main(void)
+{
+	HANDLE h = 0;
+	DWORD tmp;
+	char odata[] = "Hello world!";
+	char idata[20];
+	
+	/* Open port 0 in a blocking IO mode */
+	h = CreateFile("\\\\.\\FSCC0", GENERIC_READ | GENERIC_WRITE, 0, NULL, 
+	                  OPEN_EXISTING, 0, NULL);
+
+	if (h == INVALID_HANDLE_VALUE) { 
+        fprintf(stderr, "CreateFile failed with %d\n", GetLastError());		   
+		return EXIT_FAILURE; 
+	}
+	
+	/* Send "Hello world!" text */
+	WriteFile(h, odata, sizeof(odata), &tmp, NULL);
+
+	/* Read the data back in (with our loopback connector) */
+	ReadFile(h, idata, sizeof(idata), &tmp, NULL);
+
+	fprintf(stdout, "%s\n", idata);
+	
+	CloseHandle(h);
+	
+	return EXIT_SUCCESS;
+}
+
+```
+
+For this example I will use the Visual Studio command line compiler, but
+you can use your compiler of choice.
+
+```
+# gcc tutorial.c
+```
+
+Now attach the included loopback connector.
+
+```
+# tutorial.exe
+Hello world!
+```
+
+You have now transmitted and received an HDLC frame! 
+
+
+## API Reference
+
+There are likely other configuration options you will need to set up for your 
+own program. All of these options are described on their respective documentation page.
+
+- [Connect](https://github.com/commtech/cfscc/blob/master/docs/connect.md)
+- [Append Status](https://github.com/commtech/cfscc/blob/master/docs/append-status.md)
+- [Append Timestamp](https://github.com/commtech/cfscc/blob/master/docs/append-timestamp.md)
+- [Clock Frequency](https://github.com/commtech/cfscc/blob/master/docs/clock-frequency.md)
+- [Ignore Timeout](https://github.com/commtech/cfscc/blob/master/docs/ignore-timeout.md)
+- [RX Multiple](https://github.com/commtech/cfscc/blob/master/docs/rx-multiple.md)
+- [Memory Cap](https://github.com/commtech/cfscc/blob/master/docs/memory-cap.md)
+- [Purge](https://github.com/commtech/cfscc/blob/master/docs/purge.md)
+- [Registers](https://github.com/commtech/cfscc/blob/master/docs/registers.md)
+- [TX Modifiers](https://github.com/commtech/cfscc/blob/master/docs/tx-modifiers.md)
+- [Write](https://github.com/commtech/cfscc/blob/master/docs/write.md)
+- [Read](https://github.com/commtech/cfscc/blob/master/docs/read.md)
+- [Disconnect](https://github.com/commtech/cfscc/blob/master/docs/disconnect.md)
+
+
+There are also multiple code libraries to make development easier.
+- [C](https://github.com/commtech/cfscc/)
+- [Python](https://github.com/commtech/pyfscc/)
+
+## Asynchronous Communication
+The FSCC driver includes a slightly modified version of the Windows serial 
+driver for handling the asynchronous communication for our UARTs. The Windows
+serial driver is highly tested and likely more stable than anything we could 
+produce in any reasonable amount of time.
+
+The FSCC and SerialFC drivers work together to automatically switch between 
+synchronous and asynchronous modes by modifying the FCR register for you. 
+All you need to do is open the FSCC handle to be in synchronous mode and the 
+COM handle to be in asychronous mode.
+
+More information about using the UART's is available in the 
+[SerialFC driver README](https://github.com/commtech/serialfc-windows/blob/master/README.md) file.
+
+
+
+
+
+
+
 This README file is best viewed on the [GitHub page](http://github.com/commtech/fscc-linux/).
 
 ### Installing Driver
