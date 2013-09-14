@@ -32,11 +32,12 @@ extern "C"
 #include <string.h>
 #include <sys/ioctl.h>
 
-#define FSCC_REGISTERS_INIT(registers) memset(&registers, -1, sizeof(registers))
-#define FSCC_MEMORY_CAP_INIT(memory_cap) memset(&memory_cap, -1, sizeof(memory_cap))
+#define FSCC_REGISTERS_INIT(regs) memset(&regs, -1, sizeof(regs))
+#define FSCC_MEMORY_CAP_INIT(memcap) memset(&memcap, -1, sizeof(memcap))
 #define FSCC_UPDATE_VALUE -2
 
 enum transmit_type { XF=0, XREP=1, TXT=2, TXEXT=4 };
+
 typedef int64_t fscc_register;
 
 struct fscc_registers {
@@ -110,43 +111,6 @@ struct fscc_memory_cap {
 #define FSCC_DISABLE_APPEND_TIMESTAMP _IO(FSCC_IOCTL_MAGIC, 20)
 #define FSCC_GET_APPEND_TIMESTAMP _IOR(FSCC_IOCTL_MAGIC, 21, unsigned *)
 
-/******************************************************************************/
-/*!
-
-  Initializes an fscc_registers structure for use in other functions.
-
-  \def FSCC_REGISTERS_INIT(registers)
-
-*/
-/******************************************************************************/
-#define FSCC_REGISTERS_INIT(registers) memset(&registers, -1, sizeof(registers))
-
-#define FSCC_UPDATE_VALUE -2
-
-int fscc_connect(unsigned port_num, int *fd);
-int fscc_set_tx_modifiers(int fd, unsigned modifiers);
-int fscc_get_tx_modifiers(int fd, unsigned *modifiers);
-int fscc_set_memory_cap(int fd, const struct fscc_memory_cap *memcap);
-int fscc_get_memory_cap(int fd, struct fscc_memory_cap *memcap);
-int fscc_set_registers(int fd, const struct fscc_registers *regs);
-int fscc_get_registers(int fd, struct fscc_registers *regs);
-int fscc_get_append_status(int fd, unsigned *status);
-int fscc_enable_append_status(int fd);
-int fscc_disable_append_status(int fd);
-int fscc_get_append_timestamp(int fd, unsigned *timestamp);
-int fscc_enable_append_timestamp(int fd);
-int fscc_disable_append_timestamp(int fd);
-int fscc_get_ignore_timeout(int fd, unsigned *status);
-int fscc_enable_ignore_timeout(int fd);
-int fscc_disable_ignore_timeout(int fd);
-int fscc_get_rx_multiple(int fd, unsigned *status);
-int fscc_enable_rx_multiple(int fd);
-int fscc_disable_rx_multiple(int fd);
-int fscc_purge(int fd, unsigned tx, unsigned rx);
-int fscc_write(int fd, char *buf, unsigned size, unsigned *bytes_written);
-int fscc_read(int fd, char *buf, unsigned size, unsigned *bytes_read);
-int fscc_disconnect(int fd);
-int fscc_set_clock_frequency(int fd, unsigned frequency, unsigned ppm);
 
 #ifdef __cplusplus
 }
