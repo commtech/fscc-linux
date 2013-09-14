@@ -27,15 +27,21 @@ We won't duplicate the documentation here, but for your reference, here is an [a
 (http://blogs.msdn.com/b/oldnewthing/archive/2011/02/02/10123392.aspx) on a common
 bug developers introduce while trying to cancel I/O operations when using OVERLAPPED I/O.
 
-###### Driver Support
+###### Support
 | Code         | Version
 | ------------ | --------
 | `fscc-linux` | `v2.0.0` 
 
 
 ## Read
+### Function
 The Linux [`read`](http://linux.die.net/man/3/read)
 is used to read data from the port.
+
+| Return Value | Cause
+| ------------ | ------------------------------------------------------------------
+| `-ENOBUFS`    | Your buffer is smaller than the next frame (in a frame based mode)
+| `-EOPNOTSUPP` | You are using a synchronous handle while in asynchronous mode (use /dev/ttyS node)
 
 ###### Examples
 ```c
@@ -47,6 +53,12 @@ char idata[20] = {0};
 unsigned bytes_read;
 
 bytes_read = read(fd, idata, sizeof(idata));
+```
+
+### Command Line
+###### Examples
+```
+cat /dev/fscc0
 ```
 
 

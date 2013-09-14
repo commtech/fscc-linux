@@ -21,7 +21,7 @@ You should purge the data stream after changing the registers.
 Settings like CCR0 will require being purged for the changes to take 
 effect.
 
-###### Driver Support
+###### Support
 | Code         | Version
 | ------------ | --------
 | `fscc-linux` | `v2.0.0` 
@@ -99,7 +99,7 @@ regs.BGR = 10;
 ioctl(fd, FSCC_SET_MEMORY_CAP, &regs);
 ```
 
-### sysfs
+### Sysfs
 ```
 /sys/class/fscc/fscc*/registers/*
 ```
@@ -135,7 +135,7 @@ At this point `regs.CCR0` and `regs.BGR` would be set to their respective
 values.
 ```
 
-### sysfs
+### Sysfs
 ```
 /sys/class/fscc/fscc*/registers/*
 ```

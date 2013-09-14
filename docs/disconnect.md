@@ -1,7 +1,7 @@
 # Disconnect
 
 
-###### Driver Support
+###### Support
 | Code         | Version
 | ------------ | --------
 | `fscc-linux` | `v2.0.0` 

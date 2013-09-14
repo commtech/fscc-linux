@@ -4,7 +4,7 @@ Opening a handle using this API will only give you access to the
 synchronous functionality of the card. You will need to use the COM ports
 if you would like to use the asynchronous functionality.
 
-###### Driver Support
+###### Support
 | Code         | Version
 | ------------ | --------
 | `fscc-linux` | `v2.0.0` 

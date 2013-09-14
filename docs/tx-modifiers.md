@@ -5,12 +5,13 @@
 - TXT - Transmit on timer
 - TXEXT - Transmit on external signal
 
-###### Driver Support
+###### Support
 | Code         | Version
 | ------------ | --------
 | `fscc-linux` | `v2.0.0` 
 
 ## Get
+### IOCTL
 ```c
 FSCC_GET_TX_MODIFIERS
 ```
@@ -25,8 +26,19 @@ unsigned modifiers;
 ioctl(fd, FSCC_GET_TX_MODIFIERS, &modifiers);
 ```
 
+### Sysfs
+```
+/sys/class/fscc/fscc*/settings/tx_modifiers
+```
+
+###### Examples
+```
+cat /sys/class/fscc/fscc0/settings/tx_modifiers
+```
+
 
 ## Set
+### IOCTL
 ```c
 FSCC_SET_TX_MODIFIERS
 ```
@@ -37,6 +49,16 @@ FSCC_SET_TX_MODIFIERS
 ...
 
 ioctl(fd, FSCC_SET_TX_MODIFIERS, &modifiers);
+```
+
+### Sysfs
+```
+/sys/class/fscc/fscc*/settings/tx_modifiers
+```
+
+###### Examples
+```
+echo 0 > /sys/class/fscc/fscc0/settings/tx_modifiers
 ```
 
 

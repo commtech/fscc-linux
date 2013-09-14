@@ -12,7 +12,7 @@ the frequency generator to finish. If you run into this situation we
 recommend using a larger frequency and then dividing it down to your 
 desired baud rate using the BGR register.
 
-###### Driver Support
+###### Support
 | Code         | Version
 | ------------ | --------
 | `fscc-linux` | `v2.0.0` 

@@ -99,18 +99,49 @@ There are also multiple code libraries to make development easier.
 
 
 ## Asynchronous Communication
-The FSCC driver includes a slightly modified version of the Windows serial 
-driver for handling the asynchronous communication for our UARTs. The Windows
-serial driver is highly tested and likely more stable than anything we could 
-produce in any reasonable amount of time.
+The FSCC driver lets the built in Linux serial driver handle asynchronous
+communication for our UARTs. The Linux serial driver is highly tested and
+likely more stable than anything we could produce in any reasonably amount of
+time.
 
-The FSCC and SerialFC drivers work together to automatically switch between 
-synchronous and asynchronous modes by modifying the FCR register for you. 
-All you need to do is open the FSCC handle to be in synchronous mode and the 
-COM handle to be in asychronous mode.
+Prior to and after loading the FSCC driver (see section III) there are a few
+steps needed to get the card ready for asynchronous communication.
+
+Some Linux distributions have the default number of serial ports that are
+available at boot set to a small number (usually 4). The first four serial
+ports are reserved so you will need to change this value to something larger
+to be able to configure more serial ports.
+
+There are a couple ways of doing this. The easiest method is by appending
+'8250.nr_uarts=x' to your grub boot line. Something like this:
+
+kernel /boot/vmlinuz-2.6.20-15-generic ro quiet splash 8250.nr_uarts=16
+
+This can be done temporarily by pressing 'e' at the grub menu during boot or
+by permanently modifying this value which is grub version specific. To do
+this please search google for one of the numerous guides on the subject.
+
+Another method is by editing the .config file of you kernel before compiling
+it to allow for more serial ports. This is not preferred because you will
+need to recompile the kernel for it to take effect. The line you need to
+change in the .config file is SERIAL_8250_RUNTIME_UARTS.
+
+Load the FSCC driver. This will handle registering our UARTs with the serial
+driver (see section III). Our UART's will now appear as ttyS nodes in the
+/dev/ directory.
+
+By default the FSCC driver boots up in synchronous communication mode. To
+switch to the asynchronous mode you must modify the FSCC card's FCR register
+to allow for asynchronous communication. There are multiple ways of doing
+this (see section V). Possibly the simplest method is using sysfs and the
+command line.
+
+```
+echo 03000000 > /sys/class/fscc/fscc0/registers/fcr
+```
 
 More information about using the UART's is available in the 
-[SerialFC driver README](https://github.com/commtech/serialfc-windows/blob/master/README.md) file.
+[SerialFC driver README](https://github.com/commtech/serialfc-linux/blob/master/README.md) file.
 
 
 ## Downloading Source Code
@@ -212,301 +243,7 @@ make uninstall
 ```
 
 
-
-##### Asynchronous Communication
-The FSCC driver lets the built in Linux serial driver handle asynchronous
-communication for our UARTs. The Linux serial driver is highly tested and
-likely more stable than anything we could produce in any reasonably amount of
-time.
-
-Prior to and after loading the FSCC driver (see section III) there are a few
-steps needed to get the card ready for asynchronous communication.
-
-Some Linux distributions have the default number of serial ports that are
-available at boot set to a small number (usually 4). The first four serial
-ports are reserved so you will need to change this value to something larger
-to be able to configure more serial ports.
-
-There are a couple ways of doing this. The easiest method is by appending
-'8250.nr_uarts=x' to your grub boot line. Something like this:
-
-kernel /boot/vmlinuz-2.6.20-15-generic ro quiet splash 8250.nr_uarts=16
-
-This can be done temporarily by pressing 'e' at the grub menu during boot or
-by permanently modifying this value which is grub version specific. To do
-this please search google for one of the numerous guides on the subject.
-
-Another method is by editing the .config file of you kernel before compiling
-it to allow for more serial ports. This is not preferred because you will
-need to recompile the kernel for it to take effect. The line you need to
-change in the .config file is SERIAL_8250_RUNTIME_UARTS.
-
-Load the FSCC driver. This will handle registering our UARTs with the serial
-driver (see section III). Our UART's will now appear as ttyS nodes in the
-/dev/ directory.
-
-By default the FSCC driver boots up in synchronous communication mode. To
-switch to the asynchronous mode you must modify the FSCC card's FCR register
-to allow for asynchronous communication. There are multiple ways of doing
-this (see section V). Possibly the simplest method is using sysfs and the
-command line.
-
-```
-echo 03000000 > /sys/class/fscc/fscc0/registers/fcr
-```
-
-
-#####  Operating Driver
-The FSCC driver typically (but not always) works in "frames". This means that
-data typically is packaged together in permanent chunks. If the card received
-two frames of data prior to you retrieving the data you will only get one chunk
-of data back at a time when you interface with the driver to get the data.
-
-There are multiple ways of reading/writing data to/from the card. Listed below
-are only the most common.
-
-Writing data will typically be done within C code using the write()
-function found within the `<unistd.h>` file. You can find a more in depth
-example named sync-write.c within the examples/c directory. You will need
-to look elsewhere for a more in depth explanation of the parameters and
-return values.
-
-```
-bytes_written = write(port_fd, data, sizeof(data));
-```
-
-In in addition to the standard errors that the write() function returns
-there are a couple errors specific to the FSCC you might run into.
-
-| Error         | Cause
-| --------------| ----------------------------
-| `-EOPNOTSUPP` | You are using a synchronous handle while in asynchronous mode (use /dev/ttyS node)
-| `-ETIMEDOUT`  | There isn't a transmit clock present (check disabled using 'ignore_timeout' command line parameter)
-| `-ENOBUFS`    | Transmitting the frame will excede your output memory cap
-
-_A complete example of how to do this can be found in the file
-fscc-linux/examples/c/sync-write.c._
-
-A simpler but not nearly as useful way of sending data out of a FSCC port is
-by using the built-in linux program echo. This is mainly useful while
-debugging.
-
-```
-echo "Hello world!" > /dev/fscc0
-```
-
-The Python API has a built-in method for writing data to the card.
-
-```python
-port.write('Hello world!'.encode())
-```
-
-The same errors returned from the C code above can be found while using the
-Python API. The only difference is instead of returning an error they throw
-an IOError exception with the appropriate errno value set.
-
-NOTE: A complete example of how to do this can be found in the file
-      fscc-linux/examples/python/write.py.
-
-Reading data will typically be done within C code using the read() function
-found within the `<unistd.h>` file. You can find a more in depth example named
-sync-read.c within the examples/c directory. You will need to look elsewhere
-for a more in depth explanation of the parameters and return values.
-
-```c
-bytes_read = read(port_fd, data, sizeof(data));
-```
-
-The length argument of the `read()` function means different things depending
-on the mode you are using.
-
-In a frame based mode the length argument specifies the maximum frame size
-to return. If the next queued frame is larger than the size you specified
-the error `-ENOBUFS` is returned and the data will remain waiting for a read()
-of a larger value. If a `read()` length is specified that is larger than the
-length of multiple frames in queue you will still only receive one frame per
-read() call.
-
-In streaming mode (no frame termination) the length argument specifies the
-maximum amount of data to return. If there is 100 bytes of streaming data
-in the card and you `read()` with a length of 50, you will receive 50 bytes.
-If you were to do a `read()` of 200 bytes you will receive the 100 bytes
-available.
-
-Frame based data and streaming data are kept separate within the driver.
-To understand what this means first imagine this scenario. You are in a
-frame based mode and receive a couple of frames. You then switch to
-streaming mode and receive a stream of data. When calling `read()` you will
-receive the the streaming data until you switch back into a frame based
-mode then do a `read()`.
-
-In in addition to the standard errors that the `read()` function returns
-there are a couple errors specific to the FSCC you might run into.
-
-| Error         | Cause
-| --------------| ----------------------------
-| `-ENOBUFS`    | Your buffer is smaller than the next frame (in a frame based mode)
-| `-EOPNOTSUPP` | You are using a synchronous handle while in asynchronous mode (use /dev/ttyS node)
-
-
-_A complete example of how to do this can be found in the file
-fscc-linux/examples/c/sync-read.c._
-
-A simpler but not nearly as useful way of reading data out of a FSCC port is
-by using the built-in linux program cat. This is mainly useful while
-debugging.
-
-```
-cat /dev/fscc0
-```
-
-The Python API has a built-in method for read data from the card.
-
-```python
-port.read(4096)
-```
-
-The same errors returned from the C code above can be found while using the
-Python API. The only difference is instead of returning an error they throw
-an IOError exception with the appropriate errno value set.
-
-_A complete example of how to do this can be found in the file
-fscc-linux/examples/python/read.py._
-
-_fread/fwrite are not allowable ways of interfacing with the card. They
-make assumptions about the data that doesn't hold up with our "frame"
-perspective. This means Python functions like file.write() and
-file.read() will not work because they are wrappers around fread/fwrite.
-You will instead need to use file streams which act more like read/write._
-
-
-##### Viewing/Setting Frame Status
-It is a good idea to pay attention to the status of each frame. For example if
-you want to see if the frame's CRC check succeeded or failed.
-
-The way the FSCC reports this data to you is by appending two additional bytes
-to each frame you read from the card if you opt in to see this data. There are
-a couple of ways of enabling this additional data.
-
-The simplest method of doing this is by writing a value of 1 to the
-append_status file in sysfs from the command line.
-
-```
-echo 1 > /sys/class/fscc/fscc0/settings/append_status
-```
-
-You can also check if append status is enabled from the command line.
-
-```
-cat /sys/class/fscc/fscc0/settings/append_status
-```
-
-Another way of doing this is by using the FSCC_ENABLE_APPEND_STATUS ioctl
-from within your C code.
-
-```c
-ioctl(port_fd, FSCC_ENABLE_APPEND_STATUS);
-```
-
-_A complete example of how to do this can be found in the file
-      fscc-linux/examples/c/append-status.c._
-
-Modify the `#define DEFAULT_APPEND_STATUS_VALUE 1` lines within the config.h
-file to be whatever you would like the card to boot up as. You will need to
-recompile the driver after doing this.
-
-_This will set all ports to this at driver boot up. It is a driver wide
-      setting._
-
-
-##### Viewing/Setting Memory Constraints
-For systems with limited memory available to them there is safety checks in
-place to prevent spurious incoming data from overrunning your system. Each port
-has an option for setting it's input and output memory cap.
-
-There are multiple ways of setting this value.
-
-The simplest method of doing this is by writing a value to the
-{input, output}_memory_cap file in sysfs from the command line.
-
-```
-echo 1000000 > /sys/class/fscc/fscc0/settings/input_memory_cap
-```
-
-You can also check the current memory cap value from the command line.
-
-```
-cat /sys/class/fscc/fscc0/settings/input_memory_cap
-```
-
-Use the `FSCC_SET_MEMORY_CAP` ioctl to set the memory cap values from within C
-code. This ioctl can be found within `<fscc/fscc.h>` after you install the
-header files (see section IV).
-
-```c
-struct fscc_memory_cap memory_cap;
-
-FSCC_MEMORY_CAP_INIT(memory_cap);
-
-memory_cap.input = 5000000;
-memory_cap.output = 10000;
-
-ioctl(port_fd, FSCC_SET_MEMORY_CAP, &memory_cap);
-```
-
-_You can set only 1 of the 2 values by running the `FSCC_MEMORY_CAP_INIT`
-      macro on the `fscc_memory_cap` struct then setting only 1 of the values
-      in the structure. The `FSCC_MEMORY_CAP_INIT` structure initializes both
-      values to -1 which will be ignored in the driver._
-
-_A complete example of how to do this can be found in the file
-      fscc-linux/examples/c/memory-cap.c._
-
-Modify the `#define DEFAULT_{INPUT, OUTPUT}_MEMORY_CAP 100000` lines within
-the config.h file to be whatever you would like the card to boot up as. You
-will need to recompile the driver after doing this.
-
-_This will set all ports to this at driver boot up. It is a driver wide
-      setting._
-
-##### Purging Data
-Between the hardware FIFO and the driver's software buffers there are multiple
-places data could be at excluding your application code. If you ever need to
-clear this data out and start out fresh there are a couple ways of doing this.
-
-The simplest method of doing this is by writing a value of 1 to the
-purge_tx and purge_rx file in sysfs from the command line.
-
-```
-echo 1 > /sys/class/fscc/fscc0/commands/purge_tx
-echo 1 > /sys/class/fscc/fscc0/commands/purge_rx
-```
-
-Another way of doing this is by using the `FSCC_PURGE_TX` and `FSCC_PURGE_TX`
-ioctl's from within your C code.
-
-```c
-ioctl(port_fd, FSCC_PURGE_TX);
-ioctl(port_fd, FSCC_PURGE_RX);
-```
-
-_A complete example of how to do this can be found in the files
-      fscc-linux/examples/c/purge_tx.c and purge_rx.c.
-
-In in addition to the standard errors that the ioctl() function returns
-there is an error specific to the FSCC you might run into.
-
-| Error        | Cause
-| ------------ | ----------------------------
-| `-ETIMEDOUT` | There isn't a transmit clock present (check disabled using 'ignore_timeout' command line parameter)
-
-The Python API makes this easy by calling a couple built-in methods.
-
-```
-port.purge_rx()
-port.purge_tx()
-```
-
+### FAQ
 
 ##### Migrating From 1.x to 2.x
 There are multiple benefits of using the 2.x driver: accurate posix error
