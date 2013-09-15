@@ -10,7 +10,7 @@ a few methods of enabling this additional data.
 ###### Support
 | Code         | Version
 | ------------ | --------
-| `fscc-linux` | `v2.0.0` 
+| `fscc-linux` | `v2.0.0`
 
 
 ## Get
