@@ -93,110 +93,113 @@ void iframe_worker(unsigned long data)
 
 	return_if_untrue(port);
 
-	current_memory = fscc_port_get_input_memory_usage(port);
-	memory_cap = fscc_port_get_input_memory_cap(port);
+	do {
+		current_memory = fscc_port_get_input_memory_usage(port);
+		memory_cap = fscc_port_get_input_memory_cap(port);
 
-	spin_lock_irqsave(&port->board_rx_spinlock, board_flags);
-	spin_lock_irqsave(&port->pending_iframe_spinlock, frame_flags);
+		spin_lock_irqsave(&port->board_rx_spinlock, board_flags);
+		spin_lock_irqsave(&port->pending_iframe_spinlock, frame_flags);
 
-	finished_frame = (fscc_port_get_RFCNT(port) > 0) ? 1 : 0;
+		finished_frame = (fscc_port_get_RFCNT(port) > 0) ? 1 : 0;
 
-	if (finished_frame) {
-		unsigned bc_fifo_l = 0;
-		unsigned current_length = 0;
+		if (finished_frame) {
+			unsigned bc_fifo_l = 0;
+			unsigned current_length = 0;
 
-		bc_fifo_l = fscc_port_get_register(port, 0, BC_FIFO_L_OFFSET);
+			bc_fifo_l = fscc_port_get_register(port, 0, BC_FIFO_L_OFFSET);
 
-		if (port->pending_iframe)
-			current_length = fscc_frame_get_length(port->pending_iframe);
-		else
-			current_length = 0;
+			if (port->pending_iframe)
+				current_length = fscc_frame_get_length(port->pending_iframe);
+			else
+				current_length = 0;
 
-		receive_length = bc_fifo_l - current_length;
-	} else {
-		unsigned rxcnt = 0;
+			receive_length = bc_fifo_l - current_length;
+		} else {
+			unsigned rxcnt = 0;
 
-		rxcnt = fscc_port_get_RXCNT(port);
+			rxcnt = fscc_port_get_RXCNT(port);
 
-		/* We choose a safe amount to read due to more data coming in after we
-		   get our values. The rest will be read on the next interrupt. */
-		receive_length = rxcnt - STATUS_LENGTH - MAX_LEFTOVER_BYTES;
-		receive_length -= receive_length % 4;
-	}
+			/* We choose a safe amount to read due to more data coming in after we
+			   get our values. The rest will be read on the next interrupt. */
+			receive_length = rxcnt - STATUS_LENGTH - MAX_LEFTOVER_BYTES;
+			receive_length -= receive_length % 4;
+		}
 
-	if (receive_length <= 0) {
-		spin_unlock_irqrestore(&port->pending_iframe_spinlock, frame_flags);
-		spin_unlock_irqrestore(&port->board_rx_spinlock, board_flags);
-		return;
-	}
+		if (receive_length <= 0) {
+			spin_unlock_irqrestore(&port->pending_iframe_spinlock, frame_flags);
+			spin_unlock_irqrestore(&port->board_rx_spinlock, board_flags);
+			return;
+		}
 
-	/* Make sure we don't go over the user's memory constraint. */
-	if (current_memory + receive_length > memory_cap) {
-		if (rejected_last_frame == 0) {
-			dev_warn(port->device,
-					 "Rejecting frames (memory constraint)\n");
-			rejected_last_frame = 1; /* Track that we dropped a frame so we
-							don't have to warn the user again. */
+		/* Make sure we don't go over the user's memory constraint. */
+		if (current_memory + receive_length > memory_cap) {
+			if (rejected_last_frame == 0) {
+				dev_warn(port->device,
+						 "Rejecting frames (memory constraint)\n");
+				rejected_last_frame = 1; /* Track that we dropped a frame so we
+								don't have to warn the user again. */
+			}
+
+			if (port->pending_iframe) {
+				fscc_frame_delete(port->pending_iframe);
+				port->pending_iframe = 0;
+			}
+
+			spin_unlock_irqrestore(&port->pending_iframe_spinlock, frame_flags);
+			spin_unlock_irqrestore(&port->board_rx_spinlock, board_flags);
+			return;
+		}
+
+		if (!port->pending_iframe) {
+			port->pending_iframe = fscc_frame_new(port);
+
+			if (!port->pending_iframe) {
+			    spin_unlock_irqrestore(&port->pending_iframe_spinlock, frame_flags);
+			    spin_unlock_irqrestore(&port->board_rx_spinlock, board_flags);
+				return;
+			}
+		}
+
+		fscc_frame_add_data_from_port(port->pending_iframe, port, receive_length);
+
+	#ifdef __BIG_ENDIAN
+		{
+			char status[STATUS_LENGTH];
+
+			/* Moves the status bytes to the end. */
+			memmove(&status, port->pending_iframe->data, STATUS_LENGTH);
+			memmove(port->pending_iframe->data, port->pending_iframe->data + STATUS_LENGTH, port->pending_iframe->current_length - STATUS_LENGTH);
+			memmove(port->pending_iframe->data + port->pending_iframe->current_length - STATUS_LENGTH, &status, STATUS_LENGTH);
+		}
+	#endif
+
+		dev_dbg(port->device, "F#%i <= %i byte%s (%sfinished)\n",
+				port->pending_iframe->number, receive_length,
+				(receive_length == 1) ? "" : "s",
+				(finished_frame) ? "" : "un");
+
+		if (!finished_frame) {
+			spin_unlock_irqrestore(&port->pending_iframe_spinlock, frame_flags);
+			spin_unlock_irqrestore(&port->board_rx_spinlock, board_flags);
+			return;
 		}
 
 		if (port->pending_iframe) {
-			fscc_frame_delete(port->pending_iframe);
-			port->pending_iframe = 0;
+			do_gettimeofday(&port->pending_iframe->timestamp);
+			fscc_flist_add_frame(&port->iframes, port->pending_iframe);
 		}
 
+		rejected_last_frame = 0; /* Track that we received a frame to reset the
+									memory constraint warning print message. */
+
+		port->pending_iframe = 0;
+
+		wake_up_interruptible(&port->input_queue);
+
 		spin_unlock_irqrestore(&port->pending_iframe_spinlock, frame_flags);
-		spin_unlock_irqrestore(&port->board_rx_spinlock, board_flags);
-		return;
+	    spin_unlock_irqrestore(&port->board_rx_spinlock, board_flags);
 	}
-
-	if (!port->pending_iframe) {
-		port->pending_iframe = fscc_frame_new(port);
-
-		if (!port->pending_iframe) {
-		    spin_unlock_irqrestore(&port->pending_iframe_spinlock, frame_flags);
-		    spin_unlock_irqrestore(&port->board_rx_spinlock, board_flags);
-			return;
-		}
-	}
-
-	fscc_frame_add_data_from_port(port->pending_iframe, port, receive_length);
-
-#ifdef __BIG_ENDIAN
-	{
-		char status[STATUS_LENGTH];
-
-		/* Moves the status bytes to the end. */
-		memmove(&status, port->pending_iframe->data, STATUS_LENGTH);
-		memmove(port->pending_iframe->data, port->pending_iframe->data + STATUS_LENGTH, port->pending_iframe->current_length - STATUS_LENGTH);
-		memmove(port->pending_iframe->data + port->pending_iframe->current_length - STATUS_LENGTH, &status, STATUS_LENGTH);
-	}
-#endif
-
-	dev_dbg(port->device, "F#%i <= %i byte%s (%sfinished)\n",
-			port->pending_iframe->number, receive_length,
-			(receive_length == 1) ? "" : "s",
-			(finished_frame) ? "" : "un");
-
-	if (!finished_frame) {
-		spin_unlock_irqrestore(&port->pending_iframe_spinlock, frame_flags);
-		spin_unlock_irqrestore(&port->board_rx_spinlock, board_flags);
-		return;
-	}
-
-	if (port->pending_iframe) {
-		do_gettimeofday(&port->pending_iframe->timestamp);
-		fscc_flist_add_frame(&port->iframes, port->pending_iframe);
-    }
-
-	rejected_last_frame = 0; /* Track that we received a frame to reset the
-								memory constraint warning print message. */
-
-	port->pending_iframe = 0;
-
-	wake_up_interruptible(&port->input_queue);
-
-	spin_unlock_irqrestore(&port->pending_iframe_spinlock, frame_flags);
-	spin_unlock_irqrestore(&port->board_rx_spinlock, board_flags);
+	while (receive_length);
 }
 
 void istream_worker(unsigned long data)
