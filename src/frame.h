@@ -30,20 +30,15 @@ struct fscc_frame {
 	unsigned data_length;
 	unsigned buffer_size;
 	unsigned number;
-	unsigned dma;
+	unsigned dma_initialized;
 	struct timeval timestamp;
 
 	struct fscc_descriptor *d1;
-	struct fscc_descriptor *d2;
 
 	dma_addr_t data_handle;
 	dma_addr_t d1_handle;
-	dma_addr_t d2_handle;
 
 	struct fscc_port *port;
-
-	/* Used for DMA to signify the frame has been sent but not cleared. */
-	unsigned handled;
 };
 
 struct fscc_frame *fscc_frame_new(struct fscc_port *port);
@@ -65,5 +60,6 @@ unsigned fscc_frame_is_empty(struct fscc_frame *frame);
 
 void fscc_frame_clear(struct fscc_frame *frame);
 void fscc_frame_trim(struct fscc_frame *frame);
+void fscc_frame_setup_descriptors(struct fscc_frame *frame);
 
 #endif

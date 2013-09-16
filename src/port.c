@@ -150,7 +150,8 @@ struct fscc_port *fscc_port_new(struct fscc_card *card, unsigned channel,
 
 	INIT_LIST_HEAD(&port->list);
 
-	fscc_flist_init(&port->oframes);
+	fscc_flist_init(&port->queued_oframes);
+	fscc_flist_init(&port->sent_oframes);
 	fscc_flist_init(&port->iframes);
 
 	sema_init(&port->read_semaphore, 1);
@@ -243,13 +244,24 @@ struct fscc_port *fscc_port_new(struct fscc_card *card, unsigned channel,
 
 #endif /* LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 25) */
 
-	tasklet_init(&port->oframe_tasklet, oframe_worker, (unsigned long)port);
+	tasklet_init(&port->send_oframe_tasklet, oframe_worker, (unsigned long)port);
+	tasklet_init(&port->clear_oframe_tasklet, clear_oframe_worker, (unsigned long)port);
 	tasklet_init(&port->iframe_tasklet, iframe_worker, (unsigned long)port);
 	tasklet_init(&port->istream_tasklet, istream_worker, (unsigned long)port);
 
 #ifdef DEBUG
 	tasklet_init(&port->print_tasklet, debug_interrupt_display, (unsigned long)port);
 #endif
+
+	if (fscc_port_has_dma(port)) {
+		port->null_descriptor = kmalloc(sizeof(*port->null_descriptor),
+		                                GFP_ATOMIC | GFP_DMA);
+
+		port->null_handle = pci_map_single(port->card->pci_dev,
+		                                   port->null_descriptor,
+	                                       sizeof(*port->null_descriptor),
+	                                       DMA_TO_DEVICE);
+	}
 
 	dev_info(port->device, "%s (%x.%02x)\n", fscc_card_get_name(port->card),
 			 fscc_port_get_PREV(port), fscc_port_get_FREV(port));
@@ -291,11 +303,17 @@ void fscc_port_delete(struct fscc_port *port)
 
 		fscc_port_set_register(port, 2, DMACCR_OFFSET, 0x00000000);
 		fscc_port_set_register(port, 2, DMA_TX_BASE_OFFSET, 0x00000000);
+
+		pci_unmap_single(port->card->pci_dev, port->null_handle,
+						 sizeof(*port->null_descriptor), DMA_TO_DEVICE);
+
+		kfree(port->null_descriptor);
 	}
 
 	fscc_frame_delete(port->istream);
 	fscc_flist_delete(&port->iframes);
-	fscc_flist_delete(&port->oframes);
+	fscc_flist_delete(&port->queued_oframes);
+	fscc_flist_delete(&port->sent_oframes);
 
 #ifdef DEBUG
 	debug_interrupt_tracker_delete(port->interrupt_tracker);
@@ -357,9 +375,9 @@ int fscc_port_write(struct fscc_port *port, const char *data, unsigned length)
 
 	fscc_frame_add_data_from_user(frame, data, length);
 
-	fscc_flist_add_frame(&port->oframes, frame);
+	fscc_flist_add_frame(&port->queued_oframes, frame);
 
-	tasklet_schedule(&port->oframe_tasklet);
+	tasklet_schedule(&port->send_oframe_tasklet);
 
 	return 0;
 }
@@ -779,7 +797,8 @@ int fscc_port_purge_tx(struct fscc_port *port)
 	if (error_code < 0)
 		return error_code;
 
-	fscc_flist_clear(&port->oframes);
+	fscc_flist_clear(&port->queued_oframes);
+	//TODO: What to do about sent_oframes?
 
 	spin_lock_irqsave(&port->pending_oframe_spinlock, flags);
 	if (port->pending_oframe) {
@@ -817,7 +836,7 @@ unsigned fscc_port_get_output_memory_usage(struct fscc_port *port)
 
 	return_val_if_untrue(port, 0);
 
-	value = fscc_flist_calculate_memory_usage(&port->oframes);
+	value = fscc_flist_calculate_memory_usage(&port->queued_oframes);
 
 	spin_lock_irqsave(&port->pending_oframe_spinlock, flags);
 	if (port->pending_oframe)

@@ -50,6 +50,28 @@ void fscc_flist_add_frame(struct fscc_flist *flist, struct fscc_frame *frame)
 	spin_unlock_irqrestore(&flist->spinlock, flags);
 }
 
+struct fscc_frame *fscc_flist_peak_front(struct fscc_flist *flist)
+{
+	unsigned long flags = 0;
+
+	struct fscc_frame *frame = 0;
+
+	spin_lock_irqsave(&flist->spinlock, flags);
+
+	if (list_empty(&flist->frames)) {
+		spin_unlock_irqrestore(&flist->spinlock, flags);
+		return 0;
+	}
+
+	list_for_each_entry(frame, &flist->frames, list) {
+		break; // Breaks after setting frame to the head // TODO
+	}
+
+	spin_unlock_irqrestore(&flist->spinlock, flags);
+
+	return frame;
+}
+
 struct fscc_frame *fscc_flist_remove_frame(struct fscc_flist *flist)
 {
 	unsigned long flags = 0;

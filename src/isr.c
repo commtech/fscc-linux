@@ -20,6 +20,7 @@
 
 #include "isr.h"
 #include "port.h" /* struct fscc_port */
+#include "card.h" /* struct fscc_port */
 #include "utils.h" /* port_exists */
 #include "frame.h" /* struct fscc_frame */
 
@@ -61,20 +62,11 @@ irqreturn_t fscc_isr(int irq, void *potential_port, struct pt_regs *regs)
 			tasklet_schedule(&port->iframe_tasklet);
 	}
 
-	if (isr_value & TFT && !fscc_port_has_dma(port))
-		tasklet_schedule(&port->oframe_tasklet);
+	if (isr_value & TFT)
+		tasklet_schedule(&port->send_oframe_tasklet);
 
-	/* We have to wait until an ALLS to delete a DMA frame because if we
-	   delete the frame right away the DMA engine will lose the data to
-	   transfer. */
-	if (fscc_port_has_dma(port) && isr_value & ALLS) {
-		if (port->pending_oframe) {
-			fscc_frame_delete(port->pending_oframe);
-			port->pending_oframe = 0;
-		}
-
-		tasklet_schedule(&port->oframe_tasklet);
-	}
+	if (isr_value & ALLS)
+		tasklet_schedule(&port->clear_oframe_tasklet);
 
 #ifdef DEBUG
 	tasklet_schedule(&port->print_tasklet);
@@ -279,15 +271,95 @@ void istream_worker(unsigned long data)
 	wake_up_interruptible(&port->input_queue);
 }
 
+int prepare_frame_for_dma(struct fscc_port *port, struct fscc_frame *frame,
+                          unsigned *length)
+{
+	fscc_frame_setup_descriptors(frame);
+
+	fscc_port_set_register(port, 2, DMA_TX_BASE_OFFSET, frame->d1_handle);
+
+	fscc_flist_add_frame(&port->sent_oframes, frame);
+
+	*length = fscc_frame_get_length(frame);
+
+	return 2;
+}
+
+int prepare_frame_for_fifo(struct fscc_port *port, struct fscc_frame *frame,
+                           unsigned *length)
+{
+	unsigned current_length = 0;
+	unsigned buffer_size = 0;
+	unsigned fifo_space = 0;
+	unsigned size_in_fifo = 0;
+	unsigned transmit_length = 0;
+
+	current_length = fscc_frame_get_length(frame);
+	buffer_size = fscc_frame_get_buffer_size(frame);
+	size_in_fifo = current_length + (4 - current_length % 4);
+
+	/* Subtracts 1 so a TDO overflow doesn't happen on the 4096th byte. */
+	fifo_space = TX_FIFO_SIZE - fscc_port_get_TXCNT(port) - 1;
+	fifo_space -= fifo_space % 4;
+
+	/* Determine the maximum amount of data we can send this time around. */
+	transmit_length = (size_in_fifo > fifo_space) ? fifo_space : current_length;
+
+	if (transmit_length == 0)
+		return 0;
+
+	fscc_port_set_register_rep(port, 0, FIFO_OFFSET,
+							   frame->buffer,
+							   transmit_length);
+
+	fscc_frame_remove_data(frame, NULL, transmit_length);
+
+	*length = transmit_length;
+
+	/* If this is the first time we add data to the FIFO for this frame we
+	   tell the port how much data is in this frame. */
+	if (current_length == buffer_size)
+		fscc_port_set_register(port, 0, BC_FIFO_L_OFFSET, buffer_size);
+
+	/* We still have more data to send. */
+	if (!fscc_frame_is_empty(frame))
+		return 1;
+
+	return 2;
+}
+
+void clear_oframe_worker(unsigned long data)
+{
+	struct fscc_port *port = 0;
+	struct fscc_frame *frame = 0;
+	unsigned remove = 0;
+
+	port = (struct fscc_port *)data;
+
+	frame = fscc_flist_peak_front(&port->sent_oframes);
+
+	if (!frame)
+		return;
+
+	if (fscc_port_has_dma(port)) {
+		if (frame->d1->control == 0x40000000)
+			remove = 1;
+	}
+	else {
+		remove = 1;
+	}
+
+	if (remove) {
+		fscc_flist_remove_frame(&port->sent_oframes);
+		fscc_frame_delete(frame);
+	}
+}
+
 void oframe_worker(unsigned long data)
 {
 	struct fscc_port *port = 0;
-
-	unsigned fifo_space = 0;
-	unsigned current_length = 0;
-	unsigned buffer_size = 0;
 	unsigned transmit_length = 0;
-	unsigned size_in_fifo = 0;
+	int result;
 
 	unsigned long board_flags = 0;
 	unsigned long frame_flags = 0;
@@ -301,7 +373,7 @@ void oframe_worker(unsigned long data)
 
 	/* Check if exists and if so, grabs the frame to transmit. */
 	if (!port->pending_oframe) {
-		port->pending_oframe = fscc_flist_remove_frame(&port->oframes);
+		port->pending_oframe = fscc_flist_remove_frame(&port->queued_oframes);
 
 		/* No frames in queue to transmit */
 		if (!port->pending_oframe) {
@@ -311,75 +383,23 @@ void oframe_worker(unsigned long data)
 		}
 	}
 
-	if (fscc_port_has_dma(port)) {
-		dma_addr_t *d1_handle = 0;
+	if (fscc_port_has_dma(port))
+		result = prepare_frame_for_dma(port, port->pending_oframe, &transmit_length);
+	else
+		result = prepare_frame_for_fifo(port, port->pending_oframe, &transmit_length);
 
-		if (port->pending_oframe->handled) {
-			spin_unlock_irqrestore(&port->pending_oframe_spinlock, frame_flags);
-		    spin_unlock_irqrestore(&port->board_tx_spinlock, board_flags);
-			return;
-		}
-
-		dev_dbg(port->device, "F#%i => %i byte%s%s\n",
-				port->pending_oframe->number, fscc_frame_get_length(port->pending_oframe),
-				(fscc_frame_get_length(port->pending_oframe) == 1) ? "" : "s",
-				(fscc_frame_is_empty(port->pending_oframe)) ? " (starting)" : "");
-
-		d1_handle = &port->pending_oframe->d1_handle;
-
-		fscc_port_set_register(port, 2, DMA_TX_BASE_OFFSET, *d1_handle);
+	if (result)
 		fscc_port_execute_transmit(port);
-
-		/* TODO: Add a prettier way of doing this than manually editing the
-		   frame structure. */
-		port->pending_oframe->handled = 1;
-
-		spin_unlock_irqrestore(&port->pending_oframe_spinlock, frame_flags);
-		spin_unlock_irqrestore(&port->board_tx_spinlock, board_flags);
-		return;
-	}
-
-	current_length = fscc_frame_get_length(port->pending_oframe);
-	buffer_size = fscc_frame_get_buffer_size(port->pending_oframe);
-	size_in_fifo = current_length + (4 - current_length % 4);
-
-	/* Subtracts 1 so a TDO overflow doesn't happen on the 4096th byte. */
-	fifo_space = TX_FIFO_SIZE - fscc_port_get_TXCNT(port) - 1;
-	fifo_space -= fifo_space % 4;
-
-	/* Determine the maximum amount of data we can send this time around. */
-	transmit_length = (size_in_fifo > fifo_space) ? fifo_space : current_length;
-
-	if (transmit_length == 0) {
-		spin_unlock_irqrestore(&port->pending_oframe_spinlock, frame_flags);
-		spin_unlock_irqrestore(&port->board_tx_spinlock, board_flags);
-		return;
-	}
-
-	fscc_port_set_register_rep(port, 0, FIFO_OFFSET,
-							   port->pending_oframe->buffer,
-							   transmit_length);
-
-	fscc_frame_remove_data(port->pending_oframe, NULL, transmit_length);
 
 	dev_dbg(port->device, "F#%i => %i byte%s%s\n",
 			port->pending_oframe->number, transmit_length,
 			(transmit_length == 1) ? "" : "s",
-			(fscc_frame_is_empty(port->pending_oframe)) ? " (starting)" : "");
+			(result != 2) ? " (starting)" : "");
 
-	/* If this is the first time we add data to the FIFO for this frame we
-	   tell the port how much data is in this frame. */
-	if (current_length == buffer_size)
-		fscc_port_set_register(port, 0, BC_FIFO_L_OFFSET, buffer_size);
-
-	/* If we have sent all of the data we clean up. */
-	if (fscc_frame_is_empty(port->pending_oframe)) {
-		fscc_frame_delete(port->pending_oframe);
+	if (result == 2) {
 		port->pending_oframe = 0;
 		wake_up_interruptible(&port->output_queue);
 	}
-
-	fscc_port_execute_transmit(port);
 
 	spin_unlock_irqrestore(&port->pending_oframe_spinlock, frame_flags);
 	spin_unlock_irqrestore(&port->board_tx_spinlock, board_flags);

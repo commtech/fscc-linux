@@ -99,6 +99,9 @@ struct fscc_port {
 	unsigned channel;
 	char *name;
 
+	struct fscc_descriptor *null_descriptor;
+	dma_addr_t null_handle;
+
 	/* Prevents simultaneous read(), write() and poll() calls. */
 	struct semaphore read_semaphore;
 	struct semaphore write_semaphore;
@@ -108,7 +111,8 @@ struct fscc_port {
 	wait_queue_head_t output_queue;
 
 	struct fscc_flist iframes; /* Frames already retrieved from the FIFO */
-	struct fscc_flist oframes; /* Frames not yet in the FIFO yet */
+	struct fscc_flist queued_oframes; /* Frames not yet in the FIFO yet */
+	struct fscc_flist sent_oframes; /* Frames sent but not yet cleared */
 
 	struct fscc_frame *pending_iframe; /* Frame retrieving from the FIFO */
 	struct fscc_frame *pending_oframe; /* Frame being put in the FIFO */
@@ -119,7 +123,8 @@ struct fscc_port {
 
 	struct tasklet_struct iframe_tasklet;
 	struct tasklet_struct istream_tasklet;
-	struct tasklet_struct oframe_tasklet;
+	struct tasklet_struct send_oframe_tasklet;
+	struct tasklet_struct clear_oframe_tasklet;
 
 	unsigned last_isr_value;
 

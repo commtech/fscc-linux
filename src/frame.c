@@ -29,7 +29,6 @@
 static unsigned frame_counter = 1;
 
 int fscc_frame_update_buffer_size(struct fscc_frame *frame, unsigned length);
-int fscc_frame_setup_descriptors(struct fscc_frame *frame, struct pci_dev *pci_dev);
 
 struct fscc_frame *fscc_frame_new(struct fscc_port *port)
 {
@@ -46,109 +45,27 @@ struct fscc_frame *fscc_frame_new(struct fscc_port *port)
 	frame->data_length = 0;
 	frame->buffer_size = 0;
 	frame->buffer = 0;
-	frame->handled = 0;
-	frame->dma = fscc_port_has_dma(port);
+	frame->dma_initialized = 0;
 	frame->port = port;
 
 	frame->number = frame_counter;
 	frame_counter += 1;
 
-	if (frame->dma) {
-		/* Switch to FIFO based transmission as a fall back. */
-		if (!fscc_frame_setup_descriptors(frame, port->card->pci_dev))
-			frame->dma = 0;
-	}
-
 	return frame;
-}
-
-//Returns 0 on failure. 1 on success
-int fscc_frame_setup_descriptors(struct fscc_frame *frame,
-								 struct pci_dev *pci_dev)
-{
-	frame->d1 = kmalloc(sizeof(*frame->d1), GFP_ATOMIC | GFP_DMA);
-
-	if (!frame->d1)
-		return 0;
-
-	frame->d2 = kmalloc(sizeof(*frame->d2), GFP_ATOMIC | GFP_DMA);
-
-	if (!frame->d2) {
-		kfree(frame->d1);
-		return 0;
-	}
-
-	memset(frame->d1, 0, sizeof(*frame->d1));
-	memset(frame->d2, 0, sizeof(*frame->d2));
-
-	frame->d1_handle = pci_map_single(pci_dev, frame->d1, sizeof(*frame->d1),
-									  DMA_TO_DEVICE);
-
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 27)
-	if (dma_mapping_error(&pci_dev->dev, frame->d1_handle)) {
-#else
-	if (dma_mapping_error(frame->d1_handle)) {
-#endif
-		dev_err(frame->port->device, "dma_mapping_error failed\n");
-
-		kfree(frame->d1);
-		kfree(frame->d2);
-
-		frame->d1 = 0;
-		frame->d2 = 0;
-
-		return 0;
-	}
-
-	frame->d2_handle = pci_map_single(pci_dev, frame->d2, sizeof(*frame->d2),
-									  DMA_TO_DEVICE);
-
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 27)
-	if (dma_mapping_error(&pci_dev->dev, frame->d2_handle)) {
-#else
-	if (dma_mapping_error(frame->d2_handle)) {
-#endif
-		dev_err(frame->port->device, "dma_mapping_error failed\n");
-
-		pci_unmap_single(frame->port->card->pci_dev, frame->d1_handle,
-						 sizeof(*frame->d1), DMA_TO_DEVICE);
-
-		kfree(frame->d1);
-		kfree(frame->d2);
-
-		frame->d1 = 0;
-		frame->d2 = 0;
-
-		return 0;
-	}
-
-	frame->d2->control = 0x40000000;
-	frame->d1->next_descriptor = cpu_to_le32(frame->d2_handle);
-
-	return 1;
 }
 
 void fscc_frame_delete(struct fscc_frame *frame)
 {
 	return_if_untrue(frame);
 
-	if (frame->dma) {
+	if (frame->dma_initialized) {
+		pci_unmap_single(frame->port->card->pci_dev, frame->data_handle,
+						 frame->data_length, DMA_TO_DEVICE);
+
 		pci_unmap_single(frame->port->card->pci_dev, frame->d1_handle,
 						 sizeof(*frame->d1), DMA_TO_DEVICE);
 
-		pci_unmap_single(frame->port->card->pci_dev, frame->d2_handle,
-						 sizeof(*frame->d2), DMA_TO_DEVICE);
-
-		if (frame->data_handle && frame->data_length) {
-			pci_unmap_single(frame->port->card->pci_dev, frame->data_handle,
-							 frame->data_length, DMA_TO_DEVICE);
-		}
-
-		if (frame->d1)
-			kfree(frame->d1);
-
-		if (frame->d2)
-			kfree(frame->d2);
+		kfree(frame->d1);
 	}
 
 	fscc_frame_update_buffer_size(frame, 0);
@@ -183,11 +100,6 @@ int fscc_frame_add_data(struct fscc_frame *frame, const char *data,
 	return_val_if_untrue(frame, 0);
 	return_val_if_untrue(length > 0, 0);
 
-	if (frame->dma && frame->buffer) {
-		pci_unmap_single(frame->port->card->pci_dev, frame->data_handle,
-						 frame->data_length, DMA_TO_DEVICE);
-	}
-
 	/* Only update buffer size if there isn't enough space already */
 	if (frame->data_length + length > frame->buffer_size) {
 		if (fscc_frame_update_buffer_size(frame, frame->data_length + length) == 0) {
@@ -200,17 +112,6 @@ int fscc_frame_add_data(struct fscc_frame *frame, const char *data,
 
 	frame->data_length += length;
 
-	if (frame->dma && frame->buffer) {
-		frame->data_handle = pci_map_single(frame->port->card->pci_dev,
-											frame->buffer,
-											frame->data_length,
-											DMA_TO_DEVICE);
-
-		frame->d1->control = 0xA0000000 | frame->data_length;
-		frame->d1->data_address = cpu_to_le32(frame->data_handle);
-		frame->d1->data_count = frame->data_length;
-	}
-
 	return 1;
 }
 
@@ -219,11 +120,6 @@ int fscc_frame_add_data_from_port(struct fscc_frame *frame, struct fscc_port *po
 {
 	return_val_if_untrue(frame, 0);
 	return_val_if_untrue(length > 0, 0);
-
-	if (frame->dma && frame->buffer) {
-		pci_unmap_single(frame->port->card->pci_dev, frame->data_handle,
-						 frame->data_length, DMA_TO_DEVICE);
-	}
 
 	/* Only update buffer size if there isn't enough space already */
 	if (frame->data_length + length > frame->buffer_size) {
@@ -237,17 +133,6 @@ int fscc_frame_add_data_from_port(struct fscc_frame *frame, struct fscc_port *po
 
 	frame->data_length += length;
 
-	if (frame->dma && frame->buffer) {
-		frame->data_handle = pci_map_single(frame->port->card->pci_dev,
-											frame->buffer,
-											frame->data_length,
-											DMA_TO_DEVICE);
-
-		frame->d1->control = 0xA0000000 | frame->data_length;
-		frame->d1->data_address = cpu_to_le32(frame->data_handle);
-		frame->d1->data_count = frame->data_length;
-	}
-
 	return 1;
 }
 
@@ -258,11 +143,6 @@ int fscc_frame_add_data_from_user(struct fscc_frame *frame, const char *data,
 
 	return_val_if_untrue(frame, 0);
 	return_val_if_untrue(length > 0, 0);
-
-	if (frame->dma && frame->buffer) {
-		pci_unmap_single(frame->port->card->pci_dev, frame->data_handle,
-						 frame->data_length, DMA_TO_DEVICE);
-	}
 
 	/* Only update buffer size if there isn't enough space already */
 	if (frame->data_length + length > frame->buffer_size) {
@@ -276,17 +156,6 @@ int fscc_frame_add_data_from_user(struct fscc_frame *frame, const char *data,
 	return_val_if_untrue(!uncopied_bytes, 0);
 
 	frame->data_length += length;
-
-	if (frame->dma && frame->buffer) {
-		frame->data_handle = pci_map_single(frame->port->card->pci_dev,
-											frame->buffer,
-											frame->data_length,
-											DMA_TO_DEVICE);
-
-		frame->d1->control = 0xA0000000 | frame->data_length;
-		frame->d1->data_address = cpu_to_le32(frame->data_handle);
-		frame->d1->data_count = frame->data_length;
-	}
 
 	return 1;
 }
@@ -381,5 +250,27 @@ int fscc_frame_update_buffer_size(struct fscc_frame *frame, unsigned size)
 	frame->buffer_size = size;
 
 	return 1;
+}
+
+void fscc_frame_setup_descriptors(struct fscc_frame *frame)
+{
+	frame->d1 = kmalloc(sizeof(*frame->d1), GFP_ATOMIC | GFP_DMA);
+
+	memset(frame->d1, 0, sizeof(*frame->d1));
+
+	frame->d1_handle = pci_map_single(frame->port->card->pci_dev, frame->d1,
+	                                  sizeof(*frame->d1), DMA_TO_DEVICE);
+
+
+	frame->data_handle = pci_map_single(frame->port->card->pci_dev,
+								        frame->buffer, frame->data_length,
+								        DMA_TO_DEVICE);
+
+	frame->d1->control = 0xA0000000 | frame->data_length;
+	frame->d1->data_address = cpu_to_le32(frame->data_handle);
+	frame->d1->data_count = frame->data_length;
+	frame->d1->next_descriptor = cpu_to_le32(frame->port->null_handle);
+
+	frame->dma_initialized = 1;
 }
 
