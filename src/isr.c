@@ -274,63 +274,6 @@ void istream_worker(unsigned long data)
 	wake_up_interruptible(&port->input_queue);
 }
 
-int prepare_frame_for_dma(struct fscc_port *port, struct fscc_frame *frame,
-                          unsigned *length)
-{
-	fscc_frame_setup_descriptors(frame);
-
-	fscc_port_set_register(port, 2, DMA_TX_BASE_OFFSET, frame->d1_handle);
-
-	fscc_flist_add_frame(&port->sent_oframes, frame);
-
-	*length = fscc_frame_get_length(frame);
-
-	return 2;
-}
-
-int prepare_frame_for_fifo(struct fscc_port *port, struct fscc_frame *frame,
-                           unsigned *length)
-{
-	unsigned current_length = 0;
-	unsigned buffer_size = 0;
-	unsigned fifo_space = 0;
-	unsigned size_in_fifo = 0;
-	unsigned transmit_length = 0;
-
-	current_length = fscc_frame_get_length(frame);
-	buffer_size = fscc_frame_get_buffer_size(frame);
-	size_in_fifo = current_length + (4 - current_length % 4);
-
-	/* Subtracts 1 so a TDO overflow doesn't happen on the 4096th byte. */
-	fifo_space = TX_FIFO_SIZE - fscc_port_get_TXCNT(port) - 1;
-	fifo_space -= fifo_space % 4;
-
-	/* Determine the maximum amount of data we can send this time around. */
-	transmit_length = (size_in_fifo > fifo_space) ? fifo_space : current_length;
-
-	if (transmit_length == 0)
-		return 0;
-
-	fscc_port_set_register_rep(port, 0, FIFO_OFFSET,
-							   frame->buffer,
-							   transmit_length);
-
-	fscc_frame_remove_data(frame, NULL, transmit_length);
-
-	*length = transmit_length;
-
-	/* If this is the first time we add data to the FIFO for this frame we
-	   tell the port how much data is in this frame. */
-	if (current_length == buffer_size)
-		fscc_port_set_register(port, 0, BC_FIFO_L_OFFSET, buffer_size);
-
-	/* We still have more data to send. */
-	if (!fscc_frame_is_empty(frame))
-		return 1;
-
-	return 2;
-}
-
 void clear_oframe_worker(unsigned long data)
 {
 	struct fscc_port *port = 0;
@@ -344,7 +287,7 @@ void clear_oframe_worker(unsigned long data)
 	if (!frame)
 		return;
 
-	if (fscc_port_has_dma(port)) {
+	if (fscc_frame_is_dma(frame)) {
 		if (frame->d1->control == 0x40000000)
 			remove = 1;
 	}
@@ -361,7 +304,6 @@ void clear_oframe_worker(unsigned long data)
 void oframe_worker(unsigned long data)
 {
 	struct fscc_port *port = 0;
-	unsigned transmit_length = 0;
 	int result;
 
 	unsigned long board_flags = 0;
@@ -386,20 +328,10 @@ void oframe_worker(unsigned long data)
 		}
 	}
 
-	if (fscc_port_has_dma(port))
-		result = prepare_frame_for_dma(port, port->pending_oframe, &transmit_length);
-	else
-		result = prepare_frame_for_fifo(port, port->pending_oframe, &transmit_length);
-
-	if (result)
-		fscc_port_execute_transmit(port);
-
-	dev_dbg(port->device, "F#%i => %i byte%s%s\n",
-			port->pending_oframe->number, transmit_length,
-			(transmit_length == 1) ? "" : "s",
-			(result != 2) ? " (starting)" : "");
+	result = fscc_port_transmit_frame(port, port->pending_oframe);
 
 	if (result == 2) {
+		fscc_flist_add_frame(&port->sent_oframes, port->pending_oframe);
 		port->pending_oframe = 0;
 		wake_up_interruptible(&port->output_queue);
 	}

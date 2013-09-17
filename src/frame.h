@@ -31,12 +31,15 @@ struct fscc_frame {
 	unsigned buffer_size;
 	unsigned number;
 	unsigned dma_initialized;
+	unsigned fifo_initialized;
 	struct timeval timestamp;
 
 	struct fscc_descriptor *d1;
+	struct fscc_descriptor *d2;
 
 	dma_addr_t data_handle;
 	dma_addr_t d1_handle;
+	dma_addr_t d2_handle;
 
 	struct fscc_port *port;
 };
@@ -60,6 +63,8 @@ unsigned fscc_frame_is_empty(struct fscc_frame *frame);
 
 void fscc_frame_clear(struct fscc_frame *frame);
 void fscc_frame_trim(struct fscc_frame *frame);
-void fscc_frame_setup_descriptors(struct fscc_frame *frame);
+int fscc_frame_setup_descriptors(struct fscc_frame *frame);
+unsigned fscc_frame_is_dma(struct fscc_frame *frame);
+unsigned fscc_frame_is_fifo(struct fscc_frame *frame);
 
 #endif

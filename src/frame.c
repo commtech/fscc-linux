@@ -45,6 +45,7 @@ struct fscc_frame *fscc_frame_new(struct fscc_port *port)
 	frame->data_length = 0;
 	frame->buffer_size = 0;
 	frame->buffer = 0;
+	frame->fifo_initialized = 0;
 	frame->dma_initialized = 0;
 	frame->port = port;
 
@@ -252,25 +253,75 @@ int fscc_frame_update_buffer_size(struct fscc_frame *frame, unsigned size)
 	return 1;
 }
 
-void fscc_frame_setup_descriptors(struct fscc_frame *frame)
+int fscc_frame_setup_descriptors(struct fscc_frame *frame)
 {
+	if (frame->fifo_initialized)
+		return 0;
+
 	frame->d1 = kmalloc(sizeof(*frame->d1), GFP_ATOMIC | GFP_DMA);
+
+	if (!frame->d1)
+		return 0;
 
 	memset(frame->d1, 0, sizeof(*frame->d1));
 
 	frame->d1_handle = pci_map_single(frame->port->card->pci_dev, frame->d1,
 	                                  sizeof(*frame->d1), DMA_TO_DEVICE);
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 27)
+	if (dma_mapping_error(&frame->port->card->pci_dev->dev, frame->d1_handle)) {
+#else
+	if (dma_mapping_error(frame->d1_handle)) {
+#endif
+		dev_err(frame->port->device, "dma_mapping_error failed\n");
+
+		kfree(frame->d1);
+		frame->d1 = 0;
+
+		return 0;
+	}
+
 
 	frame->data_handle = pci_map_single(frame->port->card->pci_dev,
 								        frame->buffer, frame->data_length,
 								        DMA_TO_DEVICE);
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 27)
+	if (dma_mapping_error(&frame->port->card->pci_dev->dev, frame->data_handle)) {
+#else
+	if (dma_mapping_error(frame->data_handle)) {
+#endif
+		dev_err(frame->port->device, "dma_mapping_error failed\n");
+
+		pci_unmap_single(frame->port->card->pci_dev, frame->d1_handle,
+						 sizeof(*frame->d1), DMA_TO_DEVICE);
+
+		kfree(frame->d1);
+		frame->d1 = 0;
+
+		return 0;
+	}
 
 	frame->d1->control = 0xA0000000 | frame->data_length;
 	frame->d1->data_address = cpu_to_le32(frame->data_handle);
 	frame->d1->data_count = frame->data_length;
 	frame->d1->next_descriptor = cpu_to_le32(frame->port->null_handle);
 
+	printk("%i\n", frame->data_length);
+	printk("0x%0x\n", frame->d1->control);
+
 	frame->dma_initialized = 1;
+
+	return 1;
+}
+
+unsigned fscc_frame_is_dma(struct fscc_frame *frame)
+{
+	return (frame->dma_initialized);
+}
+
+unsigned fscc_frame_is_fifo(struct fscc_frame *frame)
+{
+	return (frame->fifo_initialized);
 }
 

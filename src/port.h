@@ -249,8 +249,9 @@ void fscc_port_increment_interrupt_counts(struct fscc_port *port,
 
 int fscc_port_set_tx_modifiers(struct fscc_port *port, int tx_modifiers);
 unsigned fscc_port_get_tx_modifiers(struct fscc_port *port);
-void fscc_port_execute_transmit(struct fscc_port *port);
+void fscc_port_execute_transmit(struct fscc_port *port, unsigned dma);
 
 void fscc_port_reset_timer(struct fscc_port *port);
+unsigned fscc_port_transmit_frame(struct fscc_port *port, struct fscc_frame *frame);
 
 #endif
