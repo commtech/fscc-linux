@@ -35,7 +35,6 @@
 static int fscc_major_number;
 static struct class *fscc_class = 0;
 
-unsigned hot_plug = DEFAULT_HOT_PLUG_VALUE;
 unsigned force_fifo = DEFAULT_FORCE_FIFO_VALUE;
 
 LIST_HEAD(fscc_cards);
@@ -312,6 +311,7 @@ static struct file_operations fscc_fops = {
 #endif
 };
 
+#if 0
 static int fscc_probe(struct pci_dev *pdev,
 								const struct pci_device_id *id)
 {
@@ -328,6 +328,7 @@ static int fscc_probe(struct pci_dev *pdev,
 
 	return 0;
 }
+#endif
 
 static void fscc_remove(struct pci_dev *pdev)
 {
@@ -377,7 +378,7 @@ static int fscc_resume(struct pci_dev *pdev)
 
 struct pci_driver fscc_pci_driver = {
 	.name = DEVICE_NAME,
-	.probe = fscc_probe,
+	//.probe = fscc_probe,
 	.remove = fscc_remove,
 	.suspend = fscc_suspend,
 	.resume = fscc_resume,
@@ -412,18 +413,42 @@ static int __init fscc_init(void)
 		return error_code;
 	}
 
-	if (hot_plug == 0 && list_empty(&fscc_cards)) {
-		pci_unregister_driver(&fscc_pci_driver);
-		unregister_chrdev(fscc_major_number, "fscc");
-		class_destroy(fscc_class);
-		return -ENODEV;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 8, 0)
+	if (error_code == 0) {
+		struct pci_dev *pdev = NULL;
+        unsigned num_devices = 0;
+        struct fscc_card *new_card = 0;
+
+		pdev = pci_get_device(COMMTECH_VENDOR_ID, PCI_ANY_ID, pdev);
+
+		while (pdev != NULL) {
+			if (is_fscc_device(pdev)) {
+				++num_devices;
+
+			    if (pci_enable_device(pdev))
+				    return -EIO;
+
+			    new_card = fscc_card_new(pdev, fscc_major_number,
+			                             fscc_class, &fscc_fops);
+
+			    if (new_card)
+				    list_add_tail(&new_card->list, &fscc_cards);
+	        }
+
+			pdev = pci_get_device(COMMTECH_VENDOR_ID, PCI_ANY_ID, pdev);
+		}
+
+		if (num_devices == 0) {
+			pci_unregister_driver(&fscc_pci_driver);
+		    unregister_chrdev(fscc_major_number, "fscc");
+		    class_destroy(fscc_class);
+			return -ENODEV;
+		}
 	}
+#endif
 
 #ifdef DEBUG
 	printk(KERN_INFO DEVICE_NAME " setting: debug (on)\n");
-
-	printk(KERN_INFO DEVICE_NAME " setting: hot plug (%s)\n",
-		   (hot_plug) ? "on" : "off");
 
 	printk(KERN_INFO DEVICE_NAME " setting: force_fifo (%s)\n",
 		   (force_fifo) ? "on" : "off");
@@ -434,6 +459,18 @@ static int __init fscc_init(void)
 
 static void __exit fscc_exit(void)
 {
+	struct list_head *current_node = 0;
+	struct list_head *temp_node = 0;
+
+	list_for_each_safe(current_node, temp_node, &fscc_cards) {
+		struct fscc_card *current_card = 0;
+
+		current_card = list_entry(current_node, struct fscc_card, list);
+
+		list_del(current_node);
+		fscc_card_delete(current_card);
+	}
+
 	pci_unregister_driver(&fscc_pci_driver);
 	unregister_chrdev(fscc_major_number, DEVICE_NAME);
 	class_destroy(fscc_class);
@@ -446,9 +483,6 @@ MODULE_VERSION("2.4.2");
 MODULE_AUTHOR("William Fagan <willf@commtech-fastcom.com>");
 
 MODULE_DESCRIPTION("Driver for the FSCC series of cards from Commtech, Inc.");
-
-module_param(hot_plug, int, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
-MODULE_PARM_DESC(hot_plug, "Let's the driver load even if no devices exist.");
 
 module_param(force_fifo, int, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
 MODULE_PARM_DESC(force_fifo, "Disables DMA (SuperFSCC* series), forcing FIFO operation.");

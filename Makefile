@@ -16,17 +16,16 @@ default:
 install:
 	cp fscc.rules /etc/udev/rules.d/
 	cp fscc.ko /lib/modules/`uname -r`/kernel/drivers/char/
+	echo 'fscc' >> /etc/modules
+	cp lib/raw/fscc.h /usr/local/include/
 	depmod
-	mkdir -p /usr/local/include/fscc
-	cp include/fscc.h /usr/local/include/fscc/
-	cd lib/python/; python setup.py install
-	cd cli/; python setup.py install
 
 uninstall:
-	rm /lib/modules/`uname -r`/kernel/drivers/char/fscc.ko
-	depmod
-	rm -rf /usr/local/include/fscc
 	rm /etc/udev/rules.d/fscc.rules
+	rm /lib/modules/`uname -r`/kernel/drivers/char/fscc.ko
+	sed --in-place '/fscc/d' /etc/modules
+	rm /usr/local/include/fscc.h
+	depmod
 
 clean:
 	@find . $(IGNORE) \
@@ -37,15 +36,11 @@ clean:
 		-type f -print | xargs rm -f
 	rm -rf .tmp_versions
 
-rules:
-	cp fscc.rules /etc/udev/rules.d/
-
 help:
 	@echo
 	@echo 'Build targets:'
 	@echo '  make - Build driver module'
 	@echo '  make clean - Remove most generated files'
-	@echo '  make install - Copy fscc driver and header files to /lib/modules/`uname -r`/kernel/drivers/char/ and /usr/local/include/fscc respectively'
-	@echo '  make uninstall - Remove fscc driver and header files from their installed directories'
-	@echo '  make rules - Copy fscc.rules file to your /etc/udev/rules.d directory'
+	@echo '  make install - Installs FSCC driver and C header file'
+	@echo '  make uninstall - Clean up installation'
 	@echo
