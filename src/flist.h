@@ -34,7 +34,6 @@
 
 struct fscc_flist {
 	struct list_head frames;
-	spinlock_t spinlock;
 };
 
 void fscc_flist_init(struct fscc_flist *flist);

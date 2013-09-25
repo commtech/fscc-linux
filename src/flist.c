@@ -27,8 +27,6 @@
 //TODO: Error checking
 void fscc_flist_init(struct fscc_flist *flist)
 {
-	spin_lock_init(&flist->spinlock);
-
 	INIT_LIST_HEAD(&flist->frames);
 }
 
@@ -41,25 +39,14 @@ void fscc_flist_delete(struct fscc_flist *flist)
 
 void fscc_flist_add_frame(struct fscc_flist *flist, struct fscc_frame *frame)
 {
-	unsigned long flags = 0;
-
-	spin_lock_irqsave(&flist->spinlock, flags);
-
 	list_add_tail(&frame->list, &flist->frames);
-
-	spin_unlock_irqrestore(&flist->spinlock, flags);
 }
 
 struct fscc_frame *fscc_flist_peak_front(struct fscc_flist *flist)
 {
-	unsigned long flags = 0;
-
 	struct fscc_frame *frame = 0;
 
-	spin_lock_irqsave(&flist->spinlock, flags);
-
 	if (list_empty(&flist->frames)) {
-		spin_unlock_irqrestore(&flist->spinlock, flags);
 		return 0;
 	}
 
@@ -67,21 +54,14 @@ struct fscc_frame *fscc_flist_peak_front(struct fscc_flist *flist)
 		break; // Breaks after setting frame to the head // TODO
 	}
 
-	spin_unlock_irqrestore(&flist->spinlock, flags);
-
 	return frame;
 }
 
 struct fscc_frame *fscc_flist_remove_frame(struct fscc_flist *flist)
 {
-	unsigned long flags = 0;
-
 	struct fscc_frame *frame = 0;
 
-	spin_lock_irqsave(&flist->spinlock, flags);
-
 	if (list_empty(&flist->frames)) {
-		spin_unlock_irqrestore(&flist->spinlock, flags);
 		return 0;
 	}
 
@@ -91,20 +71,14 @@ struct fscc_frame *fscc_flist_remove_frame(struct fscc_flist *flist)
 
 	list_del(&frame->list);
 
-	spin_unlock_irqrestore(&flist->spinlock, flags);
-
 	return frame;
 }
 
 struct fscc_frame *fscc_flist_remove_frame_if_lte(struct fscc_flist *flist, unsigned size)
 {
 	struct fscc_frame *frame = 0;
-	unsigned long flags = 0;
-
-	spin_lock_irqsave(&flist->spinlock, flags);
 
 	if (list_empty(&flist->frames)) {
-		spin_unlock_irqrestore(&flist->spinlock, flags);
 		return 0;
 	}
 
@@ -113,13 +87,10 @@ struct fscc_frame *fscc_flist_remove_frame_if_lte(struct fscc_flist *flist, unsi
 	}
 
 	if (fscc_frame_get_length(frame) > size) {
-		spin_unlock_irqrestore(&flist->spinlock, flags);
 		return 0;
 	}
 
 	list_del(&frame->list);
-
-	spin_unlock_irqrestore(&flist->spinlock, flags);
 
 	return frame;
 }
@@ -128,9 +99,6 @@ void fscc_flist_clear(struct fscc_flist *flist)
 {
 	struct list_head *current_node = 0;
 	struct list_head *temp_node = 0;
-	unsigned long flags = 0;
-
-	spin_lock_irqsave(&flist->spinlock, flags);
 
 	list_for_each_safe(current_node, temp_node, &flist->frames) {
 		struct fscc_frame *current_frame = 0;
@@ -141,8 +109,6 @@ void fscc_flist_clear(struct fscc_flist *flist)
 
 		fscc_frame_delete(current_frame);
 	}
-
-	spin_unlock_irqrestore(&flist->spinlock, flags);
 }
 
 unsigned fscc_flist_is_empty(struct fscc_flist *flist)
@@ -153,16 +119,11 @@ unsigned fscc_flist_is_empty(struct fscc_flist *flist)
 unsigned fscc_flist_calculate_memory_usage(struct fscc_flist *flist)
 {
 	unsigned memory = 0;
-	unsigned long flags = 0;
 	struct fscc_frame *current_frame = 0;
-
-	spin_lock_irqsave(&flist->spinlock, flags);
 
 	list_for_each_entry(current_frame, &flist->frames, list) {
 		memory += fscc_frame_get_length(current_frame);
 	}
-
-	spin_unlock_irqrestore(&flist->spinlock, flags);
 
 	return memory;
 }

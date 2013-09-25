@@ -110,7 +110,7 @@ struct fscc_port {
 	wait_queue_head_t input_queue;
 	wait_queue_head_t output_queue;
 
-	struct fscc_flist iframes; /* Frames already retrieved from the FIFO */
+	struct fscc_flist queued_iframes; /* Frames already retrieved from the FIFO */
 	struct fscc_flist queued_oframes; /* Frames not yet in the FIFO yet */
 	struct fscc_flist sent_oframes; /* Frames sent but not yet cleared */
 
@@ -138,6 +138,9 @@ struct fscc_port {
 	spinlock_t istream_spinlock;
 	spinlock_t pending_iframe_spinlock;
 	spinlock_t pending_oframe_spinlock;
+	spinlock_t sent_oframes_spinlock;
+	spinlock_t queued_oframes_spinlock;
+	spinlock_t queued_iframes_spinlock;
 
 	struct fscc_memory_cap memory_cap;
 	unsigned ignore_timeout;

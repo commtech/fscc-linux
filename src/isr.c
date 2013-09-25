@@ -85,6 +85,7 @@ void iframe_worker(unsigned long data)
 	unsigned finished_frame = 0;
 	unsigned long board_flags = 0;
 	unsigned long frame_flags = 0;
+	unsigned long queued_flags = 0;
 	static int rejected_last_frame = 0;
 	unsigned current_memory = 0;
 	unsigned memory_cap = 0;
@@ -154,8 +155,8 @@ void iframe_worker(unsigned long data)
 			port->pending_iframe = fscc_frame_new(port);
 
 			if (!port->pending_iframe) {
-			    spin_unlock_irqrestore(&port->pending_iframe_spinlock, frame_flags);
-			    spin_unlock_irqrestore(&port->board_rx_spinlock, board_flags);
+				spin_unlock_irqrestore(&port->pending_iframe_spinlock, frame_flags);
+				spin_unlock_irqrestore(&port->board_rx_spinlock, board_flags);
 				return;
 			}
 		}
@@ -186,7 +187,9 @@ void iframe_worker(unsigned long data)
 
 		if (port->pending_iframe) {
 			do_gettimeofday(&port->pending_iframe->timestamp);
-			fscc_flist_add_frame(&port->iframes, port->pending_iframe);
+			spin_lock_irqsave(&port->queued_iframes_spinlock, queued_flags);
+			fscc_flist_add_frame(&port->queued_iframes, port->pending_iframe);
+			spin_unlock_irqrestore(&port->queued_iframes_spinlock, queued_flags);
 		}
 
 		rejected_last_frame = 0; /* Track that we received a frame to reset the
@@ -194,10 +197,10 @@ void iframe_worker(unsigned long data)
 
 		port->pending_iframe = 0;
 
-		wake_up_interruptible(&port->input_queue);
-
 		spin_unlock_irqrestore(&port->pending_iframe_spinlock, frame_flags);
 	    spin_unlock_irqrestore(&port->board_rx_spinlock, board_flags);
+
+		wake_up_interruptible(&port->input_queue);
 	}
 	while (receive_length);
 }
@@ -279,13 +282,18 @@ void clear_oframe_worker(unsigned long data)
 	struct fscc_port *port = 0;
 	struct fscc_frame *frame = 0;
 	unsigned remove = 0;
+	unsigned long sent_flags = 0;
 
 	port = (struct fscc_port *)data;
 
+	spin_lock_irqsave(&port->sent_oframes_spinlock, sent_flags);
+
 	frame = fscc_flist_peak_front(&port->sent_oframes);
 
-	if (!frame)
+	if (!frame) {
+		spin_unlock_irqrestore(&port->sent_oframes_spinlock, sent_flags);
 		return;
+	}
 
 	if (fscc_frame_is_dma(frame)) {
 		if (frame->d1->control == 0x40000000)
@@ -299,6 +307,8 @@ void clear_oframe_worker(unsigned long data)
 		fscc_flist_remove_frame(&port->sent_oframes);
 		fscc_frame_delete(frame);
 	}
+
+	spin_unlock_irqrestore(&port->sent_oframes_spinlock, sent_flags);
 }
 
 void oframe_worker(unsigned long data)
@@ -308,6 +318,8 @@ void oframe_worker(unsigned long data)
 
 	unsigned long board_flags = 0;
 	unsigned long frame_flags = 0;
+	unsigned long sent_flags = 0;
+	unsigned long queued_flags = 0;
 
 	port = (struct fscc_port *)data;
 
@@ -318,7 +330,9 @@ void oframe_worker(unsigned long data)
 
 	/* Check if exists and if so, grabs the frame to transmit. */
 	if (!port->pending_oframe) {
+		spin_lock_irqsave(&port->queued_oframes_spinlock, queued_flags);
 		port->pending_oframe = fscc_flist_remove_frame(&port->queued_oframes);
+		spin_unlock_irqrestore(&port->queued_oframes_spinlock, queued_flags);
 
 		/* No frames in queue to transmit */
 		if (!port->pending_oframe) {
@@ -331,13 +345,18 @@ void oframe_worker(unsigned long data)
 	result = fscc_port_transmit_frame(port, port->pending_oframe);
 
 	if (result == 2) {
+		spin_lock_irqsave(&port->sent_oframes_spinlock, sent_flags);
 		fscc_flist_add_frame(&port->sent_oframes, port->pending_oframe);
+		spin_unlock_irqrestore(&port->sent_oframes_spinlock, sent_flags);
+
 		port->pending_oframe = 0;
-		wake_up_interruptible(&port->output_queue);
 	}
 
 	spin_unlock_irqrestore(&port->pending_oframe_spinlock, frame_flags);
 	spin_unlock_irqrestore(&port->board_tx_spinlock, board_flags);
+
+	if (result == 2)
+		wake_up_interruptible(&port->output_queue);
 }
 
 void timer_handler(unsigned long data)

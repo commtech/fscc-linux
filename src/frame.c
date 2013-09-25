@@ -307,9 +307,6 @@ int fscc_frame_setup_descriptors(struct fscc_frame *frame)
 	frame->d1->data_count = frame->data_length;
 	frame->d1->next_descriptor = cpu_to_le32(frame->port->null_handle);
 
-	printk("%i\n", frame->data_length);
-	printk("0x%0x\n", frame->d1->control);
-
 	frame->dma_initialized = 1;
 
 	return 1;
