@@ -146,6 +146,12 @@ static struct kobj_attribute imr_attribute =
 static struct kobj_attribute dpllr_attribute =
 	__ATTR(dpllr, SYSFS_READ_WRITE_MODE, bar0_register_show, bar0_register_store);
 
+static struct kobj_attribute fstel_attribute =
+	__ATTR(fstel, SYSFS_READ_WRITE_MODE, bar0_register_show, bar0_register_store);
+
+static struct kobj_attribute fstew_attribute =
+	__ATTR(fstew, SYSFS_READ_WRITE_MODE, bar0_register_show, bar0_register_store);
+
 static struct kobj_attribute fcr_attribute =
 	__ATTR(fcr, SYSFS_READ_WRITE_MODE, bar2_register_show, bar2_register_store);
 
@@ -184,6 +190,8 @@ static struct attribute *register_attrs[] = {
 	&star_attribute.attr,
 	&imr_attribute.attr,
 	&dpllr_attribute.attr,
+	&fstel_attribute.attr,
+	&fstew_attribute.attr,
 	&fcr_attribute.attr,
 	NULL,
 };

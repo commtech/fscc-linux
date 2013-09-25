@@ -75,6 +75,10 @@ int str_to_register_offset(const char *str)
 		return IMR_OFFSET;
 	else if (strcmp(str, "dpllr") == 0)
 		return DPLLR_OFFSET;
+	else if (strcmp(str, "fstel") == 0)
+		return 0x5c;
+	else if (strcmp(str, "fstew") == 0)
+		return 0x60;
 	else if (strcmp(str, "fcr") == 0)
 		return FCR_OFFSET;
 	else
@@ -191,6 +195,30 @@ unsigned port_exists(void *port)
 			if (port == current_port)
 				return 1;
 		}
+	}
+
+	return 0;
+}
+
+unsigned is_fscc_device(struct pci_dev *pdev)
+{
+	switch (pdev->device) {
+		case FSCC_ID:
+		case SFSCC_ID:
+		case SFSCC_104_LVDS_ID:
+		case FSCC_232_ID:
+		case SFSCC_104_UA_ID:
+		case SFSCC_4_UA_ID:
+		case SFSCC_UA_ID:
+		case SFSCC_LVDS_ID:
+		case FSCC_4_UA_ID:
+		case SFSCC_4_LVDS_ID:
+		case FSCC_UA_ID:
+		case SFSCCe_4_ID:
+		case SFSCC_4_UA_CPCI_ID:
+		case SFSCC_4_UA_LVDS_ID:
+		case SFSCC_UA_LVDS_ID:
+       		return 1;
 	}
 
 	return 0;
