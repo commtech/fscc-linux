@@ -4,12 +4,9 @@
 [submodule "lib/python"]
 	path = lib/python
 	url = git://github.com/commtech/pyfscc.git
-[submodule "lib/c"]
-	path = lib/c
-	url = git://github.com/commtech/cfscc.git
-[submodule "libc"]
-	path = libc
-	url = git://github.com/commtech/cfscc.git
 [submodule "lib/c++"]
 	path = lib/c++
 	url = git://github.com/commtech/cppfscc.git
+[submodule "lib/c"]
+	path = lib/c
+	url = git://github.com/commtech/cfscc.git
