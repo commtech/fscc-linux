@@ -413,7 +413,6 @@ static int __init fscc_init(void)
 		return error_code;
 	}
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 8, 0)
 	if (error_code == 0) {
 		struct pci_dev *pdev = NULL;
         unsigned num_devices = 0;
@@ -445,7 +444,6 @@ static int __init fscc_init(void)
 			return -ENODEV;
 		}
 	}
-#endif
 
 #ifdef DEBUG
 	printk(KERN_INFO DEVICE_NAME " setting: debug (on)\n");
