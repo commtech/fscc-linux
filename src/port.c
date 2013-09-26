@@ -133,6 +133,7 @@ struct fscc_port *fscc_port_new(struct fscc_card *card, unsigned channel,
 	spin_lock_init(&port->pending_oframe_spinlock);
 	spin_lock_init(&port->sent_oframes_spinlock);
 	spin_lock_init(&port->queued_oframes_spinlock);
+	spin_lock_init(&port->queued_iframes_spinlock);
 
 	/* Simple check to see if the port is messed up. It won't catch all
 	   instances. */
