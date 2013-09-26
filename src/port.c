@@ -504,8 +504,9 @@ unsigned fscc_port_has_incoming_data(struct fscc_port *port)
 
 	return_val_if_untrue(port, 0);
 
-	if (fscc_port_is_streaming(port))
+	if (fscc_port_is_streaming(port)) {
 		status =  (fscc_frame_is_empty(port->istream)) ? 0 : 1;
+	}
 	else {
 		spin_lock_irqsave(&port->queued_iframes_spinlock, flags);
 		if (fscc_flist_is_empty(&port->queued_iframes) == 0)
