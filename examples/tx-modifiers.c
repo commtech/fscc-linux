@@ -3,7 +3,7 @@
 #include <fscc.h> /* FSCC_* */
 
 /*
-    This is a simple example showing how to change the transmit type for each 
+    This is a simple example showing how to change the transmit type for each
     port.
 
     Valid TX_MODIFIERS are:
@@ -12,7 +12,7 @@
     XREP - Transmit repeat
     TXT - Transmit on timer
     TXEXT - Transmit on external signal
-    
+
 */
 
 int main(void)
@@ -22,16 +22,13 @@ int main(void)
 
     fd = open("/dev/fscc0", O_RDWR);
 
-    /* Enable transmit repeat & transmit on timer */
     ioctl(fd, FSCC_GET_TX_MODIFIERS, &modifiers);
 
     /* Enable transmit repeat & transmit on timer */
-    modifiers = TXT | XREP;
-    ioctl(fd, FSCC_SET_TX_MODIFIERS, &modifiers);
+    ioctl(fd, FSCC_SET_TX_MODIFIERS, TXT | XREP);
 
     /* Revert to normal transmission */
-    modifiers = XF;
-    ioctl(fd, FSCC_SET_TX_MODIFIERS, &modifiers);
+    ioctl(fd, FSCC_SET_TX_MODIFIERS, XF);
 
     close(fd);
 
