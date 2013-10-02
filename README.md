@@ -16,7 +16,7 @@ _You can also download driver packages directly from our
 
 ##### Switch To Stable Version
 Now that you have the latest code checked out, switch to the latest stable
-version(v2.2.1 is only listed here as an example.
+version v2.2.1 is only listed here as an example.
 
 ```
 git tag
@@ -61,19 +61,10 @@ insmod fscc.ko
 _You will more than likely need administrator privileges for this and
 the following commands._
 
-By default if there are no cards present when the driver is loaded the
-insmod will fail with a 'No such device' error. To allow the driver to load
-even if no cards are present turn on the 'hot_plug' option.
+If no cards are present you will see the following message.
 
 ```
-insmod fscc.ko hot_plug=1
-```
-
-If no cards are present and the hot_plug option is not enabled (default) you
-will see this.
-
-```
-insmod fscc.ko hot_plug=0
+insmod fscc.ko
 insmod: error inserting 'fscc.ko': -1 No such device
 ```
 
@@ -82,15 +73,14 @@ using upon system boot_
 
 
 ##### Installing Driver
-If you would like the driver to load automatically at boot use the included
+If you would like the driver to automatically load at boot use the included
 installer.
 
 ```
 make install
 ```
 
-This will also install the header (.h) files and python library and using the
-card.
+This will also install the header (.h) files.
 
 To uninstall, use the included uninstaller.
 
@@ -103,7 +93,7 @@ make uninstall
 There is documentation for each specific function listed below, but lets get started
 with a quick programming example for fun.
 
-_This tutorial has already been set up for you at_ 
+_This tutorial has already been set up for you at_
 [`fscc/examples/tutorial.c`](https://github.com/commtech/fscc-linux/tree/master/examples/tutorial.c).
 
 Create a new C file (named tutorial.c) with the following code.
@@ -113,7 +103,6 @@ Create a new C file (named tutorial.c) with the following code.
 #include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <fscc.h>
 
 int main(void)
 {
@@ -121,7 +110,7 @@ int main(void)
     char odata[] = "Hello world!";
     char idata[20];
 
-    /* Open port 0 in a blocking IO mode */
+    /* Open port 0 */
     fd = open("/dev/fscc0", O_RDWR);
 
     if (fd == -1) {
@@ -143,8 +132,8 @@ int main(void)
 }
 ```
 
-For this example I will use the Visual Studio command line compiler, but
-you can use your compiler of choice.
+For this example I will use the gcc compiler, but you can use your compiler of
+choice.
 
 ```
 # gcc -I ..\lib\raw\ tutorial.c

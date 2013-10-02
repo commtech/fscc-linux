@@ -48,7 +48,7 @@ FSCC_SET_TX_MODIFIERS
 #include <fscc.h>
 ...
 
-ioctl(fd, FSCC_SET_TX_MODIFIERS, &modifiers);
+ioctl(fd, FSCC_SET_TX_MODIFIERS, XF);
 ```
 
 ### Sysfs

@@ -4,7 +4,7 @@
 ###### Support
 | Code         | Version
 | ------------ | --------
-| `fscc-linux` | `v2.0.0` 
+| `fscc-linux` | `v2.0.0`
 
 
 ## Write
@@ -21,7 +21,6 @@ is used to write data to the port.
 ### Function
 ```c
 #include <unistd.h>
-#include <fscc.h>
 ...
 
 char odata[] = "Hello world!";

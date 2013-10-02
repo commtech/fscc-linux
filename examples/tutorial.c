@@ -2,7 +2,6 @@
 #include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <fscc.h>
 
 int main(void)
 {
@@ -10,7 +9,7 @@ int main(void)
     char odata[] = "Hello world!";
     char idata[20];
 
-    /* Open port 0 in a blocking IO mode */
+    /* Open port 0 */
     fd = open("/dev/fscc0", O_RDWR);
 
     if (fd == -1) {

@@ -46,7 +46,6 @@ is used to read data from the port.
 ###### Examples
 ```c
 #include <unistd.h>
-#include <fscc.h>
 ...
 
 char idata[20] = {0};
