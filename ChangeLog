@@ -1,3 +1,9 @@
+version 2.4.5 (10/7/2013)
+--------------------------------------------------------------------------------
+    * Fixed a bug where input stream data wasn't being calculated in memory
+      usage
+    * Fixed tx_modifiers ioctl to accept raw integers
+
 version 2.4.4 (09/25/2013)
 --------------------------------------------------------------------------------
     * Fixed a regression where card's weren't detected on kernels < 3.8
