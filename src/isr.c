@@ -306,6 +306,9 @@ void clear_oframe_worker(unsigned long data)
 	if (remove) {
 		fscc_flist_remove_frame(&port->sent_oframes);
 		fscc_frame_delete(frame);
+
+		if (!fscc_flist_is_empty(&port->sent_oframes))
+		    tasklet_schedule(&port->clear_oframe_tasklet);
 	}
 
 	spin_unlock_irqrestore(&port->sent_oframes_spinlock, sent_flags);
