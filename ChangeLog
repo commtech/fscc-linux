@@ -1,3 +1,7 @@
+version 2.4.6 (11/5/2013)
+--------------------------------------------------------------------------------
+    * Fixed a bug where outgoing frames wouldn't get cleared fast enough
+
 version 2.4.5 (10/7/2013)
 --------------------------------------------------------------------------------
     * Fixed a bug where input stream data wasn't being calculated in memory
