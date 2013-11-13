@@ -411,7 +411,7 @@ ssize_t fscc_port_frame_read(struct fscc_port *port, char *buf, size_t buf_lengt
 {
 	struct fscc_frame *frame = 0;
 	unsigned remaining_buf_length = 0;
-	unsigned max_frame_length = 0;
+	int max_frame_length = 0;
 	unsigned current_frame_length = 0;
 	unsigned out_length = 0;
 	unsigned long queued_flags = 0;
@@ -429,6 +429,9 @@ ssize_t fscc_port_frame_read(struct fscc_port *port, char *buf, size_t buf_lengt
 			max_frame_length = remaining_buf_length + 2 - sizeof(struct timeval); // Status length
 		else
 			max_frame_length = remaining_buf_length + 2; // Status length
+
+		if (max_frame_length < 0)
+			break;
 
 		spin_lock_irqsave(&port->queued_iframes_spinlock, queued_flags);
 		frame = fscc_flist_remove_frame_if_lte(&port->queued_iframes, max_frame_length);
