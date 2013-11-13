@@ -29,6 +29,8 @@ Run the make command from within the source code directory to build the driver.
 ```
 cd fscc/
 make
+cd serialfc/
+make
 ```
 
 If you would like to enable debug prints within the driver you need to add
@@ -55,7 +57,10 @@ now ready to load the driver so you can begin using it. To do this you insert
 the driver's kernel object file (fscc.ko) into the kernel.
 
 ```
+cd fscc/
 insmod fscc.ko
+cd serialfc/
+insmod serialfc.ko
 ```
 
 _You will more than likely need administrator privileges for this and
@@ -77,6 +82,9 @@ If you would like the driver to automatically load at boot use the included
 installer.
 
 ```
+cd fscc/
+make install
+cd serialfc/
 make install
 ```
 
@@ -85,6 +93,9 @@ This will also install the header (.h) files.
 To uninstall, use the included uninstaller.
 
 ```
+cd fscc/
+make uninstall
+cd serialfc/
 make uninstall
 ```
 
@@ -175,37 +186,6 @@ There are also multiple code libraries to make development easier.
 
 
 ## Asynchronous Communication
-The FSCC driver lets the built in Linux serial driver handle asynchronous
-communication for our UARTs. The Linux serial driver is highly tested and
-likely more stable than anything we could produce in any reasonably amount of
-time.
-
-Prior to and after loading the FSCC driver there are a few
-steps needed to get the card ready for asynchronous communication.
-
-Some Linux distributions have the default number of serial ports that are
-available at boot set to a small number (usually 4). The first four serial
-ports are reserved so you will need to change this value to something larger
-to be able to configure more serial ports.
-
-There are a couple ways of doing this. The easiest method is by appending
-'8250.nr_uarts=x' to your grub boot line. Something like this:
-
-kernel /boot/vmlinuz-2.6.20-15-generic ro quiet splash 8250.nr_uarts=16
-
-This can be done temporarily by pressing 'e' at the grub menu during boot or
-by permanently modifying this value which is grub version specific. To do
-this please search google for one of the numerous guides on the subject.
-
-Another method is by editing the .config file of you kernel before compiling
-it to allow for more serial ports. This is not preferred because you will
-need to recompile the kernel for it to take effect. The line you need to
-change in the .config file is SERIAL_8250_RUNTIME_UARTS.
-
-Load the FSCC driver. This will handle registering our UARTs with the serial
-driver. Our UART's will now appear as ttyS nodes in the
-/dev/ directory.
-
 By default the FSCC driver boots up in synchronous communication mode. To
 switch to the asynchronous mode you must modify the FSCC card's FCR register
 to allow for asynchronous communication. There are multiple ways of doing
