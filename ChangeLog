@@ -1,6 +1,13 @@
+version 2.4.7 (11/14/2013)
+--------------------------------------------------------------------------------
+    * Fixed a bug that prevented small frame sizes from being calculated 
+      correctly when approaching the memory limit
+
+
 version 2.4.6 (11/5/2013)
 --------------------------------------------------------------------------------
     * Fixed a bug where outgoing frames wouldn't get cleared fast enough
+
 
 version 2.4.5 (10/7/2013)
 --------------------------------------------------------------------------------
@@ -8,9 +15,11 @@ version 2.4.5 (10/7/2013)
       usage
     * Fixed tx_modifiers ioctl to accept raw integers
 
+
 version 2.4.4 (09/25/2013)
 --------------------------------------------------------------------------------
     * Fixed a regression where card's weren't detected on kernels < 3.8
+
 
 version 2.4.3 (09/25/2013)
 --------------------------------------------------------------------------------
