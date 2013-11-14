@@ -96,7 +96,7 @@ FSCC_REGISTERS_INIT(regs);
 regs.CCR0 = 0x0011201c;
 regs.BGR = 10;
 
-ioctl(fd, FSCC_SET_MEMORY_CAP, &regs);
+ioctl(fd, FSCC_SET_REGISTERS, &regs);
 ```
 
 ### Sysfs
