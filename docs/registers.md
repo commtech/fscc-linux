@@ -106,7 +106,7 @@ ioctl(fd, FSCC_SET_MEMORY_CAP, &regs);
 
 ###### Examples
 ```
-echo 0011201c /sys/class/fscc/fscc0/registers/ccr0
+echo 0011201c > /sys/class/fscc/fscc0/registers/ccr0
 ```
 
 
