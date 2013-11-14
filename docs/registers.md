@@ -128,7 +128,7 @@ FSCC_REGISTERS_INIT(regs);
 regs.CCR0 = FSCC_UPDATE_VALUE;
 regs.BGR = FSCC_UPDATE_VALUE;
 
-ioctl(fd, FSCC_GET_MEMORY_CAP, &regs);
+ioctl(fd, FSCC_GET_REGISTERS, &regs);
 ```
 
 At this point `regs.CCR0` and `regs.BGR` would be set to their respective
