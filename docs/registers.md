@@ -133,7 +133,7 @@ ioctl(fd, FSCC_GET_REGISTERS, &regs);
 
 At this point `regs.CCR0` and `regs.BGR` would be set to their respective
 values.
-```
+
 
 ### Sysfs
 ```
