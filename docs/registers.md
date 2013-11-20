@@ -96,7 +96,7 @@ FSCC_REGISTERS_INIT(regs);
 regs.CCR0 = 0x0011201c;
 regs.BGR = 10;
 
-ioctl(fd, FSCC_SET_MEMORY_CAP, &regs);
+ioctl(fd, FSCC_SET_REGISTERS, &regs);
 ```
 
 ### Sysfs
@@ -106,7 +106,7 @@ ioctl(fd, FSCC_SET_MEMORY_CAP, &regs);
 
 ###### Examples
 ```
-echo 0011201c /sys/class/fscc/fscc0/registers/ccr0
+echo 0011201c > /sys/class/fscc/fscc0/registers/ccr0
 ```
 
 
@@ -128,12 +128,12 @@ FSCC_REGISTERS_INIT(regs);
 regs.CCR0 = FSCC_UPDATE_VALUE;
 regs.BGR = FSCC_UPDATE_VALUE;
 
-ioctl(fd, FSCC_GET_MEMORY_CAP, &regs);
+ioctl(fd, FSCC_GET_REGISTERS, &regs);
 ```
 
 At this point `regs.CCR0` and `regs.BGR` would be set to their respective
 values.
-```
+
 
 ### Sysfs
 ```
