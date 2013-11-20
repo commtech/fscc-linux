@@ -765,7 +765,7 @@ unsigned fscc_port_get_RFCNT(struct fscc_port *port)
 
 	fifo_fc_value = fscc_port_get_register(port, 0, FIFO_FC_OFFSET);
 
-	return (unsigned)(fifo_fc_value & 0x00000eff);
+	return (unsigned)(fifo_fc_value & 0x000003ff);
 }
 
 void fscc_port_suspend(struct fscc_port *port)
