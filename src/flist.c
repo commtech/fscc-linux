@@ -24,7 +24,7 @@
 #include "frame.h"
 #include "debug.h"
 
-//TODO: Error checking
+
 void fscc_flist_init(struct fscc_flist *flist)
 {
 	INIT_LIST_HEAD(&flist->frames);
@@ -58,7 +58,6 @@ struct fscc_frame *fscc_flist_peek_back(struct fscc_flist *flist)
 	return list_entry((&flist->frames)->prev, struct fscc_frame, list);
 }
 
-
 struct fscc_frame *fscc_flist_remove_frame(struct fscc_flist *flist)
 {
 	struct fscc_frame *frame = 0;
@@ -73,7 +72,8 @@ struct fscc_frame *fscc_flist_remove_frame(struct fscc_flist *flist)
 	return frame;
 }
 
-struct fscc_frame *fscc_flist_remove_frame_if_lte(struct fscc_flist *flist, unsigned size)
+struct fscc_frame *fscc_flist_remove_frame_if_lte(struct fscc_flist *flist, 
+                                                  unsigned size)
 {
 	struct fscc_frame *frame = 0;
 
