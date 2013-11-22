@@ -288,7 +288,7 @@ void clear_oframe_worker(unsigned long data)
 
 	spin_lock_irqsave(&port->sent_oframes_spinlock, sent_flags);
 
-	frame = fscc_flist_peak_front(&port->sent_oframes);
+	frame = fscc_flist_peek_front(&port->sent_oframes);
 
 	if (!frame) {
 		spin_unlock_irqrestore(&port->sent_oframes_spinlock, sent_flags);

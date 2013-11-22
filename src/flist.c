@@ -42,7 +42,7 @@ void fscc_flist_add_frame(struct fscc_flist *flist, struct fscc_frame *frame)
 	list_add_tail(&frame->list, &flist->frames);
 }
 
-struct fscc_frame *fscc_flist_peak_front(struct fscc_flist *flist)
+struct fscc_frame *fscc_flist_peek_front(struct fscc_flist *flist)
 {
 	if (list_empty(&flist->frames))
 		return 0;
@@ -50,7 +50,7 @@ struct fscc_frame *fscc_flist_peak_front(struct fscc_flist *flist)
 	return list_first_entry(&flist->frames, struct fscc_frame, list);
 }
 
-struct fscc_frame *fscc_flist_peak_back(struct fscc_flist *flist)
+struct fscc_frame *fscc_flist_peek_back(struct fscc_flist *flist)
 {
 	if (list_empty(&flist->frames))
 		return 0;
