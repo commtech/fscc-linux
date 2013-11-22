@@ -42,6 +42,7 @@ void fscc_flist_add_frame(struct fscc_flist *flist, struct fscc_frame *frame);
 struct fscc_frame *fscc_flist_remove_frame(struct fscc_flist *flist);
 struct fscc_frame *fscc_flist_remove_frame_if_lte(struct fscc_flist *flist, unsigned size);
 struct fscc_frame *fscc_flist_peak_front(struct fscc_flist *flist);
+struct fscc_frame *fscc_flist_peak_back(struct fscc_flist *flist);
 void fscc_flist_clear(struct fscc_flist *flist);
 unsigned fscc_flist_is_empty(struct fscc_flist *flist);
 unsigned fscc_flist_calculate_memory_usage(struct fscc_flist *flist);

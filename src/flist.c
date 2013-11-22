@@ -57,6 +57,15 @@ struct fscc_frame *fscc_flist_peak_front(struct fscc_flist *flist)
 	return frame;
 }
 
+struct fscc_frame *fscc_flist_peak_back(struct fscc_flist *flist)
+{
+	if (list_empty(&flist->frames))
+		return 0;
+
+	return list_entry((&flist->frames)->prev, struct fscc_frame, list);
+}
+
+
 struct fscc_frame *fscc_flist_remove_frame(struct fscc_flist *flist)
 {
 	struct fscc_frame *frame = 0;
