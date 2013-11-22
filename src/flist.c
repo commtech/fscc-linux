@@ -44,17 +44,10 @@ void fscc_flist_add_frame(struct fscc_flist *flist, struct fscc_frame *frame)
 
 struct fscc_frame *fscc_flist_peak_front(struct fscc_flist *flist)
 {
-	struct fscc_frame *frame = 0;
-
-	if (list_empty(&flist->frames)) {
+	if (list_empty(&flist->frames))
 		return 0;
-	}
 
-	list_for_each_entry(frame, &flist->frames, list) {
-		break; // Breaks after setting frame to the head // TODO
-	}
-
-	return frame;
+	return list_first_entry(&flist->frames, struct fscc_frame, list);
 }
 
 struct fscc_frame *fscc_flist_peak_back(struct fscc_flist *flist)
@@ -70,13 +63,10 @@ struct fscc_frame *fscc_flist_remove_frame(struct fscc_flist *flist)
 {
 	struct fscc_frame *frame = 0;
 
-	if (list_empty(&flist->frames)) {
+	if (list_empty(&flist->frames))
 		return 0;
-	}
 
-	list_for_each_entry(frame, &flist->frames, list) {
-		break; // Breaks after setting frame to the head // TODO
-	}
+	frame = list_first_entry(&flist->frames, struct fscc_frame, list);
 
 	list_del(&frame->list);
 
@@ -87,17 +77,13 @@ struct fscc_frame *fscc_flist_remove_frame_if_lte(struct fscc_flist *flist, unsi
 {
 	struct fscc_frame *frame = 0;
 
-	if (list_empty(&flist->frames)) {
+	if (list_empty(&flist->frames))
 		return 0;
-	}
 
-	list_for_each_entry(frame, &flist->frames, list) {
-		break; // Breaks after setting frame to the head // TODO
-	}
+	frame = list_first_entry(&flist->frames, struct fscc_frame, list);
 
-	if (fscc_frame_get_length(frame) > size) {
+	if (fscc_frame_get_length(frame) > size)
 		return 0;
-	}
 
 	list_del(&frame->list);
 
