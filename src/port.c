@@ -976,12 +976,11 @@ void fscc_port_set_clock_bits(struct fscc_port *port,
 	clock_data[15] &= 0xfb;
 #else
 	/* This enables XTAL on all cards except green FSCC cards with a revision
-	   greater than 6. Some old protoype SuperFSCC cards will need to manually
-	   disable XTAL as they are not supported in this driver by default. */
-	if (fscc_port_get_PDEV(port) == 0x0f && fscc_port_get_PREV(port) <= 6)
-		clock_data[15] &= 0xfb;
-	else
-		clock_data[15] |= 0x04;
+       greater than 6 and 232 cards. Some old protoype SuperFSCC cards will 
+       need to manually disable XTAL as they are not supported in this driver 
+       by default. */
+    if ((fscc_port_get_PDEV(port) == 0x0f && fscc_port_get_PREV(port) <= 6) ||
+        fscc_port_get_PDEV(port) == 0x16)
 #endif
 
 
