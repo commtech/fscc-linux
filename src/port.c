@@ -1224,7 +1224,6 @@ int fscc_port_set_tx_modifiers(struct fscc_port *port, int value)
 		case XF|TXEXT:
 		case XREP:
 		case XREP|TXT:
-		case XREP|TXEXT:
 			if (port->tx_modifiers != value) {
 				dev_dbg(port->device, "tx modifiers 0x%x => 0x%x\n",
 						port->tx_modifiers, value);
