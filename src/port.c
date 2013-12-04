@@ -1041,6 +1041,14 @@ void fscc_port_set_append_status(struct fscc_port *port, unsigned value)
 {
 	return_if_untrue(port);
 
+    if (port->append_status != value) {
+		dev_dbg(port->device, "append status %i => %i", port->append_status,
+		        value);
+    }
+    else {
+		dev_dbg(port->device, "append status = %i", value);
+    }
+
 	port->append_status = (value) ? 1 : 0;
 }
 
@@ -1048,23 +1056,47 @@ void fscc_port_set_append_timestamp(struct fscc_port *port, unsigned value)
 {
 	return_if_untrue(port);
 
+    if (port->append_timestamp != value) {
+		dev_dbg(port->device, "append timestamp %i => %i",
+		        port->append_timestamp, value);
+    }
+    else {
+		dev_dbg(port->device, "append timestamp = %i", value);
+    }
+
 	port->append_timestamp = (value) ? 1 : 0;
 }
 
 void fscc_port_set_ignore_timeout(struct fscc_port *port,
-								  unsigned ignore_timeout)
+								  unsigned value)
 {
 	return_if_untrue(port);
 
-	port->ignore_timeout = (ignore_timeout) ? 1 : 0;
+    if (port->ignore_timeout != value) {
+		dev_dbg(port->device, "ignore timeout %i => %i",
+		        port->ignore_timeout, value);
+    }
+    else {
+		dev_dbg(port->device, "ignore timeout = %i", value);
+    }
+
+	port->ignore_timeout = (value) ? 1 : 0;
 }
 
 void fscc_port_set_rx_multiple(struct fscc_port *port,
-							   unsigned rx_multiple)
+							   unsigned value)
 {
 	return_if_untrue(port);
 
-	port->rx_multiple = (rx_multiple) ? 1 : 0;
+    if (port->rx_multiple != value) {
+		dev_dbg(port->device, "receive multiple %i => %i",
+		        port->rx_multiple, value);
+    }
+    else {
+		dev_dbg(port->device, "receive multiple = %i", value);
+    }
+
+	port->rx_multiple = (value) ? 1 : 0;
 }
 
 unsigned fscc_port_get_append_status(struct fscc_port *port)
@@ -1226,11 +1258,11 @@ int fscc_port_set_tx_modifiers(struct fscc_port *port, int value)
 		case XREP|TXT:
 		case XREP|TXEXT:
 			if (port->tx_modifiers != value) {
-				dev_dbg(port->device, "tx modifiers 0x%x => 0x%x\n",
+				dev_dbg(port->device, "transmit modifiers 0x%x => 0x%x\n",
 						port->tx_modifiers, value);
 			}
 			else {
-				dev_dbg(port->device, "tx modifiers 0x%x\n",
+				dev_dbg(port->device, "transmit modifiers 0x%x\n",
 						value);
 			}
 
