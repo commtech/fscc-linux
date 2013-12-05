@@ -164,6 +164,8 @@ int fscc_frame_add_data_from_user(struct fscc_frame *frame, const char *data,
 int fscc_frame_remove_data(struct fscc_frame *frame, char *destination,
 							unsigned length)
 {
+    unsigned untransferred_bytes = 0;
+
 	return_val_if_untrue(frame, 0);
 
 	if (length == 0)
@@ -182,7 +184,10 @@ int fscc_frame_remove_data(struct fscc_frame *frame, char *destination,
 
 	/* Copy the data into the outside buffer */
 	if (destination)
-		copy_to_user(destination, frame->buffer, length);
+		untransferred_bytes = copy_to_user(destination, frame->buffer, length);
+
+    if (untransferred_bytes > 0)
+        return 0;
 
 	frame->data_length -= length;
 
