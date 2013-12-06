@@ -27,6 +27,7 @@ extern "C"
 #endif
 
 #include <stdint.h>
+#include <string.h>
 #include <sys/ioctl.h>
 
 #define FSCC_REGISTERS_INIT(regs) memset(&regs, -1, sizeof(regs))
