@@ -1,5 +1,13 @@
 # Append Timestamp
 
+[`do_gettimeofday`](http://www.fsl.cs.sunysb.edu/kernel-api/re29.html)
+is used to acquire the timestamp upon complete reception of a frame.
+
+_We will be moving to 
+[`getnstimeofday`](http://www.gnugeneration.com/books/linux/2.6.20/kernel-api/re32.html)
+in the 3.0 driver series._
+
+
 ###### Support
 | Code         | Version
 | ------------ | --------
