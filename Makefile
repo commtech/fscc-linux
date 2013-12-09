@@ -1,13 +1,17 @@
-obj-m 	:= fscc.o
-KDIR	:= /lib/modules/$(shell uname -r)/build
+obj-m := fscc.o
+KDIR := /lib/modules/$(shell uname -r)/build
 PWD	:= $(shell pwd)
-IGNORE	:=
+IGNORE :=
 fscc-objs := src/main.o src/port.o src/card.o src/isr.o src/utils.o \
              src/frame.o src/sysfs.o src/descriptor.o src/debug.o \
              src/flist.o
 
 ifeq ($(DEBUG),1)
 	EXTRA_CFLAGS += -DDEBUG
+endif
+
+ifeq ($(RELEASE_PREVIEW),1)
+	EXTRA_CFLAGS += -DRELEASE_PREVIEW
 endif
 
 default:

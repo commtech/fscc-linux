@@ -422,11 +422,11 @@ ssize_t fscc_port_frame_read(struct fscc_port *port, char *buf, size_t buf_lengt
 		remaining_buf_length = buf_length - out_length;
 
 		if (port->append_status && port->append_timestamp)
-			max_frame_length = remaining_buf_length - sizeof(struct timeval);
+			max_frame_length = remaining_buf_length - sizeof(fscc_timestamp);
 		else if (port->append_status)
 			max_frame_length = remaining_buf_length;
 		else if (port->append_timestamp)
-			max_frame_length = remaining_buf_length + 2 - sizeof(struct timeval); // Status length
+			max_frame_length = remaining_buf_length + 2 - sizeof(fscc_timestamp);
 		else
 			max_frame_length = remaining_buf_length + 2; // Status length
 

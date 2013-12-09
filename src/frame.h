@@ -24,6 +24,14 @@
 #include <linux/list.h> /* struct list_head */
 #include "descriptor.h" /* struct fscc_descriptor */
 
+
+#ifdef RELEASE_PREVIEW
+typedef struct timespec fscc_timestamp;
+#else
+typedef struct timeval fscc_timestamp;
+#endif
+
+
 struct fscc_frame {
 	struct list_head list;
 	char *buffer;
@@ -32,7 +40,7 @@ struct fscc_frame {
 	unsigned number;
 	unsigned dma_initialized;
 	unsigned fifo_initialized;
-	struct timeval timestamp;
+	fscc_timestamp timestamp;
 
 	struct fscc_descriptor *d1;
 	struct fscc_descriptor *d2;

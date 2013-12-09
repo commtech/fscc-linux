@@ -186,7 +186,11 @@ void iframe_worker(unsigned long data)
 		}
 
 		if (port->pending_iframe) {
+#ifdef RELEASE_PREVIEW
+			getnstimeofday(&port->pending_iframe->timestamp);
+#else
 			do_gettimeofday(&port->pending_iframe->timestamp);
+#endif
 			spin_lock_irqsave(&port->queued_iframes_spinlock, queued_flags);
 			fscc_flist_add_frame(&port->queued_iframes, port->pending_iframe);
 			spin_unlock_irqrestore(&port->queued_iframes_spinlock, queued_flags);
