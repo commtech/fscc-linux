@@ -1,3 +1,14 @@
+version 2.4.8 (12/09/2013)
+--------------------------------------------------------------------------------    
+    * Updated SerialFC to v2.2.0
+      (https://github.com/commtech/serialfc-linux/blob/master/ChangeLog.txt)
+    * Fixed setting the clock rate on 232 cards
+    * Increased the default timeout duration to 50 cycles
+    * Various small fixes
+    * Added early support for getnstimeofday()
+    * Fixed a buf where DMA frames were getting lost
+
+
 version 2.4.7 (11/14/2013)
 --------------------------------------------------------------------------------
     * Fixed a bug that prevented small frame sizes from being calculated 
