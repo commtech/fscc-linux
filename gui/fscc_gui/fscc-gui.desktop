@@ -1,9 +1,0 @@
-[Desktop Entry]
-Name=FSCC Settings Editor
-Comment=Modify FSCC settings
-Exec=fscc-gui
-Terminal=false
-Type=Application
-Icon=/usr/share/icons/hicolor/48x48/apps/fscc-gui.png
-Categories=System
-StartupNotify=true
