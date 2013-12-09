@@ -1331,13 +1331,27 @@ void fscc_port_execute_transmit(struct fscc_port *port, unsigned dma)
 int prepare_frame_for_dma(struct fscc_port *port, struct fscc_frame *frame,
                           unsigned *length)
 {
+	struct fscc_frame *last_frame = 0;
+	unsigned long sent_flags = 0;
+
 	fscc_frame_setup_descriptors(frame);
 
-	fscc_port_set_register(port, 2, DMA_TX_BASE_OFFSET, frame->d1_handle);
+	spin_lock_irqsave(&port->sent_oframes_spinlock, sent_flags);
 
-	*length = fscc_frame_get_length(frame);
+	last_frame = fscc_flist_peek_back(&port->sent_oframes);
 
-	return 2;
+	if (last_frame && last_frame->d1->control != 0x40000000) {
+		// Wait until last frame is finished
+		spin_unlock_irqrestore(&port->sent_oframes_spinlock, sent_flags);
+		//fscc_port_set_register(port, 2, DMA_TX_BASE_OFFSET, frame->d1_handle);
+		return 0;
+	}
+	else {
+		fscc_port_set_register(port, 2, DMA_TX_BASE_OFFSET, frame->d1_handle);
+		*length = fscc_frame_get_length(frame);
+		spin_unlock_irqrestore(&port->sent_oframes_spinlock, sent_flags);
+		return 2;
+	}
 }
 
 int prepare_frame_for_fifo(struct fscc_port *port, struct fscc_frame *frame,
