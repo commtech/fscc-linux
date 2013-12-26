@@ -14,7 +14,7 @@ desired baud rate using the BGR register.
 
 _If you are receiving timeout errors when using slow data rates you can bypass
 the safety checks by using the 
-[`FSCC_ENABLE_IGNORE_TIMEOUT`](https://github.com/commtech/fscc-windows/blob/master/docs/ignore-timeout.md)
+[`FSCC_ENABLE_IGNORE_TIMEOUT`](https://github.com/commtech/fscc-linux/blob/master/docs/ignore-timeout.md)
 option._
 
 ###### Support
