@@ -201,6 +201,9 @@ More information about using the UART's is available in the
 
 ### FAQ
 
+##### Can I use the old legacy utilties with the new driver?
+No. The old utilities use a different API and will not work with the new driver.
+
 ##### Migrating From 1.x to 2.x
 There are multiple benefits of using the 2.x driver: accurate posix error
 codes, intuitive ioctl calls, backend support for multiple languages (Python,

@@ -3,6 +3,11 @@ Between the hardware FIFO and the driver's software buffers there are multiple p
 be stored, excluding your application code. If you ever need to clear this data and start fresh, 
 there are a couple of methods you can use.
 
+_An `FSCC_PURGE_RX` is required after changing the `MODE` bits in the `CCR0` register. If you need to change
+the `MODE` bits but don't have a clock present, change the `CM` bits to `0x7` temporarily. This will give 
+you an internal clock to switch modes. You can then switch to your desired `CM` now that your `MODE` is 
+locked in._
+
 ###### Support
 | Code         | Version
 | ------------ | --------
