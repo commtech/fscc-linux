@@ -441,6 +441,33 @@ static ssize_t append_status_show(struct kobject *kobj,
 	return sprintf(buf, "%i\n", fscc_port_get_append_status(port));
 }
 
+static ssize_t append_timestamp_store(struct kobject *kobj,
+								   struct kobj_attribute *attr, const char *buf,
+								   size_t count)
+{
+	struct fscc_port *port = 0;
+	unsigned value = 0;
+	char *end = 0;
+
+	port = (struct fscc_port *)dev_get_drvdata((struct device *)kobj);
+
+	value = (unsigned)simple_strtoul(buf, &end, 16);
+
+	fscc_port_set_append_timestamp(port, value);
+
+	return count;
+}
+
+static ssize_t append_timestamp_show(struct kobject *kobj,
+								  struct kobj_attribute *attr, char *buf)
+{
+	struct fscc_port *port = 0;
+
+	port = (struct fscc_port *)dev_get_drvdata((struct device *)kobj);
+
+	return sprintf(buf, "%i\n", fscc_port_get_append_timestamp(port));
+}
+
 static ssize_t input_memory_cap_store(struct kobject *kobj,
 								   struct kobj_attribute *attr, const char *buf,
 								   size_t count)
@@ -502,6 +529,9 @@ static ssize_t output_memory_cap_show(struct kobject *kobj,
 static struct kobj_attribute append_status_attribute =
 	__ATTR(append_status, SYSFS_READ_WRITE_MODE, append_status_show, append_status_store);
 
+static struct kobj_attribute append_timestamp_attribute =
+	__ATTR(append_timestamp, SYSFS_READ_WRITE_MODE, append_timestamp_show, append_timestamp_store);
+
 static struct kobj_attribute input_memory_cap_attribute =
 	__ATTR(input_memory_cap, SYSFS_READ_WRITE_MODE, input_memory_cap_show, input_memory_cap_store);
 
@@ -519,6 +549,7 @@ static struct kobj_attribute tx_modifiers_attribute =
 
 static struct attribute *settings_attrs[] = {
 	&append_status_attribute.attr,
+	&append_timestamp_attribute.attr,
 	&input_memory_cap_attribute.attr,
 	&output_memory_cap_attribute.attr,
 	&ignore_timeout_attribute.attr,
