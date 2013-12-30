@@ -218,10 +218,10 @@ unsigned fscc_port_get_rx_multiple(struct fscc_port *port);
 void fscc_port_set_clock_bits(struct fscc_port *port,
 							  unsigned char *clock_data);
 
-void fscc_port_set_append_status(struct fscc_port *port, unsigned value);
+int fscc_port_set_append_status(struct fscc_port *port, unsigned value);
 unsigned fscc_port_get_append_status(struct fscc_port *port);
 
-void fscc_port_set_append_timestamp(struct fscc_port *port, unsigned value);
+int fscc_port_set_append_timestamp(struct fscc_port *port, unsigned value);
 unsigned fscc_port_get_append_timestamp(struct fscc_port *port);
 
 int fscc_port_set_registers(struct fscc_port *port,

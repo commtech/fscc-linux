@@ -221,7 +221,9 @@ int fscc_ioctl(struct inode *inode, struct file *file, unsigned int cmd,
 		break;
 
 	case FSCC_ENABLE_APPEND_STATUS:
-		fscc_port_set_append_status(port, 1);
+		if ((error_code = fscc_port_set_append_status(port, 1)) < 0)
+			return error_code;
+
 		break;
 
 	case FSCC_DISABLE_APPEND_STATUS:
@@ -233,7 +235,9 @@ int fscc_ioctl(struct inode *inode, struct file *file, unsigned int cmd,
 		break;
 
 	case FSCC_ENABLE_APPEND_TIMESTAMP:
-		fscc_port_set_append_timestamp(port, 1);
+		if ((error_code = fscc_port_set_append_timestamp(port, 1)) < 0)
+			return error_code;
+
 		break;
 
 	case FSCC_DISABLE_APPEND_TIMESTAMP:

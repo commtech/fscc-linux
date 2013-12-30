@@ -662,6 +662,11 @@ int fscc_port_set_registers(struct fscc_port *port,
 		}
 	}
 
+	if (fscc_port_is_streaming(port)) {
+	    fscc_port_set_append_status(port, 0);
+	    fscc_port_set_append_timestamp(port, 0);
+	}
+
 	return (stalled) ? -ETIMEDOUT : 1;
 }
 
@@ -1037,9 +1042,12 @@ void fscc_port_set_clock_bits(struct fscc_port *port,
 	kfree(data);
 }
 
-void fscc_port_set_append_status(struct fscc_port *port, unsigned value)
+int fscc_port_set_append_status(struct fscc_port *port, unsigned value)
 {
-	return_if_untrue(port);
+	return_val_if_untrue(port, 0);
+
+	if (value && fscc_port_is_streaming(port))
+	    return -EOPNOTSUPP;
 
     if (port->append_status != value) {
 		dev_dbg(port->device, "append status %i => %i", port->append_status,
@@ -1050,11 +1058,16 @@ void fscc_port_set_append_status(struct fscc_port *port, unsigned value)
     }
 
 	port->append_status = (value) ? 1 : 0;
+
+	return 1;
 }
 
-void fscc_port_set_append_timestamp(struct fscc_port *port, unsigned value)
+int fscc_port_set_append_timestamp(struct fscc_port *port, unsigned value)
 {
-	return_if_untrue(port);
+	return_val_if_untrue(port, 0);
+
+	if (value && fscc_port_is_streaming(port))
+	    return -EOPNOTSUPP;
 
     if (port->append_timestamp != value) {
 		dev_dbg(port->device, "append timestamp %i => %i",
@@ -1065,6 +1078,8 @@ void fscc_port_set_append_timestamp(struct fscc_port *port, unsigned value)
     }
 
 	port->append_timestamp = (value) ? 1 : 0;
+
+	return 1;
 }
 
 void fscc_port_set_ignore_timeout(struct fscc_port *port,
