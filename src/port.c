@@ -574,13 +574,6 @@ int fscc_port_set_register(struct fscc_port *port, unsigned bar,
 			dev_dbg(port->device, "%i:%02x 0x%08x\n", bar, register_offset, 
 					value);
 		}
-
-		if (register_offset == CCR0_OFFSET || register_offset == CCR2_OFFSET) {
-			if (fscc_port_is_streaming(port)) {
-				fscc_port_set_append_status(port, 0);
-				fscc_port_set_append_timestamp(port, 0);
-			}
-		}
 	}
 	else if (register_offset == FCR_OFFSET) {
 		fscc_register old_value = port->register_storage.FCR;
@@ -1120,14 +1113,14 @@ unsigned fscc_port_get_append_status(struct fscc_port *port)
 {
 	return_val_if_untrue(port, 0);
 
-	return port->append_status;
+	return !fscc_port_is_streaming(port) && port->append_status;
 }
 
 unsigned fscc_port_get_append_timestamp(struct fscc_port *port)
 {
 	return_val_if_untrue(port, 0);
 
-	return port->append_timestamp;
+	return !fscc_port_is_streaming(port) && port->append_timestamp;
 }
 
 unsigned fscc_port_get_ignore_timeout(struct fscc_port *port)
