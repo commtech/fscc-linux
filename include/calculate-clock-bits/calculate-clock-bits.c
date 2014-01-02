@@ -71,35 +71,35 @@ int calculate_clock_bits(unsigned long freq,unsigned long ppm, unsigned char *pr
             //printf("\n");
             break;
         case 1:
-            printf("ICS30703: Rs case error\n");
+            //printf("ICS30703: Rs case error\n");
             goto drop;
             break;
         case 2:
-            printf("ICS30703: no solutions found, try increasing ppm\n");
+            //printf("ICS30703: no solutions found, try increasing ppm\n");
             goto drop;
             break;
         case 3:
-            printf("ICS30703: Table 1: Input Divider is out of rante.\n");
+            //printf("ICS30703: Table 1: Input Divider is out of rante.\n");
             goto drop;
             break;
         case 4:
-            printf("ICS30703: Table 2: VCODivider is out of range.\n");
+            //printf("ICS30703: Table 2: VCODivider is out of range.\n");
             goto drop;
             break;
         case 5:
-            printf("ICS30703: Table 4: LoopFilterResistor is incorrect.\n");
+            //printf("ICS30703: Table 4: LoopFilterResistor is incorrect.\n");
             goto drop;
             break;
         case 6:
-            printf("ICS30703: Table 3: Charge Pump Current is incorrect.\n");
+            //printf("ICS30703: Table 3: Charge Pump Current is incorrect.\n");
             goto drop;
             break;
         case 7:
-            printf("ICS30703: Table 5: OutputDividerOut1 is out of range.\n");
+            //printf("ICS30703: Table 5: OutputDividerOut1 is out of range.\n");
             goto drop;
             break;
         default:
-            printf("ICS30703: Unknown error number.\n");
+            //printf("ICS30703: Unknown error number.\n");
             goto drop;
         }
 
@@ -164,6 +164,9 @@ int GetICS30703Data(unsigned long desired, unsigned long ppm, struct ResultStruc
     unsigned long OutputDividerOut1=0;
     unsigned long temp=0;
     unsigned long requestedppm;
+
+    if (desired < 15000 || desired > 270000000)
+        return 1;
 
     requestedppm=ppm;
 
