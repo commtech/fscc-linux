@@ -149,5 +149,5 @@
 - Use atomic memory allocation when in transparent mode
 
 
-## [v2.0.0 (01/07/2011)
+## [v2.0.0](https://github.com/commtech/fscc-linux/releases/tag/v2.0.0) (01/07/2011)
 This is the initial release of the 2.0 driver series.
