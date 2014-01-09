@@ -1,3 +1,5 @@
+# ChangeLog
+
 ## [v2.4.8](https://github.com/commtech/fscc-linux/releases/tag/v2.4.8) (12/09/2013)  
 - Updated SerialFC to 
 [v2.2.0](https://github.com/commtech/serialfc-linux/releases/tag/v2.2.0)
