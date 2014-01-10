@@ -289,6 +289,7 @@ struct fscc_port *fscc_port_new(struct fscc_card *card, unsigned channel,
 void fscc_port_delete(struct fscc_port *port)
 {
 	unsigned irq_num = 0;
+	unsigned long stream_flags = 0;
 	unsigned long queued_iframes_flags = 0;
 	unsigned long queued_oframes_flags = 0;
 	unsigned long sent_oframes_flags = 0;
@@ -318,8 +319,9 @@ void fscc_port_delete(struct fscc_port *port)
 		kfree(port->null_descriptor);
 	}
 
-	//TODO: Spinlock
+	spin_lock_irqsave(&port->istream_spinlock, stream_flags);
 	fscc_frame_delete(port->istream);
+	spin_unlock_irqrestore(&port->istream_spinlock, stream_flags);
 
 	spin_lock_irqsave(&port->queued_iframes_spinlock, queued_iframes_flags);
 	fscc_flist_delete(&port->queued_iframes);
