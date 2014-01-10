@@ -903,6 +903,46 @@ unsigned fscc_port_get_output_memory_usage(struct fscc_port *port)
 	return value;
 }
 
+unsigned fscc_port_get_input_number_frames(struct fscc_port *port)
+{
+	unsigned value = 0;
+	unsigned long pending_flags;
+	unsigned long queued_flags;
+
+	return_val_if_untrue(port, 0);
+
+	spin_lock_irqsave(&port->queued_iframes_spinlock, queued_flags);
+	value = fscc_flist_length(&port->queued_iframes);
+	spin_unlock_irqrestore(&port->queued_iframes_spinlock, queued_flags);
+
+	spin_lock_irqsave(&port->pending_iframe_spinlock, pending_flags);
+	if (port->pending_iframe)
+		value++;
+	spin_unlock_irqrestore(&port->pending_iframe_spinlock, pending_flags);
+
+	return value;
+}
+
+unsigned fscc_port_get_output_number_frames(struct fscc_port *port)
+{
+	unsigned value = 0;
+	unsigned long pending_flags;
+	unsigned long queued_flags;
+
+	return_val_if_untrue(port, 0);
+
+	spin_lock_irqsave(&port->queued_oframes_spinlock, queued_flags);
+	value = fscc_flist_length(&port->queued_oframes);
+	spin_unlock_irqrestore(&port->queued_oframes_spinlock, queued_flags);
+
+	spin_lock_irqsave(&port->pending_oframe_spinlock, pending_flags);
+	if (port->pending_oframe)
+		value++;
+	spin_unlock_irqrestore(&port->pending_oframe_spinlock, pending_flags);
+
+	return value;
+}
+
 unsigned fscc_port_get_input_memory_cap(struct fscc_port *port)
 {
 	return_val_if_untrue(port, 0);

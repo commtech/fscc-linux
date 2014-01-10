@@ -122,3 +122,15 @@ unsigned fscc_flist_calculate_memory_usage(struct fscc_flist *flist)
 
 	return memory;
 }
+
+unsigned fscc_flist_length(struct fscc_flist *flist)
+{
+	unsigned num_frames = 0;
+	struct fscc_frame *current_frame = 0;
+
+	list_for_each_entry(current_frame, &flist->frames, list) {
+		num_frames++;
+	}
+
+	return num_frames;
+}

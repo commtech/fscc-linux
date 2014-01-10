@@ -46,5 +46,6 @@ struct fscc_frame *fscc_flist_peek_back(struct fscc_flist *flist);
 void fscc_flist_clear(struct fscc_flist *flist);
 unsigned fscc_flist_is_empty(struct fscc_flist *flist);
 unsigned fscc_flist_calculate_memory_usage(struct fscc_flist *flist);
+unsigned fscc_flist_length(struct fscc_flist *flist);
 
 #endif
