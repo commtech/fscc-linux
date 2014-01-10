@@ -70,7 +70,6 @@ int fscc_frame_remove_data(struct fscc_frame *frame, char *destination,
 unsigned fscc_frame_is_empty(struct fscc_frame *frame);
 
 void fscc_frame_clear(struct fscc_frame *frame);
-void fscc_frame_trim(struct fscc_frame *frame);
 int fscc_frame_setup_descriptors(struct fscc_frame *frame);
 unsigned fscc_frame_is_dma(struct fscc_frame *frame);
 unsigned fscc_frame_is_fifo(struct fscc_frame *frame);
