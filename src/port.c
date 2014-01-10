@@ -710,9 +710,9 @@ unsigned fscc_port_get_RXCNT(struct fscc_port *port)
 
 	fifo_bc_value = fscc_port_get_register(port, 0, FIFO_BC_OFFSET);
 
-	// TODO: Not sure why, but this can be larger than 8192
-	// We add the 8192 check here so other code can count on the value
-	// not being larger than 8192
+	/* Not sure why, but this can be larger than 8192. We add
+       the 8192 check here so other code can count on the value
+       not being larger than 8192. */
 	return min(fifo_bc_value & 0x00003FFF, (__u32)8192);
 }
 __u8 fscc_port_get_FREV(struct fscc_port *port)
