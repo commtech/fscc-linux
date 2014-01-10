@@ -197,10 +197,9 @@ int fscc_frame_remove_data(struct fscc_frame *frame, char *destination,
 	return 1;
 }
 
-//TODO: This could cause an issue w here data_length is less before it makes it into remove_Data
 void fscc_frame_clear(struct fscc_frame *frame)
 {
-	fscc_frame_remove_data(frame, NULL, frame->data_length);
+    fscc_frame_update_buffer_size(frame, 0);
 }
 
 void fscc_frame_trim(struct fscc_frame *frame)
