@@ -392,7 +392,7 @@ int fscc_port_write(struct fscc_port *port, const char *data, unsigned length)
 	frame = fscc_frame_new(port);
 
 	if (!frame)
-		return 0; //TODO: Should return something more informative
+		return -ENOMEM;
 
 	fscc_frame_add_data_from_user(frame, data, length);
 
