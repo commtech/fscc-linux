@@ -1054,13 +1054,19 @@ void fscc_port_set_clock_bits(struct fscc_port *port,
 		for (j = 7; j >= 0; j--) {
 			int bit = ((clock_data[i] >> j) & 1);
 
+            /* This is required for 4-port cards. I'm not sure why at the
+               moment */
+			data[data_index++] = new_fcr_value;
+
 			if (bit)
 				new_fcr_value |= dta_value; /* Set data bit */
 			else
-				new_fcr_value &= ~dta_value; /* Clear clock bit */
+				new_fcr_value &= ~dta_value; /* Clear data bit */
 
 			data[data_index++] = new_fcr_value |= clk_value; /* Set clock bit */
 			data[data_index++] = new_fcr_value &= ~clk_value; /* Clear clock bit */
+
+			new_fcr_value = orig_fcr_value & 0xfffff0f0;
 		}
 	}
 
