@@ -28,6 +28,8 @@
 void fscc_flist_init(struct fscc_flist *flist)
 {
 	INIT_LIST_HEAD(&flist->frames);
+
+	flist->estimated_memory_usage = 0;
 }
 
 void fscc_flist_delete(struct fscc_flist *flist)
@@ -40,6 +42,8 @@ void fscc_flist_delete(struct fscc_flist *flist)
 void fscc_flist_add_frame(struct fscc_flist *flist, struct fscc_frame *frame)
 {
 	list_add_tail(&frame->list, &flist->frames);
+
+	flist->estimated_memory_usage += fscc_frame_get_length(frame);
 }
 
 struct fscc_frame *fscc_flist_peek_front(struct fscc_flist *flist)
@@ -69,6 +73,8 @@ struct fscc_frame *fscc_flist_remove_frame(struct fscc_flist *flist)
 
 	list_del(&frame->list);
 
+	flist->estimated_memory_usage -= fscc_frame_get_length(frame);
+
 	return frame;
 }
 
@@ -76,16 +82,21 @@ struct fscc_frame *fscc_flist_remove_frame_if_lte(struct fscc_flist *flist,
                                                   unsigned size)
 {
 	struct fscc_frame *frame = 0;
+	unsigned frame_length = 0;
 
 	if (list_empty(&flist->frames))
 		return 0;
 
 	frame = list_first_entry(&flist->frames, struct fscc_frame, list);
 
-	if (fscc_frame_get_length(frame) > size)
+	frame_length = fscc_frame_get_length(frame);
+
+	if (frame_length > size)
 		return 0;
 
 	list_del(&frame->list);
+
+	flist->estimated_memory_usage -= fscc_frame_get_length(frame);
 
 	return frame;
 }
@@ -104,6 +115,8 @@ void fscc_flist_clear(struct fscc_flist *flist)
 
 		fscc_frame_delete(current_frame);
 	}
+
+	flist->estimated_memory_usage = 0;
 }
 
 unsigned fscc_flist_is_empty(struct fscc_flist *flist)

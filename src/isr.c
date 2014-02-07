@@ -89,6 +89,7 @@ void iframe_worker(unsigned long data)
 	static int rejected_last_frame = 0;
 	unsigned current_memory = 0;
 	unsigned memory_cap = 0;
+	unsigned rfcnt = 0;
 
 	port = (struct fscc_port *)data;
 
@@ -101,7 +102,8 @@ void iframe_worker(unsigned long data)
 		spin_lock_irqsave(&port->board_rx_spinlock, board_flags);
 		spin_lock_irqsave(&port->pending_iframe_spinlock, frame_flags);
 
-		finished_frame = (fscc_port_get_RFCNT(port) > 0) ? 1 : 0;
+		rfcnt = fscc_port_get_RFCNT(port);
+		finished_frame = (rfcnt > 0) ? 1 : 0;
 
 		if (finished_frame) {
 			unsigned bc_fifo_l = 0;
@@ -111,22 +113,31 @@ void iframe_worker(unsigned long data)
 
 			if (port->pending_iframe)
 				current_length = fscc_frame_get_length(port->pending_iframe);
-			else
-				current_length = 0;
 
 			receive_length = bc_fifo_l - current_length;
 		} else {
 			unsigned rxcnt = 0;
 
+			// Refresh rfcnt, if the frame is now complete, reloop through
+			// This prevents the situation where the frame has finished being
+			// received between the original rfcnt and now, causing a possible
+			// read of a larger byte count than in the actual frame due to
+			// another incoming frame
 			rxcnt = fscc_port_get_RXCNT(port);
+			rfcnt = fscc_port_get_RFCNT(port);
+
+			if (rfcnt) {
+				spin_unlock_irqrestore(&port->pending_iframe_spinlock, frame_flags);
+				spin_unlock_irqrestore(&port->board_rx_spinlock, board_flags);
+				break;
+			}
 
 			/* We choose a safe amount to read due to more data coming in after we
 			   get our values. The rest will be read on the next interrupt. */
-			receive_length = rxcnt - STATUS_LENGTH - MAX_LEFTOVER_BYTES;
-			receive_length -= receive_length % 4;
+			receive_length = max((int)(rxcnt - rxcnt % 4), (int)0);
 		}
 
-		if (receive_length <= 0) {
+		if (!receive_length) {
 			spin_unlock_irqrestore(&port->pending_iframe_spinlock, frame_flags);
 			spin_unlock_irqrestore(&port->board_rx_spinlock, board_flags);
 			return;

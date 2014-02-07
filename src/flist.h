@@ -34,6 +34,7 @@
 
 struct fscc_flist {
 	struct list_head frames;
+	unsigned estimated_memory_usage;
 };
 
 void fscc_flist_init(struct fscc_flist *flist);

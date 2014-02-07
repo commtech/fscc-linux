@@ -870,7 +870,7 @@ unsigned fscc_port_get_input_memory_usage(struct fscc_port *port)
 	return_val_if_untrue(port, 0);
 
 	spin_lock_irqsave(&port->queued_iframes_spinlock, queued_flags);
-	value = fscc_flist_calculate_memory_usage(&port->queued_iframes);
+	value = port->queued_iframes.estimated_memory_usage;
 	spin_unlock_irqrestore(&port->queued_iframes_spinlock, queued_flags);
 
 	spin_lock_irqsave(&port->istream_spinlock, stream_flags);
@@ -894,7 +894,7 @@ unsigned fscc_port_get_output_memory_usage(struct fscc_port *port)
 	return_val_if_untrue(port, 0);
 
 	spin_lock_irqsave(&port->queued_oframes_spinlock, queued_flags);
-	value = fscc_flist_calculate_memory_usage(&port->queued_oframes);
+	value = port->queued_oframes.estimated_memory_usage;
 	spin_unlock_irqrestore(&port->queued_oframes_spinlock, queued_flags);
 
 	spin_lock_irqsave(&port->pending_oframe_spinlock, pending_flags);
