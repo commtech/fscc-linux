@@ -373,6 +373,8 @@ char *fscc_card_get_name(struct fscc_card *card)
 	case SFSCC_4_CPCI_ID:
 	case SFSCC_4_UA_CPCI_ID:
 		return "SuperFSCC/4 cPCI";
+	case FSCCe_4_UA_ID:
+		return "FSCC/4 PCIe";
 	default:
 		return "Unknown Device";
 	}
