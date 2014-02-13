@@ -16,3 +16,4 @@
 sysfs
 *.so
 *.unsigned
+*.tar.gz
