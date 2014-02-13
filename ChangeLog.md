@@ -1,6 +1,6 @@
 # ChangeLog
 
-## [2.5.0](https://github.com/commtech/fscc-linux/releases/tag/v2.5.0) (02/14/2014)
+## [2.5.0](https://github.com/commtech/fscc-linux/releases/tag/v2.5.0) (02/13/2014)
 - Updated SerialFC to
 [v2.3.0](https://github.com/commtech/serialfc-linux/releases/tag/v2.3.0)
 - Added support for FSCC/4-PCIe cards
