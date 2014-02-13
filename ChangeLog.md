@@ -1,5 +1,12 @@
 # ChangeLog
 
+## [2.5.0](https://github.com/commtech/fscc-linux/releases/tag/v2.5.0) (02/14/2014)
+- Updated SerialFC to
+[v2.3.0](https://github.com/commtech/serialfc-linux/releases/tag/v2.3.0)
+- Added support for FSCC/4-PCIe cards
+- Fixed issue with setting clock frequency on 4-port cards
+- Minor optimizations
+
 ## [2.4.9](https://github.com/commtech/fscc-linux/releases/tag/v2.4.9) (01/10/2014)
 - Added checks to prevent status/timestamp while in streaming mode
 - Added clock frequency range checks
