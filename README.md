@@ -11,7 +11,7 @@ out the latest code you will need Git and to run the following in a terminal.
 git clone --recursive git://github.com/commtech/fscc-linux.git fscc
 ```
 
-_You can also download driver packages directly from our
+You can also download driver packages directly from our
 [website](http://www.commtech-fastcom.com/CommtechSoftware.html).
 
 ##### Switch To Stable Version
