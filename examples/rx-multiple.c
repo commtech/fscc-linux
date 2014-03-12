@@ -11,8 +11,8 @@ int main(void)
 
     ioctl(fd, FSCC_GET_RX_MULTIPLE, &status);
 
-    ioctl(fd, FSCC_DISABLE_RX_MULTIPLE);
     ioctl(fd, FSCC_ENABLE_RX_MULTIPLE);
+    ioctl(fd, FSCC_DISABLE_RX_MULTIPLE);
 
     close(fd);
 

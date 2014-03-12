@@ -1,17 +1,14 @@
 # Append Timestamp
 
-[`do_gettimeofday`](http://www.fsl.cs.sunysb.edu/kernel-api/re29.html)
-is used to acquire the timestamp upon complete reception of a frame.
+[`do_gettimeofday`](http://www.fsl.cs.sunysb.edu/kernel-api/re29.html) is used to acquire the timestamp upon complete reception of a frame.
 
-_We will be moving to 
-[`getnstimeofday`](http://www.gnugeneration.com/books/linux/2.6.20/kernel-api/re32.html)
-in the 3.0 driver series._
+_We will be moving to [`getnstimeofday`](http://www.gnugeneration.com/books/linux/2.6.20/kernel-api/re32.html) in the 3.0 driver series._
 
 
 ###### Support
-| Code         | Version
-| ------------ | --------
-| `fscc-linux` | `v2.4.0` 
+| Code | Version |
+| ---- | ------- |
+| fscc-linux | 2.4.0 |
 
 
 ## Get
@@ -92,4 +89,4 @@ echo 0 > /sys/class/fscc/fscc0/settings/append_timestamp
 
 
 ### Additional Resources
-- Complete example: [`examples\append-timestamp.c`](https://github.com/commtech/fscc-linux/blob/master/examples/append-timestamp.c)
+- Complete example: [`examples/append-timestamp.c`](../examples/append-timestamp.c)

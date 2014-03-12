@@ -1,13 +1,12 @@
 # Memory Cap
-If your system has limited memory available, there are safety checks in place to 
-prevent spurious incoming data from overrunning your system. Each port has an 
-option for setting it's input and output memory cap.
+
+If your system has limited memory available, there are safety checks in place to prevent spurious incoming data from overrunning your system. Each port has an option for setting it's input and output memory cap.
 
 
 ###### Support
-| Code         | Version
-| ------------ | --------
-| `fscc-linux` | `v2.0.0` 
+| Code | Version |
+| ---- | ------- |
+| fscc-linux | 2.0.0 |
 
 
 ## Structure
@@ -24,13 +23,11 @@ struct fscc_memory_cap {
 FSCC_MEMORY_CAP_INIT(memcap)
 ```
 
-| Parameter   | Type                       | Description
-| ----------- | -------------------------- | --------------------------------------
-| `memcap`    | `struct fscc_memory_cap *` | The memory cap structure to initialize
+| Parameter | Type | Description |
+| --------- | ---- | ----------- |
+| `memcap` | `struct fscc_memory_cap *` | The memory cap structure to initialize |
 
-The `FSCC_MEMORY_CAP_INIT` macro should be called each time you use the 
-`struct fscc_memory_cap` structure. An initialized structure will allow you to 
-only set/receive the memory cap you need.
+The `FSCC_MEMORY_CAP_INIT` macro should be called each time you use the `struct fscc_memory_cap` structure. An initialized structure will allow you to only set/receive the memory cap you need.
 
 
 ## Get
@@ -51,8 +48,7 @@ FSCC_MEMORY_CAP_INIT(memcap);
 ioctl(fd, FSCC_GET_MEMORY_CAP, &memcap);
 ```
 
-At this point `memcap.input` and `memcap.output` would be set to their respective
-values.
+At this point `memcap.input` and `memcap.output` would be set to their respective values.
 
 ### Sysfs
 ```
@@ -102,4 +98,4 @@ echo 2000000 > /sys/class/fscc/fscc0/settings/output_memory_cap
 
 
 ### Additional Resources
-- Complete example: [`examples\memory-cap.c`](https://github.com/commtech/fscc-linux/blob/master/examples/memory-cap.c)
+- Complete example: [`examples/memory-cap.c`](../examples/memory-cap.c)

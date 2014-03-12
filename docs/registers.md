@@ -1,32 +1,19 @@
 # Registers
 
-The FSCC driver is a swiss army knife of sorts with communication. It can
-handle many different situations, if configured correctly. Typically to
-configure it to handle your specific situation you need to modify the card's
-register values.
+The FSCC driver is a Swiss army knife of sorts with communication. It can handle many different situations, if configured correctly. Typically to configure it to handle your specific situation you need to modify the card's register values.
 
-_For a complete listing of all of the configuration options please see the 
-manual._
+_For a complete listing of all of the configuration options please see the manual._
 
-In HDLC mode some settings are fixed at certain values. If you are in
-HDLC mode and after setting/getting your registers some bits don't look correct,
-then they are likely fixed. A complete list of the fixed values can be found in 
-the CCR0 section of the manual.
+In HDLC mode some settings are fixed at certain values. If you are in HDLC mode and after setting/getting your registers some bits don't look correct, then they are likely fixed. A complete list of the fixed values can be found in the `CCR0` section of the manual.
 
-All of the registers, except FCR, are tied to a single port. FCR on the other hand 
-is shared between two ports on a card. You can differentiate between which FCR 
-settings affects what port by the A/B labels. A for port 0 and B for port 1.
+All of the registers, except `FCR`, are tied to a single port. `FCR` on the other hand is shared between two ports on a card. You can differentiate between which `FCR` settings affects what port by the A/B labels. A for port 0 and B for port 1.
 
-_An [`FSCC_PURGE_RX`](https://github.com/commtech/fscc-linux/blob/master/docs/purge.md)
-is required after changing the `MODE` bits in the `CCR0` register. If you need to change
-the `MODE` bits but don't have a clock present, change the `CM` bits to `0x7` temporarily. This will give 
-you an internal clock to switch modes. You can then switch to your desired `CM` now that your `MODE` is 
-locked in._
+_An [`FSCC_PURGE_RX`](https://github.com/commtech/fscc-linux/blob/master/docs/purge.md) is required after changing the `MODE` bits in the `CCR0` register. If you need to change the `MODE` bits but don't have a clock present, change the `CM` bits to `0x7` temporarily. This will give you an internal clock to switch modes. You can then switch to your desired `CM` now that your `MODE` is locked in._
 
 ###### Support
-| Code         | Version
-| ------------ | --------
-| `fscc-linux` | `v2.0.0` 
+| Code | Version |
+| ---- | ------- |
+| fscc-linux | 2.0.0 |
 
 
 ## Structure
@@ -71,13 +58,11 @@ struct fscc_registers {
 FSCC_REGISTERS_INIT(regs)
 ```
 
-| Parameter | Type                      | Description
-| --------- | ------------------------- | -----------------------
-| `regs`    | `struct fscc_registers *` | The registers structure to initialize
+| Parameter | Type | Description |
+| --------- | ---- | ----------- |
+| `regs` | `struct fscc_registers *` | The registers structure to initialize |
 
-The `FSCC_REGISTERS_INIT` macro should be called each time you use the 
-`struct fscc_registers` structure. An initialized structure will allow you to 
-only set/receive the registers you need.
+The `FSCC_REGISTERS_INIT` macro should be called each time you use the  `struct fscc_registers` structure. An initialized structure will allow you to only set/receive the registers you need.
 
 
 ## Set
@@ -133,8 +118,7 @@ regs.BGR = FSCC_UPDATE_VALUE;
 ioctl(fd, FSCC_GET_REGISTERS, &regs);
 ```
 
-At this point `regs.CCR0` and `regs.BGR` would be set to their respective
-values.
+At this point `regs.CCR0` and `regs.BGR` would be set to their respective values.
 
 
 ### Sysfs
@@ -149,4 +133,4 @@ cat /sys/class/fscc/fscc0/registers/ccr0
 
 
 ### Additional Resources
-- Complete example: [`examples\registers.c`](https://github.com/commtech/fscc-linux/blob/master/examples/registers.c)
+- Complete example: [`examples/registers.c`](../examples/registers.c)

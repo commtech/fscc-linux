@@ -1,9 +1,9 @@
 # RX Multiple
 
 ###### Support
-| Code         | Version
-| ------------ | --------
-| `fscc-linux` | `v2.2.4` 
+| Code | Version |
+| ---- | ------- |
+| fscc-linux | 2.2.4 |
 
 
 ## Get
@@ -84,4 +84,4 @@ echo 0 > /sys/class/fscc/fscc0/settings/rx_multiple
 
 
 ### Additional Resources
-- Complete example: [`examples\rx-multiple.c`](https://github.com/commtech/fscc-linux/blob/master/examples/rx-multiple.c)
+- Complete example: [`examples/rx-multiple.c`](../examples/rx-multiple.c)

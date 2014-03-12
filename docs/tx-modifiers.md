@@ -1,16 +1,16 @@
 # TX Modifiers
 
-| Modifiers | Value | Description
-| -------- | ------ | -----------
-| `XF`     | `0`    | Normal transmit (disable modifiers)
-| `XREP`   | `1`    | Transmit frame repeatedly
-| `TXT`    | `2`    | Transmit frame on timer
-| `TXEXT`  | `4`    | Transmit frame on external signal
+| Modifiers | Value | Description |
+| --------- | -----:| ----------- |
+| `XF` | 0 | Normal transmit (disable modifiers) |
+| `XREP` | 1 | Transmit frame repeatedly |
+| `TXT` | 2 | Transmit frame on timer |
+| `TXEXT` | 4 | Transmit frame on external signal |
 
 ###### Support
-| Code         | Version
-| ------------ | --------
-| `fscc-linux` | `v2.0.0` 
+| Code | Version |
+| ---- | ------- |
+| fscc-linux | 2.0.0 |
 
 ## Get
 ### IOCTL
@@ -65,4 +65,4 @@ echo 0 > /sys/class/fscc/fscc0/settings/tx_modifiers
 
 
 ### Additional Resources
-- Complete example: [`examples\tx-modifiers.c`](https://github.com/commtech/fscc-linux/blob/master/examples/tx-modifiers.c)
+- Complete example: [`examples/tx-modifiers.c`](../examples/tx-modifiers.c)

@@ -1,9 +1,9 @@
 # Ignore Timeout
 
 ###### Support
-| Code         | Version
-| ------------ | --------
-| `fscc-linux` | `v2.0.0` 
+| Code | Version |
+| ---- | ------- |
+| fscc-linux | 2.0.0 |
 
 
 ## Get
@@ -84,4 +84,4 @@ echo 0 > /sys/class/fscc/fscc0/settings/ignore_timeout
 
 
 ### Additional Resources
-- Complete example: [`examples\ignore-timeout.c`](https://github.com/commtech/fscc-linux/blob/master/examples/ignore-timeout.c)
+- Complete example: [`examples/ignore-timeout.c`](../examples/ignore-timeout.c)

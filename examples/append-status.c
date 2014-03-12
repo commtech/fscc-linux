@@ -11,8 +11,8 @@ int main(void)
 
     ioctl(fd, FSCC_GET_APPEND_STATUS, &status);
 
-    ioctl(fd, FSCC_DISABLE_APPEND_STATUS);
     ioctl(fd, FSCC_ENABLE_APPEND_STATUS);
+    ioctl(fd, FSCC_DISABLE_APPEND_STATUS);
 
     close(fd);
 

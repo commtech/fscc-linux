@@ -11,8 +11,8 @@ int main(void)
 
     ioctl(fd, FSCC_GET_IGNORE_TIMEOUT, &status);
 
-    ioctl(fd, FSCC_DISABLE_IGNORE_TIMEOUT);
     ioctl(fd, FSCC_ENABLE_IGNORE_TIMEOUT);
+    ioctl(fd, FSCC_DISABLE_IGNORE_TIMEOUT);
 
     close(fd);
 

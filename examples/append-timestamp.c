@@ -11,8 +11,8 @@ int main(void)
 
     ioctl(fd, FSCC_GET_APPEND_TIMESTAMP, &status);
 
-    ioctl(fd, FSCC_DISABLE_APPEND_TIMESTAMP);
     ioctl(fd, FSCC_ENABLE_APPEND_TIMESTAMP);
+    ioctl(fd, FSCC_DISABLE_APPEND_TIMESTAMP);
 
     close(fd);
 

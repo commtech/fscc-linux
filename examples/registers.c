@@ -13,7 +13,7 @@ int main(void)
 
     /* Change the CCR0 and BGR elements to our desired values */
     regs.CCR0 = 0x0011201c;
-    regs.BGR = 10;
+    regs.BGR = 0;
 
     /* Set the CCR0 and BGR register values */
     ioctl(fd, FSCC_SET_REGISTERS, &regs);

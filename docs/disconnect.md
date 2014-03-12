@@ -1,15 +1,13 @@
 # Disconnect
 
-
 ###### Support
-| Code         | Version
-| ------------ | --------
-| `fscc-linux` | `v2.0.0` 
+| Code | Version |
+| ---- | ------- |
+| fscc-linux | 2.0.0 |
 
 
 ## Disconnect
-The Linux [`close`](http://linux.die.net/man/3/close)
-is used to disconnect from the port.
+The Linux [`close`](http://linux.die.net/man/3/close) is used to disconnect from the port.
 
 
 ###### Examples
@@ -22,4 +20,4 @@ close(fd);
 
 
 ### Additional Resources
-- Complete example: [`examples\tutorial.c`](https://github.com/commtech/fscc-linux/blob/master/examples/tutorial.c)
+- Complete example: [`examples/tutorial.c`](../examples/tutorial.c)
