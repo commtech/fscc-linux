@@ -12,7 +12,7 @@
 	url = git://github.com/commtech/cfscc.git
 [submodule "utils/wfscc"]
 	path = utils/wfscc
-	url = git@github.com:commtech/wfscc.git
+	url = git://github.com/commtech/wfscc.git
 [submodule "utils/wireshark"]
 	path = utils/wireshark
-	url = git@github.com:commtech/wfscc.git
+	url = git://github.com/commtech/wfscc.git
