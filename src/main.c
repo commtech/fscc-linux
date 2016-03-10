@@ -1,5 +1,5 @@
 /*
-	Copyright (C) 2014 Commtech, Inc.
+	Copyright (C) 2016 Commtech, Inc.
 
 	This file is part of fscc-linux.
 
@@ -482,7 +482,7 @@ static void __exit fscc_exit(void)
 MODULE_DEVICE_TABLE(pci, fscc_id_table);
 
 MODULE_LICENSE("GPL");
-MODULE_VERSION("2.5.0");
+MODULE_VERSION("2.5.1");
 MODULE_AUTHOR("William Fagan <willf@commtech-fastcom.com>");
 
 MODULE_DESCRIPTION("Driver for the FSCC series of cards from Commtech, Inc.");
