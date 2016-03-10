@@ -58,8 +58,8 @@
 //#define DISABLE_XTAL /* Used when setting the clock on newer cards. */
 
 #define SYSFS_READ_ONLY_MODE S_IRUGO
-#define SYSFS_WRITE_ONLY_MODE S_IWUGO
-#define SYSFS_READ_WRITE_MODE S_IWUGO | S_IRUGO
+#define SYSFS_WRITE_ONLY_MODE 0220
+#define SYSFS_READ_WRITE_MODE 0660
 
 #endif
 
