@@ -483,7 +483,7 @@ static void __exit fscc_exit(void)
 MODULE_DEVICE_TABLE(pci, fscc_id_table);
 
 MODULE_LICENSE("GPL");
-MODULE_VERSION("2.5.1");
+MODULE_VERSION("2.5.2");
 MODULE_AUTHOR("William Fagan <willf@commtech-fastcom.com>");
 
 MODULE_DESCRIPTION("Driver for the FSCC series of cards from Commtech, Inc.");
