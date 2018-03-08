@@ -62,6 +62,7 @@ struct fscc_card *fscc_card_new(struct pci_dev *pdev,
 	case SFSCC_4_UA_CPCI_ID:
 	case SFSCC_UA_LVDS_ID:
 	case SFSCC_4_UA_LVDS_ID:
+	case SFSCCe_4_LVDS_UA_ID:
 		if (pci_set_dma_mask(pdev, 0xffffffff)) {
 			dev_warn(&card->pci_dev->dev, "no suitable DMA available\n");
 		}
@@ -375,6 +376,8 @@ char *fscc_card_get_name(struct fscc_card *card)
 		return "SuperFSCC/4 cPCI";
 	case FSCCe_4_UA_ID:
 		return "FSCC/4 PCIe";
+	case SFSCCe_4_LVDS_UA_ID:
+		return "SuperFSCC/4-LVDS PCIe";
 	default:
 		return "Unknown Device";
 	}

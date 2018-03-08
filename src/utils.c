@@ -219,6 +219,7 @@ unsigned is_fscc_device(struct pci_dev *pdev)
 		case SFSCC_4_UA_LVDS_ID:
 		case SFSCC_UA_LVDS_ID:
 		case FSCCe_4_UA_ID:
+		case SFSCCe_4_LVDS_UA_ID:
        		return 1;
 	}
 

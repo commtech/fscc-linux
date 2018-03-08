@@ -56,6 +56,7 @@ struct pci_device_id fscc_id_table[] = {
 	{ COMMTECH_VENDOR_ID, SFSCC_4_UA_LVDS_ID, PCI_ANY_ID, 0, 0, 0 },
 	{ COMMTECH_VENDOR_ID, SFSCC_UA_LVDS_ID, PCI_ANY_ID, 0, 0, 0 },
 	{ COMMTECH_VENDOR_ID, FSCCe_4_UA_ID, PCI_ANY_ID, 0, 0, 0 },
+	{ COMMTECH_VENDOR_ID, SFSCCe_4_LVDS_UA_ID, PCI_ANY_ID, 0, 0, 0 },
 	{ 0, },
 };
 
@@ -482,7 +483,7 @@ static void __exit fscc_exit(void)
 MODULE_DEVICE_TABLE(pci, fscc_id_table);
 
 MODULE_LICENSE("GPL");
-MODULE_VERSION("2.5.1");
+MODULE_VERSION("2.5.2");
 MODULE_AUTHOR("William Fagan <willf@commtech-fastcom.com>");
 
 MODULE_DESCRIPTION("Driver for the FSCC series of cards from Commtech, Inc.");
