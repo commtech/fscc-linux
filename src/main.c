@@ -194,19 +194,27 @@ int fscc_ioctl(struct inode *inode, struct file *file, unsigned int cmd,
 	struct fscc_port *port = 0;
 	int error_code = 0;
 	unsigned long flags;
+	char clock_bits[20];	
+	unsigned int tmp=0;
+	struct fscc_registers regs;
+	struct fscc_memory_cap tmp_memcap;
+
 
 	port = file->private_data;
 
 	switch (cmd) {
 	case FSCC_GET_REGISTERS:
+		copy_from_user(&regs, (struct fscc_registers *)arg, sizeof(struct fscc_registers));
 		spin_lock_irqsave(&port->board_settings_spinlock, flags);
-		fscc_port_get_registers(port, (struct fscc_registers *)arg);
+		fscc_port_get_registers(port, &regs);
 		spin_unlock_irqrestore(&port->board_settings_spinlock, flags);
+		copy_to_user((struct fscc_registers *)arg, &regs, sizeof(struct fscc_registers));
 		break;
 
 	case FSCC_SET_REGISTERS:
+		copy_from_user(&regs, (struct fscc_registers *)arg, sizeof(struct fscc_registers));
 		spin_lock_irqsave(&port->board_settings_spinlock, flags);
-		fscc_port_set_registers(port, (struct fscc_registers *)arg);
+		fscc_port_set_registers(port, &regs);
 		spin_unlock_irqrestore(&port->board_settings_spinlock, flags);
 		break;
 
@@ -233,7 +241,8 @@ int fscc_ioctl(struct inode *inode, struct file *file, unsigned int cmd,
 		break;
 
 	case FSCC_GET_APPEND_STATUS:
-		*(unsigned *)arg = fscc_port_get_append_status(port);
+		tmp = fscc_port_get_append_status(port);
+		copy_to_user((void *)arg, &tmp, sizeof(tmp));
 		break;
 
 	case FSCC_ENABLE_APPEND_TIMESTAMP:
@@ -247,20 +256,25 @@ int fscc_ioctl(struct inode *inode, struct file *file, unsigned int cmd,
 		break;
 
 	case FSCC_GET_APPEND_TIMESTAMP:
-		*(unsigned *)arg = fscc_port_get_append_timestamp(port);
+		tmp = fscc_port_get_append_timestamp(port);
+		copy_to_user((void *)arg, &tmp, sizeof(tmp));
 		break;
 
 	case FSCC_SET_MEMORY_CAP:
-		fscc_port_set_memory_cap(port, (struct fscc_memory_cap *)arg);
+		copy_from_user(&tmp_memcap, (void *)arg, sizeof(tmp_memcap));
+		fscc_port_set_memory_cap(port, &tmp_memcap);
 		break;
 
 	case FSCC_GET_MEMORY_CAP:
-		((struct fscc_memory_cap *)arg)->input = fscc_port_get_input_memory_cap(port);
-		((struct fscc_memory_cap *)arg)->output = fscc_port_get_output_memory_cap(port);
+		tmp_memcap.input = fscc_port_get_input_memory_cap(port);
+		tmp_memcap.output = fscc_port_get_output_memory_cap(port);
+copy_to_user(&(((struct fscc_memory_cap *)arg)->input), &tmp_memcap.input, sizeof(tmp_memcap.input));
+		copy_to_user(&(((struct fscc_memory_cap *)arg)->output), &tmp_memcap.output, sizeof(tmp_memcap.output));
 		break;
 
 	case FSCC_SET_CLOCK_BITS:
-		fscc_port_set_clock_bits(port, (char *)arg);
+		copy_from_user(clock_bits, (char *)arg, 20);
+		fscc_port_set_clock_bits(port, clock_bits);
 		break;
 
 	case FSCC_ENABLE_IGNORE_TIMEOUT:
@@ -272,16 +286,19 @@ int fscc_ioctl(struct inode *inode, struct file *file, unsigned int cmd,
 		break;
 
 	case FSCC_GET_IGNORE_TIMEOUT:
-		*(unsigned *)arg = fscc_port_get_ignore_timeout(port);
+		tmp = fscc_port_get_ignore_timeout(port);
+		copy_to_user((void *)arg, &tmp, sizeof(tmp));
 		break;
 
 	case FSCC_SET_TX_MODIFIERS:
-		if ((error_code = fscc_port_set_tx_modifiers(port, (unsigned)arg)) < 0)
+		copy_from_user(&tmp, (void *)arg, sizeof(tmp));
+		if ((error_code = fscc_port_set_tx_modifiers(port, (unsigned)tmp)) < 0)
 			return error_code;
 		break;
 
 	case FSCC_GET_TX_MODIFIERS:
-		*(unsigned *)arg = fscc_port_get_tx_modifiers(port);
+		tmp = fscc_port_get_tx_modifiers(port);
+		copy_to_user((void *)arg, &tmp, sizeof(tmp));
 		break;
 
 	case FSCC_ENABLE_RX_MULTIPLE:
@@ -293,7 +310,8 @@ int fscc_ioctl(struct inode *inode, struct file *file, unsigned int cmd,
 		break;
 
 	case FSCC_GET_RX_MULTIPLE:
-		*(unsigned *)arg = fscc_port_get_rx_multiple(port);
+		tmp = fscc_port_get_rx_multiple(port);
+		copy_to_user((void *)arg, &tmp, sizeof(tmp));
 		break;
 
 	default:
