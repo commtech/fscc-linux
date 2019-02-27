@@ -1,5 +1,5 @@
 #!/bin/sh
-VER=2.5.0
+VER=2.5.3
 
 git clone --recursive git@github.com:commtech/fscc-linux.git fscc-linux-$VER
 cd fscc-linux-$VER
