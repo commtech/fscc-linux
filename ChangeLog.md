@@ -1,5 +1,19 @@
 # ChangeLog
 
+## [2.5.3](https://github.com/commtech/fscc-linux/releases/tag/v2.5.3) (02/27/2019)
+- Added copy_to/from_user functions for IOCTL calls
+- Fixed a bug for the FSCC-232 clock
+
+## [2.5.2](https://github.com/commtech/fscc-linux/releases/tag/v2.5.2) (06/09/2017)
+- Added support for SFSCC LVDS PCIe
+
+## [2.5.1](https://github.com/commtech/fscc-linux/releases/tag/v2.5.1) (03/10/2016)
+- Minor code cleanup and optimizations
+- Added support for FSCC/4-PCIe
+- Updated octal permissions
+- Fixed receive_length value issue that cause kernel panic
+- Changed logic to deal with incorrect fifo_bc_value
+
 ## [2.5.0](https://github.com/commtech/fscc-linux/releases/tag/v2.5.0) (02/13/2014)
 - Updated SerialFC to
 [v2.3.0](https://github.com/commtech/serialfc-linux/releases/tag/v2.3.0)
