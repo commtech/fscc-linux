@@ -502,7 +502,7 @@ static void __exit fscc_exit(void)
 
 MODULE_DEVICE_TABLE(pci, fscc_id_table);
 
-MODULE_LICENSE("MIT");
+MODULE_LICENSE("Dual MIT/GPL");
 MODULE_VERSION("2.5.3");
 MODULE_AUTHOR("William Fagan <willf@commtech-fastcom.com>");
 
