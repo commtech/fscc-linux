@@ -23,7 +23,7 @@
 
 #include <linux/version.h> /* LINUX_VERSION_CODE, KERNEL_VERSION */
 
-#include <asm/uaccess.h> /* copy_*_user in <= 2.6.24 */
+#include <linux/uaccess.h> /* copy_*_user in <= 2.6.24 */
 
 #include "port.h"
 #include "frame.h" /* struct fscc_frame */
@@ -276,7 +276,9 @@ struct fscc_port *fscc_port_new(struct fscc_card *card, unsigned channel,
 
 	fscc_port_set_clock_bits(port, clock_bits);
 
-	setup_timer(&port->timer, &timer_handler, (unsigned long)port);
+	//setup_timer(&port->timer, &timer_handler, (unsigned long)port);
+
+	timer_setup(&port->timer, &timer_handler, 0);
 
 	if (fscc_port_has_dma(port)) {
 		fscc_port_execute_RST_R(port);
@@ -716,6 +718,7 @@ unsigned fscc_port_get_RXCNT(struct fscc_port *port)
 	/* Not sure why, but this can be larger than 8192. We add
        the 8192 check here so other code can count on the value
        not being larger than 8192. */
+	fifo_bc_value = fifo_bc_value & 0x00003FFF;
 	if(fifo_bc_value > 8192)
 	    fifo_bc_value = 0;
 	    
