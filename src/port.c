@@ -23,7 +23,11 @@
 
 #include <linux/version.h> /* LINUX_VERSION_CODE, KERNEL_VERSION */
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,18)
 #include <asm/uaccess.h> /* copy_*_user in <= 2.6.24 */
+#else
+#include <linux/uaccess.h> /* copy_*_user in <= 2.6.24 */
+#endif
 
 #include "port.h"
 #include "frame.h" /* struct fscc_frame */
