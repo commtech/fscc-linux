@@ -37,6 +37,10 @@ void clear_oframe_worker(unsigned long data);
 void iframe_worker(unsigned long data);
 void istream_worker(unsigned long data);
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4,14,0)
 void timer_handler(unsigned long data);
+#else
+void timer_handler(struct timer_list *t);
+#endif
 
 #endif
