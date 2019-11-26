@@ -199,7 +199,7 @@ void iframe_worker(unsigned long data)
 		}
 
 		if (port->pending_iframe) {
-#ifdef RELEASE_PREVIEW
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 15, 0)
 			getnstimeofday(&port->pending_iframe->timestamp);
 #else
 			do_gettimeofday(&port->pending_iframe->timestamp);
