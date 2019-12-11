@@ -10,10 +10,6 @@ ifeq ($(DEBUG),1)
 	EXTRA_CFLAGS += -DDEBUG
 endif
 
-ifeq ($(RELEASE_PREVIEW),1)
-	EXTRA_CFLAGS += -DRELEASE_PREVIEW
-endif
-
 default:
 	$(MAKE) -C $(KDIR) SUBDIRS=$(PWD) modules
 

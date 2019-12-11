@@ -23,7 +23,11 @@
 
 #include <linux/version.h> /* LINUX_VERSION_CODE, KERNEL_VERSION */
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,18)
 #include <asm/uaccess.h> /* copy_*_user in <= 2.6.24 */
+#else
+#include <linux/uaccess.h> /* copy_*_user in <= 2.6.24 */
+#endif
 
 #include "port.h"
 #include "frame.h" /* struct fscc_frame */
@@ -276,8 +280,13 @@ struct fscc_port *fscc_port_new(struct fscc_card *card, unsigned channel,
 
 	fscc_port_set_clock_bits(port, clock_bits);
 
-	setup_timer(&port->timer, &timer_handler, (unsigned long)port);
-	//timer_setup(&port->timer, &timer_handler, 0);
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4,14,0)
+	init_timer(&port->timer);
+	port->timer.data = (unsigned long) port;
+	port->timer.function = &timer_handler;
+#else
+	timer_setup(&port->timer, &timer_handler, 0);
+#endif
 
 	if (fscc_port_has_dma(port)) {
 		fscc_port_execute_RST_R(port);
