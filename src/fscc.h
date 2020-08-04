@@ -62,6 +62,7 @@
 #define FSCC_DISABLE_APPEND_TIMESTAMP _IO(FSCC_IOCTL_MAGIC, 20)
 #define FSCC_GET_APPEND_TIMESTAMP _IOR(FSCC_IOCTL_MAGIC, 21, unsigned *)
 
+#define FSCC_GET_STATUS _IOR(FSCC_IOCTL_MAGIC, 22, unsigned *)
 
 enum transmit_modifiers { XF=0, XREP=1, TXT=2, TXEXT=4 };
 typedef __s64 fscc_register;

@@ -74,7 +74,7 @@ irqreturn_t fscc_isr(int irq, void *potential_port, struct pt_regs *regs)
 	tasklet_schedule(&port->print_tasklet);
 	fscc_port_increment_interrupt_counts(port, isr_value);
 #endif
-
+    wake_up_interruptible(&port->status_queue);
 	fscc_port_reset_timer(port);
 
 	return IRQ_HANDLED;

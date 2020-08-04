@@ -112,6 +112,7 @@ struct fscc_port {
 
 	wait_queue_head_t input_queue;
 	wait_queue_head_t output_queue;
+    wait_queue_head_t status_queue;
 
 	struct fscc_flist queued_iframes; /* Frames already retrieved from the FIFO */
 	struct fscc_flist queued_oframes; /* Frames not yet in the FIFO yet */

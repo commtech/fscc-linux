@@ -166,6 +166,7 @@ struct fscc_port *fscc_port_new(struct fscc_card *card, unsigned channel,
 
 	init_waitqueue_head(&port->input_queue);
 	init_waitqueue_head(&port->output_queue);
+    init_waitqueue_head(&port->status_queue);
 
 	cdev_init(&port->cdev, fops);
 	port->cdev.owner = THIS_MODULE;
