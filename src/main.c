@@ -333,7 +333,13 @@ int fscc_ioctl(struct inode *inode, struct file *file, unsigned int cmd,
         copy_to_user((void *)arg, &tmp, sizeof(tmp));
         break;
     */
-
+    case FSCC_GET_MEMORY_USAGE:
+		tmp_memcap.input = fscc_port_get_input_memory_usage(port);
+		tmp_memcap.output = fscc_port_get_output_memory_usage(port);
+        copy_to_user(&(((struct fscc_memory_cap *)arg)->input), &tmp_memcap.input, sizeof(tmp_memcap.input));
+		copy_to_user(&(((struct fscc_memory_cap *)arg)->output), &tmp_memcap.output, sizeof(tmp_memcap.output));
+		break;
+        
 	default:
 		dev_dbg(port->device, "unknown ioctl 0x%x\n", cmd);
 		return -ENOTTY;

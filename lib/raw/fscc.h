@@ -113,6 +113,8 @@ struct fscc_memory_cap {
 
 #define FSCC_GET_STATUS _IOR(FSCC_IOCTL_MAGIC, 22, unsigned *)
 
+#define FSCC_GET_MEMORY_USAGE _IOR(FSCC_IOCTL_MAGIC, 23, struct fscc_memory_cap *)
+
 #ifdef __cplusplus
 }
 #endif

@@ -64,6 +64,8 @@
 
 #define FSCC_GET_STATUS _IOR(FSCC_IOCTL_MAGIC, 22, unsigned *)
 
+#define FSCC_GET_MEMORY_USAGE _IOR(FSCC_IOCTL_MAGIC, 23, struct fscc_memory_cap *)
+
 enum transmit_modifiers { XF=0, XREP=1, TXT=2, TXEXT=4 };
 typedef __s64 fscc_register;
 
