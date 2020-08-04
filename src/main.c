@@ -200,6 +200,7 @@ int fscc_ioctl(struct inode *inode, struct file *file, unsigned int cmd,
 	unsigned int tmp=0;
 	struct fscc_registers regs;
 	struct fscc_memory_cap tmp_memcap;
+    unsigned copy_success = 0;
 
 
 	port = file->private_data;
@@ -270,7 +271,7 @@ int fscc_ioctl(struct inode *inode, struct file *file, unsigned int cmd,
 	case FSCC_GET_MEMORY_CAP:
 		tmp_memcap.input = fscc_port_get_input_memory_cap(port);
 		tmp_memcap.output = fscc_port_get_output_memory_cap(port);
-copy_to_user(&(((struct fscc_memory_cap *)arg)->input), &tmp_memcap.input, sizeof(tmp_memcap.input));
+        copy_to_user(&(((struct fscc_memory_cap *)arg)->input), &tmp_memcap.input, sizeof(tmp_memcap.input));
 		copy_to_user(&(((struct fscc_memory_cap *)arg)->output), &tmp_memcap.output, sizeof(tmp_memcap.output));
 		break;
 
@@ -293,14 +294,16 @@ copy_to_user(&(((struct fscc_memory_cap *)arg)->input), &tmp_memcap.input, sizeo
 		break;
 
 	case FSCC_SET_TX_MODIFIERS:
-		copy_from_user(&tmp, (void *)arg, sizeof(tmp));
+		copy_success = copy_from_user(&tmp, (void *)arg, sizeof(tmp));
+        if(copy_success != 0) printk("SET_TX_MODIFIERS: copy_from_user failed with: %d\n", copy_success)
 		if ((error_code = fscc_port_set_tx_modifiers(port, (unsigned)tmp)) < 0)
 			return error_code;
 		break;
 
 	case FSCC_GET_TX_MODIFIERS:
 		tmp = fscc_port_get_tx_modifiers(port);
-		copy_to_user((void *)arg, &tmp, sizeof(tmp));
+		copy_success = copy_to_user((void *)arg, &tmp, sizeof(tmp));
+        if(copy_success != 0) printk("GET_TX_MODIFIERS: copy_to_user failed with: %d\n", copy_success)
 		break;
 
 	case FSCC_ENABLE_RX_MULTIPLE:
@@ -315,6 +318,21 @@ copy_to_user(&(((struct fscc_memory_cap *)arg)->input), &tmp_memcap.input, sizeo
 		tmp = fscc_port_get_rx_multiple(port);
 		copy_to_user((void *)arg, &tmp, sizeof(tmp));
 		break;
+    /*
+    case FSCC_GET_STATUS:
+        tmp = port->last_isr_value;
+        port->last_isr_value = 0;
+        if(tmp != 0 || (file->f_flags & O_NONBLOCK))
+        {
+            copy_to_user((void *)arg, &tmp, sizeof(tmp));
+            break;
+        }
+        interruptible_sleep_on(&port->status_queue);
+        tmp = port->last_isr_value;
+        port->last_isr_value = 0;
+        copy_to_user((void *)arg, &tmp, sizeof(tmp));
+        break;
+    */
 
 	default:
 		dev_dbg(port->device, "unknown ioctl 0x%x\n", cmd);
