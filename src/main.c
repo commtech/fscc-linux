@@ -295,7 +295,7 @@ int fscc_ioctl(struct inode *inode, struct file *file, unsigned int cmd,
 
 	case FSCC_SET_TX_MODIFIERS:
 		copy_success = copy_from_user(&tmp, (void *)arg, sizeof(tmp));
-        if(copy_success != 0) printk("SET_TX_MODIFIERS: copy_from_user failed with: %d\n", copy_success)
+        if(copy_success != 0) printk("SET_TX_MODIFIERS: copy_from_user failed with: %d\n", copy_success);
 		if ((error_code = fscc_port_set_tx_modifiers(port, (unsigned)tmp)) < 0)
 			return error_code;
 		break;
@@ -303,7 +303,7 @@ int fscc_ioctl(struct inode *inode, struct file *file, unsigned int cmd,
 	case FSCC_GET_TX_MODIFIERS:
 		tmp = fscc_port_get_tx_modifiers(port);
 		copy_success = copy_to_user((void *)arg, &tmp, sizeof(tmp));
-        if(copy_success != 0) printk("GET_TX_MODIFIERS: copy_to_user failed with: %d\n", copy_success)
+        if(copy_success != 0) printk("GET_TX_MODIFIERS: copy_to_user failed with: %d\n", copy_success);
 		break;
 
 	case FSCC_ENABLE_RX_MULTIPLE:
