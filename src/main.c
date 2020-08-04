@@ -224,19 +224,16 @@ int fscc_ioctl(struct inode *inode, struct file *file, unsigned int cmd,
 	case FSCC_PURGE_TX:
 		if ((error_code = fscc_port_purge_tx(port)) < 0)
 			return error_code;
-
 		break;
 
 	case FSCC_PURGE_RX:
 		if ((error_code = fscc_port_purge_rx(port)) < 0)
 			return error_code;
-
 		break;
 
 	case FSCC_ENABLE_APPEND_STATUS:
 		if ((error_code = fscc_port_set_append_status(port, 1)) < 0)
 			return error_code;
-
 		break;
 
 	case FSCC_DISABLE_APPEND_STATUS:
@@ -251,7 +248,6 @@ int fscc_ioctl(struct inode *inode, struct file *file, unsigned int cmd,
 	case FSCC_ENABLE_APPEND_TIMESTAMP:
 		if ((error_code = fscc_port_set_append_timestamp(port, 1)) < 0)
 			return error_code;
-
 		break;
 
 	case FSCC_DISABLE_APPEND_TIMESTAMP:
@@ -271,7 +267,7 @@ int fscc_ioctl(struct inode *inode, struct file *file, unsigned int cmd,
 	case FSCC_GET_MEMORY_CAP:
 		tmp_memcap.input = fscc_port_get_input_memory_cap(port);
 		tmp_memcap.output = fscc_port_get_output_memory_cap(port);
-        copy_to_user(&(((struct fscc_memory_cap *)arg)->input), &tmp_memcap.input, sizeof(tmp_memcap.input));
+		copy_to_user(&(((struct fscc_memory_cap *)arg)->input), &tmp_memcap.input, sizeof(tmp_memcap.input));
 		copy_to_user(&(((struct fscc_memory_cap *)arg)->output), &tmp_memcap.output, sizeof(tmp_memcap.output));
 		break;
 
@@ -295,7 +291,7 @@ int fscc_ioctl(struct inode *inode, struct file *file, unsigned int cmd,
 
 	case FSCC_SET_TX_MODIFIERS:
 		copy_success = copy_from_user(&tmp, (void *)arg, sizeof(tmp));
-        if(copy_success != 0) printk("SET_TX_MODIFIERS: copy_from_user failed with: %d\n", copy_success);
+		if(copy_success != 0) printk("SET_TX_MODIFIERS: copy_from_user failed with: %d\n", copy_success);
 		if ((error_code = fscc_port_set_tx_modifiers(port, (unsigned)tmp)) < 0)
 			return error_code;
 		break;
@@ -318,25 +314,25 @@ int fscc_ioctl(struct inode *inode, struct file *file, unsigned int cmd,
 		tmp = fscc_port_get_rx_multiple(port);
 		copy_to_user((void *)arg, &tmp, sizeof(tmp));
 		break;
-    /*
-    case FSCC_GET_STATUS:
-        tmp = port->last_isr_value;
-        port->last_isr_value = 0;
-        if(tmp != 0 || (file->f_flags & O_NONBLOCK))
-        {
-            copy_to_user((void *)arg, &tmp, sizeof(tmp));
-            break;
-        }
-        interruptible_sleep_on(&port->status_queue);
-        tmp = port->last_isr_value;
-        port->last_isr_value = 0;
-        copy_to_user((void *)arg, &tmp, sizeof(tmp));
-        break;
-    */
-    case FSCC_GET_MEMORY_USAGE:
+	/*
+	case FSCC_GET_STATUS:
+		tmp = port->last_isr_value;
+		port->last_isr_value = 0;
+		if(tmp != 0 || (file->f_flags & O_NONBLOCK))
+		{
+			copy_to_user((void *)arg, &tmp, sizeof(tmp));
+			break;
+		}
+		interruptible_sleep_on(&port->status_queue);
+		tmp = port->last_isr_value;
+		port->last_isr_value = 0;
+		copy_to_user((void *)arg, &tmp, sizeof(tmp));
+		break;
+	*/
+	case FSCC_GET_MEMORY_USAGE:
 		tmp_memcap.input = fscc_port_get_input_memory_usage(port);
 		tmp_memcap.output = fscc_port_get_output_memory_usage(port);
-        copy_to_user(&(((struct fscc_memory_cap *)arg)->input), &tmp_memcap.input, sizeof(tmp_memcap.input));
+		copy_to_user(&(((struct fscc_memory_cap *)arg)->input), &tmp_memcap.input, sizeof(tmp_memcap.input));
 		copy_to_user(&(((struct fscc_memory_cap *)arg)->output), &tmp_memcap.output, sizeof(tmp_memcap.output));
 		break;
         
