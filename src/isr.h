@@ -25,6 +25,9 @@
 
 #include <linux/version.h> /* LINUX_VERSION_CODE, KERNEL_VERSION */
 #include <linux/interrupt.h> /* struct pt_regs */
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 0, 0)
+#include <linux/ktime.h>
+#endif
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 19)
 irqreturn_t fscc_isr(int irq, void *dev_id);
@@ -37,6 +40,10 @@ void clear_oframe_worker(unsigned long data);
 void iframe_worker(unsigned long data);
 void istream_worker(unsigned long data);
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 0, 0)
+void timer_handler(struct timer_list *data);
+#else
 void timer_handler(unsigned long data);
+#endif
 
 #endif

@@ -199,8 +199,8 @@ void iframe_worker(unsigned long data)
 		}
 
 		if (port->pending_iframe) {
-#ifdef RELEASE_PREVIEW
-			getnstimeofday(&port->pending_iframe->timestamp);
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 0, 0)
+			ktime_get_ts64(&port->pending_iframe->timestamp);
 #else
 			do_gettimeofday(&port->pending_iframe->timestamp);
 #endif
@@ -379,9 +379,15 @@ void oframe_worker(unsigned long data)
 		wake_up_interruptible(&port->output_queue);
 }
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 0, 0)
+void timer_handler(struct timer_list *data)
+{
+	struct fscc_port *port = from_timer(port, data, timer);
+#else
 void timer_handler(unsigned long data)
 {
 	struct fscc_port *port = (struct fscc_port *)data;
+#endif
 	unsigned streaming = 0;
 
 	streaming = fscc_port_is_streaming(port);

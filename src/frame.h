@@ -24,11 +24,12 @@
 #define FSCC_FRAME_H
 
 #include <linux/list.h> /* struct list_head */
+#include <linux/version.h> // #if LINUX_VERSION_CODE
 #include "descriptor.h" /* struct fscc_descriptor */
 
 
-#ifdef RELEASE_PREVIEW
-typedef struct timespec fscc_timestamp;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 0, 0)
+typedef struct timespec64 fscc_timestamp;
 #else
 typedef struct timeval fscc_timestamp;
 #endif
