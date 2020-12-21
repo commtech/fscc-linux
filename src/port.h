@@ -149,7 +149,7 @@ struct fscc_port {
 	struct fscc_memory_cap memory_cap;
 	unsigned ignore_timeout;
 	unsigned rx_multiple;
-	int tx_modifiers;
+	unsigned tx_modifiers;
 
 	struct timer_list timer;
 
@@ -256,7 +256,7 @@ void fscc_port_increment_interrupt_counts(struct fscc_port *port,
 										  __u32 isr_value);
 #endif /* DEBUG */
 
-int fscc_port_set_tx_modifiers(struct fscc_port *port, int tx_modifiers);
+int fscc_port_set_tx_modifiers(struct fscc_port *port, unsigned tx_modifiers);
 unsigned fscc_port_get_tx_modifiers(struct fscc_port *port);
 void fscc_port_execute_transmit(struct fscc_port *port, unsigned dma);
 

@@ -1311,7 +1311,7 @@ void fscc_port_increment_interrupt_counts(struct fscc_port *port,
 #endif
 
 /* Returns -EINVAL if you set an incorrect transmit modifier */
-int fscc_port_set_tx_modifiers(struct fscc_port *port, int value)
+int fscc_port_set_tx_modifiers(struct fscc_port *port, unsigned value)
 {
 	return_val_if_untrue(port, 0);
 
