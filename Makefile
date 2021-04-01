@@ -15,7 +15,7 @@ ifeq ($(RELEASE_PREVIEW),1)
 endif
 
 default:
-	$(MAKE) -C $(KDIR) SUBDIRS=$(PWD) modules
+	$(MAKE) -C $(KDIR) M=$(shell pwd) modules
 
 install:
 	cp fscc.rules /etc/udev/rules.d/
