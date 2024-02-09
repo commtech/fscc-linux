@@ -457,7 +457,7 @@ ssize_t fscc_port_frame_read(struct fscc_port *port, char *buf, size_t buf_lengt
 		out_length += current_frame_length;
 
 		if (port->append_timestamp) {
-			memcpy(buf + out_length, &frame->timestamp, sizeof(frame->timestamp));
+			copy_to_user(buf + out_length, &frame->timestamp, sizeof(frame->timestamp));
 			current_frame_length += sizeof(frame->timestamp);
 			out_length += sizeof(frame->timestamp);
 		}
