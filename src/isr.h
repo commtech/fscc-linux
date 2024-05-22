@@ -36,9 +36,8 @@ irqreturn_t fscc_isr(int irq, void *dev_id, struct pt_regs *regs);
 #endif
 
 void oframe_worker(unsigned long data);
-void clear_oframe_worker(unsigned long data);
 void iframe_worker(unsigned long data);
-void istream_worker(unsigned long data);
+void timestamp_worker(unsigned long data);
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 0, 0)
 void timer_handler(struct timer_list *data);

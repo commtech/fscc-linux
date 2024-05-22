@@ -218,7 +218,7 @@ static ssize_t purge_tx(struct kobject *kobj, struct kobj_attribute *attr,
 
 	port = (struct fscc_port *)dev_get_drvdata((struct device *)kobj);
 
-	fscc_port_purge_tx(port);
+	fscc_io_purge_tx(port);
 
 	return count;
 }
@@ -230,7 +230,7 @@ static ssize_t purge_rx(struct kobject *kobj, struct kobj_attribute *attr,
 
 	port = (struct fscc_port *)dev_get_drvdata((struct device *)kobj);
 
-	fscc_port_purge_rx(port);
+	fscc_io_purge_rx(port);
 
 	return count;
 }
@@ -259,7 +259,7 @@ struct attribute_group port_commands_attr_group = {
 
 
 
-
+/*
 static ssize_t output_memory(struct kobject *kobj, struct kobj_attribute *attr,
 							 char *buf)
 {
@@ -280,25 +280,6 @@ static ssize_t input_memory(struct kobject *kobj, struct kobj_attribute *attr,
 	return sprintf(buf, "%i\n", fscc_port_get_input_memory_usage(port));
 }
 
-static ssize_t output_frames(struct kobject *kobj, struct kobj_attribute *attr,
-							char *buf)
-{
-	struct fscc_port *port = 0;
-
-	port = (struct fscc_port *)dev_get_drvdata((struct device *)kobj);
-
-	return sprintf(buf, "%i\n", fscc_port_get_output_number_frames(port));
-}
-
-static ssize_t input_frames(struct kobject *kobj, struct kobj_attribute *attr,
-							char *buf)
-{
-	struct fscc_port *port = 0;
-
-	port = (struct fscc_port *)dev_get_drvdata((struct device *)kobj);
-
-	return sprintf(buf, "%i\n", fscc_port_get_input_number_frames(port));
-}
 
 static struct kobj_attribute output_memory_attribute =
 	__ATTR(output_memory, SYSFS_READ_ONLY_MODE, output_memory, 0);
@@ -324,7 +305,7 @@ struct attribute_group port_info_attr_group = {
 	.name = "info",
 	.attrs = info_attrs,
 };
-
+*/
 
 
 
@@ -465,75 +446,11 @@ static ssize_t append_timestamp_show(struct kobject *kobj,
 	return sprintf(buf, "%i\n", fscc_port_get_append_timestamp(port));
 }
 
-static ssize_t input_memory_cap_store(struct kobject *kobj,
-								   struct kobj_attribute *attr, const char *buf,
-								   size_t count)
-{
-	struct fscc_port *port = 0;
-	struct fscc_memory_cap memory_cap;
-	char *end = 0;
-
-	port = (struct fscc_port *)dev_get_drvdata((struct device *)kobj);
-
-	FSCC_MEMORY_CAP_INIT(memory_cap);
-
-	memory_cap.input = (int)simple_strtoul(buf, &end, 10);
-
-	fscc_port_set_memory_cap(port, &memory_cap);
-
-	return count;
-}
-
-static ssize_t input_memory_cap_show(struct kobject *kobj,
-								  struct kobj_attribute *attr, char *buf)
-{
-	struct fscc_port *port = 0;
-
-	port = (struct fscc_port *)dev_get_drvdata((struct device *)kobj);
-
-	return sprintf(buf, "%i\n", fscc_port_get_input_memory_cap(port));
-}
-
-static ssize_t output_memory_cap_store(struct kobject *kobj,
-								   struct kobj_attribute *attr, const char *buf,
-								   size_t count)
-{
-	struct fscc_port *port = 0;
-	struct fscc_memory_cap memory_cap;
-	char *end = 0;
-
-	port = (struct fscc_port *)dev_get_drvdata((struct device *)kobj);
-
-	FSCC_MEMORY_CAP_INIT(memory_cap);
-
-	memory_cap.output = (int)simple_strtoul(buf, &end, 10);
-
-	fscc_port_set_memory_cap(port, &memory_cap);
-
-	return count;
-}
-
-static ssize_t output_memory_cap_show(struct kobject *kobj,
-								  struct kobj_attribute *attr, char *buf)
-{
-	struct fscc_port *port = 0;
-
-	port = (struct fscc_port *)dev_get_drvdata((struct device *)kobj);
-
-	return sprintf(buf, "%i\n", fscc_port_get_output_memory_cap(port));
-}
-
 static struct kobj_attribute append_status_attribute =
 	__ATTR(append_status, SYSFS_READ_WRITE_MODE, append_status_show, append_status_store);
 
 static struct kobj_attribute append_timestamp_attribute =
 	__ATTR(append_timestamp, SYSFS_READ_WRITE_MODE, append_timestamp_show, append_timestamp_store);
-
-static struct kobj_attribute input_memory_cap_attribute =
-	__ATTR(input_memory_cap, SYSFS_READ_WRITE_MODE, input_memory_cap_show, input_memory_cap_store);
-
-static struct kobj_attribute output_memory_cap_attribute =
-	__ATTR(output_memory_cap, SYSFS_READ_WRITE_MODE, output_memory_cap_show, output_memory_cap_store);
 
 static struct kobj_attribute ignore_timeout_attribute =
 	__ATTR(ignore_timeout, SYSFS_READ_WRITE_MODE, ignore_timeout_show, ignore_timeout_store);
@@ -547,8 +464,6 @@ static struct kobj_attribute tx_modifiers_attribute =
 static struct attribute *settings_attrs[] = {
 	&append_status_attribute.attr,
 	&append_timestamp_attribute.attr,
-	&input_memory_cap_attribute.attr,
-	&output_memory_cap_attribute.attr,
 	&ignore_timeout_attribute.attr,
 	&rx_multiple_attribute.attr,
 	&tx_modifiers_attribute.attr,

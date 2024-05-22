@@ -34,9 +34,7 @@
 #endif
 
 #include "fscc.h" /* struct fscc_registers */
-#include "descriptor.h" /* struct fscc_descriptor */
 #include "debug.h" /* stuct debug_interrupt_tracker */
-#include "flist.h" /* struct fscc_registers */
 
 #define FIFO_OFFSET 0x00
 #define BC_FIFO_L_OFFSET 0x04
@@ -102,9 +100,6 @@ struct fscc_port {
 	unsigned channel;
 	char *name;
 
-	struct fscc_descriptor *null_descriptor;
-	dma_addr_t null_handle;
-
 	/* Prevents simultaneous read(), write() and poll() calls. */
 	struct semaphore read_semaphore;
 	struct semaphore write_semaphore;
@@ -112,23 +107,13 @@ struct fscc_port {
 
 	wait_queue_head_t input_queue;
 	wait_queue_head_t output_queue;
-    wait_queue_head_t status_queue;
-
-	struct fscc_flist queued_iframes; /* Frames already retrieved from the FIFO */
-	struct fscc_flist queued_oframes; /* Frames not yet in the FIFO yet */
-	struct fscc_flist sent_oframes; /* Frames sent but not yet cleared */
-
-	struct fscc_frame *pending_iframe; /* Frame retrieving from the FIFO */
-	struct fscc_frame *pending_oframe; /* Frame being put in the FIFO */
-
-	struct fscc_frame *istream; /* Transparent stream */
+	wait_queue_head_t status_queue;
 
 	struct fscc_registers register_storage; /* Only valid on suspend/resume */
 
 	struct tasklet_struct iframe_tasklet;
-	struct tasklet_struct istream_tasklet;
 	struct tasklet_struct send_oframe_tasklet;
-	struct tasklet_struct clear_oframe_tasklet;
+	struct tasklet_struct timestamp_tasklet;
 
 	unsigned last_isr_value;
 
@@ -139,25 +124,35 @@ struct fscc_port {
 	spinlock_t board_rx_spinlock; /* Anything that will alter the state of rx at a board level */
 	spinlock_t board_tx_spinlock; /* Anything that will alter the state of rx at a board level */
 
-	spinlock_t istream_spinlock;
-	spinlock_t pending_iframe_spinlock;
-	spinlock_t pending_oframe_spinlock;
-	spinlock_t sent_oframes_spinlock;
-	spinlock_t queued_oframes_spinlock;
-	spinlock_t queued_iframes_spinlock;
-
-	struct fscc_memory_cap memory_cap;
+	struct fscc_memory memory;
 	unsigned ignore_timeout;
 	unsigned rx_multiple;
 	unsigned tx_modifiers;
 
 	struct timer_list timer;
 
+	struct dma_pool *desc_pool;
+	struct dma_pool *rx_buffer_pool;
+	struct dma_pool *tx_buffer_pool;
+
+	struct io_frame **rx_descriptors;
+	unsigned user_rx_desc; // DMA & FIFO, this is where the drivers are working.
+	unsigned fifo_rx_desc; // For non-DMA use, this is where the FIFO is currently working.
+	int rx_bytes_in_frame; // FIFO, How many bytes are in the current RX frame
+	int rx_frame_size; // FIFO, The current RX frame size
+
+	struct io_frame **tx_descriptors;
+	unsigned user_tx_desc; // DMA & FIFO, this is where the drivers are working.
+	unsigned fifo_tx_desc; // For non-DMA use, this is where the FIFO is currently working.
+	int tx_bytes_in_frame; // FIFO, How many bytes are in the current TX frame
+	int tx_frame_size; // FIFO, The current TX frame size
+
 #ifdef DEBUG
 	struct debug_interrupt_tracker *interrupt_tracker;
 	struct tasklet_struct print_tasklet;
 #endif
 };
+#include "io.h" // Frustrating, this only works here, probably because io.h needs a port definition.
 
 struct fscc_port *fscc_port_new(struct fscc_card *card, unsigned channel,
 								unsigned major_number, unsigned minor_number,
@@ -165,12 +160,6 @@ struct fscc_port *fscc_port_new(struct fscc_card *card, unsigned channel,
 								struct file_operations *fops);
 
 void fscc_port_delete(struct fscc_port *port);
-
-int fscc_port_write(struct fscc_port *port, const char *data, unsigned length);
-ssize_t fscc_port_read(struct fscc_port *port, char *buf, size_t count);
-
-unsigned fscc_port_has_iframes(struct fscc_port *port, unsigned lock);
-unsigned fscc_port_has_oframes(struct fscc_port *port, unsigned lock);
 
 __u32 fscc_port_get_register(struct fscc_port *port, unsigned bar,
 							 unsigned register_offset);
@@ -186,32 +175,11 @@ void fscc_port_set_register_rep(struct fscc_port *port, unsigned bar,
 								unsigned register_offset, const char *data,
 								unsigned byte_count);
 
-int fscc_port_purge_tx(struct fscc_port *port);
-int fscc_port_purge_rx(struct fscc_port *port);
-
-__u32 fscc_port_get_TXCNT(struct fscc_port *port);
-unsigned fscc_port_get_RXCNT(struct fscc_port *port);
-
 __u8 fscc_port_get_FREV(struct fscc_port *port);
 __u8 fscc_port_get_PREV(struct fscc_port *port);
 
-int fscc_port_execute_TRES(struct fscc_port *port);
-int fscc_port_execute_RRES(struct fscc_port *port);
-
 void fscc_port_suspend(struct fscc_port *port);
 void fscc_port_resume(struct fscc_port *port);
-
-unsigned fscc_port_get_output_memory_usage(struct fscc_port *port);
-unsigned fscc_port_get_input_memory_usage(struct fscc_port *port);
-
-unsigned fscc_port_get_output_number_frames(struct fscc_port *port);
-unsigned fscc_port_get_input_number_frames(struct fscc_port *port);
-
-unsigned fscc_port_get_input_memory_cap(struct fscc_port *port);
-unsigned fscc_port_get_output_memory_cap(struct fscc_port *port);
-
-void fscc_port_set_memory_cap(struct fscc_port *port,
-							  struct fscc_memory_cap *memory_cap);
 
 void fscc_port_set_ignore_timeout(struct fscc_port *port,
 								  unsigned ignore_timeout);
@@ -236,19 +204,14 @@ int fscc_port_set_registers(struct fscc_port *port,
 void fscc_port_get_registers(struct fscc_port *port,
 							 struct fscc_registers *regs);
 
-struct fscc_frame *fscc_port_peek_front_frame(struct fscc_port *port,
-											  struct list_head *frames);
-
 unsigned fscc_port_using_async(struct fscc_port *port);
 unsigned fscc_port_is_streaming(struct fscc_port *port);
 
-unsigned fscc_port_has_dma(struct fscc_port *port);
+unsigned fscc_port_is_dma(struct fscc_port *port);
 
 unsigned fscc_port_has_incoming_data(struct fscc_port *port);
 
-unsigned fscc_port_get_RFCNT(struct fscc_port *port);
-
-void fscc_port_execute_RST_T(struct fscc_port *port);
+unsigned fscc_port_timed_out(struct fscc_port *port);
 
 #ifdef DEBUG
 unsigned fscc_port_get_interrupt_count(struct fscc_port *port, __u32 isr_bit);
@@ -258,9 +221,7 @@ void fscc_port_increment_interrupt_counts(struct fscc_port *port,
 
 int fscc_port_set_tx_modifiers(struct fscc_port *port, unsigned tx_modifiers);
 unsigned fscc_port_get_tx_modifiers(struct fscc_port *port);
-void fscc_port_execute_transmit(struct fscc_port *port, unsigned dma);
 
 void fscc_port_reset_timer(struct fscc_port *port);
-unsigned fscc_port_transmit_frame(struct fscc_port *port, struct fscc_frame *frame);
 
 #endif

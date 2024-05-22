@@ -38,7 +38,7 @@ struct fscc_card {
 
 	void __iomem *bar[3];
 
-	unsigned dma;
+	unsigned dma_capable;
 };
 
 struct fscc_card *fscc_card_new(struct pci_dev *pdev,

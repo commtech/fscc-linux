@@ -26,6 +26,7 @@
 #include "card.h"
 #include "port.h" /* struct fscc_port */
 #include "utils.h" /* return_{val_}if_true */
+#include "io.h"
 
 
 /*
@@ -51,7 +52,7 @@ struct fscc_card *fscc_card_new(struct pci_dev *pdev,
 	INIT_LIST_HEAD(&card->ports);
 
 	card->pci_dev = pdev;
-	card->dma = 0;
+	card->dma_capable = 0;
 
 	switch (pdev->device) {
 	case SFSCC_ID:
@@ -66,12 +67,11 @@ struct fscc_card *fscc_card_new(struct pci_dev *pdev,
 	case SFSCC_UA_LVDS_ID:
 	case SFSCC_4_UA_LVDS_ID:
 	case SFSCCe_4_LVDS_UA_ID:
-		if (pci_set_dma_mask(pdev, 0xffffffff)) {
+		if (dma_set_mask_and_coherent(&pdev->dev, DMA_BIT_MASK(32))) {
 			dev_warn(&card->pci_dev->dev, "no suitable DMA available\n");
 		}
 		else {
-			card->dma = 1;
-			pci_set_master(card->pci_dev);
+			card->dma_capable = 1;
 		}
 
 		break;
@@ -88,7 +88,8 @@ struct fscc_card *fscc_card_new(struct pci_dev *pdev,
 		return 0;
 	}
 
-	if (pci_set_dma_mask(pdev, 0xffffffff)) {
+    if (dma_set_mask_and_coherent(&pdev->dev, DMA_BIT_MASK(32))) {
+        card->dma_capable = 0;
 		dev_warn(&card->pci_dev->dev, "no suitable DMA available\n");
 		return 0;
 	}

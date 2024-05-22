@@ -27,7 +27,6 @@
 #include <linux/fs.h> /* struct indode on <= 2.6.19 */
 
 #define FSCC_REGISTERS_INIT(registers) memset(&registers, -1, sizeof(registers))
-#define FSCC_MEMORY_CAP_INIT(memory_cap) memset(&memory_cap, -1, sizeof(memory_cap))
 #define FSCC_UPDATE_VALUE -2
 
 #define FSCC_IOCTL_MAGIC 0x18
@@ -41,9 +40,6 @@
 #define FSCC_ENABLE_APPEND_STATUS _IO(FSCC_IOCTL_MAGIC, 4)
 #define FSCC_DISABLE_APPEND_STATUS _IO(FSCC_IOCTL_MAGIC, 5)
 #define FSCC_GET_APPEND_STATUS _IOR(FSCC_IOCTL_MAGIC, 13, unsigned *)
-
-#define FSCC_SET_MEMORY_CAP _IOW(FSCC_IOCTL_MAGIC, 6, struct fscc_memory_cap *)
-#define FSCC_GET_MEMORY_CAP _IOR(FSCC_IOCTL_MAGIC, 7, struct fscc_memory_cap *)
 
 #define FSCC_SET_CLOCK_BITS _IOW(FSCC_IOCTL_MAGIC, 8, const unsigned char[20])
 
@@ -64,7 +60,7 @@
 
 #define FSCC_GET_STATUS _IOR(FSCC_IOCTL_MAGIC, 22, unsigned *)
 
-#define FSCC_GET_MEMORY_USAGE _IOR(FSCC_IOCTL_MAGIC, 23, struct fscc_memory_cap *)
+//#define FSCC_RESET_DMA _IO(FSCC_IOCTL_MAGIC, 26) //NYI
 
 enum transmit_modifiers { XF=0, XREP=1, TXT=2, TXEXT=4 };
 typedef __s64 fscc_register;
@@ -100,11 +96,16 @@ struct fscc_registers {
 
 	/* BAR 2 */
 	fscc_register FCR;
+	fscc_register DMACCR;
+	fscc_register reserved4[4];
+	fscc_register DSTAR;
 };
 
-struct fscc_memory_cap {
-	int input;
-	int output;
+struct fscc_memory {
+    __u32 TxNum;
+    __u32 TxSize;
+    __u32 RxNum;
+    __u32 RxSize;
 };
 
 extern struct list_head fscc_cards;

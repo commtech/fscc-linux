@@ -25,8 +25,18 @@
 
 #define DEVICE_NAME "fscc"
 
-#define DEFAULT_INPUT_MEMORY_CAP_VALUE 1000000
-#define DEFAULT_OUTPUT_MEMORY_CAP_VALUE 1000000
+// NUM * SIZE = new memory_cap
+// Because we are preallocating instead of setting a cap, the
+// new default values are much lower than the original memory cap.
+// The default number is 200 each, the default size is 256.
+
+// The NUM can be any positive number greater than 1.
+#define DEFAULT_DESC_RX_NUM 200
+#define DEFAULT_DESC_TX_NUM 200
+// The SIZE should ALWAYS be in 4 byte increments.
+// The SIZE should be smaller than the FIFO, ideally a lot smaller.
+#define DEFAULT_DESC_RX_SIZE 256
+#define DEFAULT_DESC_TX_SIZE 256
 
 #define DEFAULT_TIMEOUT_VALUE 50
 #define DEFAULT_FORCE_FIFO_VALUE 0

@@ -91,7 +91,7 @@ void debug_interrupt_display(unsigned long data)
 	port->last_isr_value = 0;
 
 	dev_dbg(port->device, "interrupt: 0x%08x\n", isr_value);
-
+/*
 	if (isr_value & RFE)
 		dev_dbg(port->device, "RFE (Receive Frame End Interrupt)\n");
 
@@ -148,4 +148,5 @@ void debug_interrupt_display(unsigned long data)
 
 	if (isr_value & DR_HI)
 		dev_dbg(port->device, "DR_HI (DMA Receive Host Interrupt indication)\n");
+		*/
 }

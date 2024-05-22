@@ -42,23 +42,23 @@ unsigned force_fifo = DEFAULT_FORCE_FIFO_VALUE;
 LIST_HEAD(fscc_cards);
 
 struct pci_device_id fscc_id_table[] = {
-	{ COMMTECH_VENDOR_ID, FSCC_ID, PCI_ANY_ID, 0, 0, 0 },
-	{ COMMTECH_VENDOR_ID, SFSCC_ID, PCI_ANY_ID, 0, 0, 0 },
-	{ COMMTECH_VENDOR_ID, SFSCC_104_LVDS_ID, PCI_ANY_ID, 0, 0, 0 },
-	{ COMMTECH_VENDOR_ID, FSCC_232_ID, PCI_ANY_ID, 0, 0, 0 },
-	{ COMMTECH_VENDOR_ID, SFSCC_104_UA_ID, PCI_ANY_ID, 0, 0, 0 },
-	{ COMMTECH_VENDOR_ID, SFSCC_4_UA_ID, PCI_ANY_ID, 0, 0, 0 },
-	{ COMMTECH_VENDOR_ID, SFSCC_UA_ID, PCI_ANY_ID, 0, 0, 0 },
-	{ COMMTECH_VENDOR_ID, SFSCC_LVDS_ID, PCI_ANY_ID, 0, 0, 0 },
-	{ COMMTECH_VENDOR_ID, FSCC_4_UA_ID, PCI_ANY_ID, 0, 0, 0 },
-	{ COMMTECH_VENDOR_ID, SFSCC_4_LVDS_ID, PCI_ANY_ID, 0, 0, 0 },
-	{ COMMTECH_VENDOR_ID, FSCC_UA_ID, PCI_ANY_ID, 0, 0, 0 },
-	{ COMMTECH_VENDOR_ID, SFSCCe_4_ID, PCI_ANY_ID, 0, 0, 0 },
-	{ COMMTECH_VENDOR_ID, SFSCC_4_UA_CPCI_ID, PCI_ANY_ID, 0, 0, 0 },
-	{ COMMTECH_VENDOR_ID, SFSCC_4_UA_LVDS_ID, PCI_ANY_ID, 0, 0, 0 },
-	{ COMMTECH_VENDOR_ID, SFSCC_UA_LVDS_ID, PCI_ANY_ID, 0, 0, 0 },
-	{ COMMTECH_VENDOR_ID, FSCCe_4_UA_ID, PCI_ANY_ID, 0, 0, 0 },
-	{ COMMTECH_VENDOR_ID, SFSCCe_4_LVDS_UA_ID, PCI_ANY_ID, 0, 0, 0 },
+	{ COMMTECH_VENDOR_ID, FSCC_ID, COMMTECH_VENDOR_ID, PCI_ANY_ID, 0, 0, 0 },
+	{ COMMTECH_VENDOR_ID, SFSCC_ID, COMMTECH_VENDOR_ID, PCI_ANY_ID, 0, 0, 0 },
+	{ COMMTECH_VENDOR_ID, SFSCC_104_LVDS_ID, COMMTECH_VENDOR_ID, PCI_ANY_ID, 0, 0, 0 },
+	{ COMMTECH_VENDOR_ID, FSCC_232_ID, COMMTECH_VENDOR_ID, PCI_ANY_ID, 0, 0, 0 },
+	{ COMMTECH_VENDOR_ID, SFSCC_104_UA_ID, COMMTECH_VENDOR_ID, PCI_ANY_ID, 0, 0, 0 },
+	{ COMMTECH_VENDOR_ID, SFSCC_4_UA_ID, COMMTECH_VENDOR_ID, PCI_ANY_ID, 0, 0, 0 },
+	{ COMMTECH_VENDOR_ID, SFSCC_UA_ID, COMMTECH_VENDOR_ID, PCI_ANY_ID, 0, 0, 0 },
+	{ COMMTECH_VENDOR_ID, SFSCC_LVDS_ID, COMMTECH_VENDOR_ID, PCI_ANY_ID, 0, 0, 0 },
+	{ COMMTECH_VENDOR_ID, FSCC_4_UA_ID, COMMTECH_VENDOR_ID, PCI_ANY_ID, 0, 0, 0 },
+	{ COMMTECH_VENDOR_ID, SFSCC_4_LVDS_ID, COMMTECH_VENDOR_ID, PCI_ANY_ID, 0, 0, 0 },
+	{ COMMTECH_VENDOR_ID, FSCC_UA_ID, COMMTECH_VENDOR_ID, PCI_ANY_ID, 0, 0, 0 },
+	{ COMMTECH_VENDOR_ID, SFSCCe_4_ID, COMMTECH_VENDOR_ID, PCI_ANY_ID, 0, 0, 0 },
+	{ COMMTECH_VENDOR_ID, SFSCC_4_UA_CPCI_ID, COMMTECH_VENDOR_ID, PCI_ANY_ID, 0, 0, 0 },
+	{ COMMTECH_VENDOR_ID, SFSCC_4_UA_LVDS_ID, COMMTECH_VENDOR_ID, PCI_ANY_ID, 0, 0, 0 },
+	{ COMMTECH_VENDOR_ID, SFSCC_UA_LVDS_ID, COMMTECH_VENDOR_ID, PCI_ANY_ID, 0, 0, 0 },
+	{ COMMTECH_VENDOR_ID, FSCCe_4_UA_ID, COMMTECH_VENDOR_ID, PCI_ANY_ID, 0, 0, 0 },
+	{ COMMTECH_VENDOR_ID, SFSCCe_4_LVDS_UA_ID, COMMTECH_VENDOR_ID, PCI_ANY_ID, 0, 0, 0 },
 	{ 0, },
 };
 
@@ -94,22 +94,20 @@ ssize_t fscc_read(struct file *file, char *buf, size_t count, loff_t *ppos)
 	if (down_interruptible(&port->read_semaphore))
 		return -ERESTARTSYS;
 
-	while (!fscc_port_has_incoming_data(port)) {
+	while (!fscc_io_user_read_ready(port)) {
 		up(&port->read_semaphore);
 
 		if (file->f_flags & O_NONBLOCK)
 			return -EAGAIN;
 
-		if (wait_event_interruptible(port->input_queue,
-									 fscc_port_has_incoming_data(port))) {
+		if (wait_event_interruptible(port->input_queue, fscc_io_user_read_ready(port)))
 			return -ERESTARTSYS;
-		}
 
 		if (down_interruptible(&port->read_semaphore))
 			return -ERESTARTSYS;
 	}
 
-	read_count = fscc_port_read(port, buf, count);
+	read_count = fscc_io_read(port, buf, count);
 
 	up(&port->read_semaphore);
 
@@ -117,7 +115,7 @@ ssize_t fscc_read(struct file *file, char *buf, size_t count, loff_t *ppos)
 }
 
 /*
-	Returns -ENOBUFS if write size is larger than memory_cap
+	Returns -ENOBUFS if write size is larger than memory
 */
 ssize_t fscc_write(struct file *file, const char *buf, size_t count,
 				   loff_t *ppos)
@@ -135,20 +133,19 @@ ssize_t fscc_write(struct file *file, const char *buf, size_t count,
 		return -EOPNOTSUPP;
 	}
 
-	if (count > fscc_port_get_output_memory_cap(port))
+    if(count > (port->memory.TxSize * port->memory.TxNum))
 		return -ENOBUFS;
 
 	if (down_interruptible(&port->write_semaphore))
 		return -ERESTARTSYS;
 
-	while (fscc_port_get_output_memory_usage(port) + count > fscc_port_get_output_memory_cap(port)) {
+	while (count > fscc_user_get_tx_space(port)) {
 		up(&port->write_semaphore);
 
 		if (file->f_flags & O_NONBLOCK)
 			return -EAGAIN;
 
-		if (wait_event_interruptible(port->output_queue,
-				fscc_port_get_output_memory_usage(port) + count <= fscc_port_get_output_memory_cap(port))) {
+		if (wait_event_interruptible(port->output_queue, count <= fscc_user_get_tx_space(port))) {
 			return -ERESTARTSYS;
 		}
 
@@ -156,11 +153,21 @@ ssize_t fscc_write(struct file *file, const char *buf, size_t count,
 			return -ERESTARTSYS;
 	}
 
-	error_code = fscc_port_write(port, buf, count);
+	if (port->ignore_timeout == 0 && fscc_port_timed_out(port)) {
+		dev_dbg(port->device, "device stalled (wrong clock mode?)\n");
+		return -ETIMEDOUT;
+	}
+
+	error_code = fscc_user_write_frame(port, buf, count);
 
 	up(&port->write_semaphore);
 
-	return (error_code < 0) ? error_code : count;
+	if (error_code < 0) return error_code;
+
+	if(!fscc_port_is_dma(port))
+        tasklet_schedule(&port->send_oframe_tasklet);
+
+	return count;
 }
 
 unsigned fscc_poll(struct file *file, struct poll_table_struct *wait)
@@ -175,10 +182,10 @@ unsigned fscc_poll(struct file *file, struct poll_table_struct *wait)
 	poll_wait(file, &port->input_queue, wait);
 	poll_wait(file, &port->output_queue, wait);
 
-	if (fscc_port_has_incoming_data(port))
+	if (fscc_io_user_read_ready(port))
 		mask |= POLLIN | POLLRDNORM;
 
-	if (fscc_port_get_output_memory_usage(port) < fscc_port_get_output_memory_cap(port))
+	if (fscc_user_get_tx_space(port))
 		mask |= POLLOUT | POLLWRNORM;
 
 	up(&port->poll_semaphore);
@@ -196,38 +203,37 @@ int fscc_ioctl(struct inode *inode, struct file *file, unsigned int cmd,
 	struct fscc_port *port = 0;
 	int error_code = 0;
 	unsigned long flags;
-	char clock_bits[20];	
+	char clock_bits[20];
 	unsigned tmp=0;
 	struct fscc_registers regs;
-	struct fscc_memory_cap tmp_memcap;
-    	unsigned copy_success = 0;
+    unsigned copy_success = 0;
 
 
 	port = file->private_data;
 
 	switch (cmd) {
 	case FSCC_GET_REGISTERS:
-		copy_from_user(&regs, (struct fscc_registers *)arg, sizeof(struct fscc_registers));
+		copy_success = copy_from_user(&regs, (struct fscc_registers *)arg, sizeof(struct fscc_registers));
 		spin_lock_irqsave(&port->board_settings_spinlock, flags);
 		fscc_port_get_registers(port, &regs);
 		spin_unlock_irqrestore(&port->board_settings_spinlock, flags);
-		copy_to_user((struct fscc_registers *)arg, &regs, sizeof(struct fscc_registers));
+		copy_success = copy_to_user((struct fscc_registers *)arg, &regs, sizeof(struct fscc_registers));
 		break;
 
 	case FSCC_SET_REGISTERS:
-		copy_from_user(&regs, (struct fscc_registers *)arg, sizeof(struct fscc_registers));
+		copy_success = copy_from_user(&regs, (struct fscc_registers *)arg, sizeof(struct fscc_registers));
 		spin_lock_irqsave(&port->board_settings_spinlock, flags);
 		fscc_port_set_registers(port, &regs);
 		spin_unlock_irqrestore(&port->board_settings_spinlock, flags);
 		break;
 
 	case FSCC_PURGE_TX:
-		if ((error_code = fscc_port_purge_tx(port)) < 0)
+		if ((error_code = fscc_io_purge_tx(port)) < 0)
 			return error_code;
 		break;
 
 	case FSCC_PURGE_RX:
-		if ((error_code = fscc_port_purge_rx(port)) < 0)
+		if ((error_code = fscc_io_purge_rx(port)) < 0)
 			return error_code;
 		break;
 
@@ -242,7 +248,7 @@ int fscc_ioctl(struct inode *inode, struct file *file, unsigned int cmd,
 
 	case FSCC_GET_APPEND_STATUS:
 		tmp = fscc_port_get_append_status(port);
-		copy_to_user((void *)arg, &tmp, sizeof(tmp));
+		copy_success = copy_to_user((void *)arg, &tmp, sizeof(tmp));
 		break;
 
 	case FSCC_ENABLE_APPEND_TIMESTAMP:
@@ -256,23 +262,11 @@ int fscc_ioctl(struct inode *inode, struct file *file, unsigned int cmd,
 
 	case FSCC_GET_APPEND_TIMESTAMP:
 		tmp = fscc_port_get_append_timestamp(port);
-		copy_to_user((void *)arg, &tmp, sizeof(tmp));
-		break;
-
-	case FSCC_SET_MEMORY_CAP:
-		copy_from_user(&tmp_memcap, (void *)arg, sizeof(tmp_memcap));
-		fscc_port_set_memory_cap(port, &tmp_memcap);
-		break;
-
-	case FSCC_GET_MEMORY_CAP:
-		tmp_memcap.input = fscc_port_get_input_memory_cap(port);
-		tmp_memcap.output = fscc_port_get_output_memory_cap(port);
-		copy_to_user(&(((struct fscc_memory_cap *)arg)->input), &tmp_memcap.input, sizeof(tmp_memcap.input));
-		copy_to_user(&(((struct fscc_memory_cap *)arg)->output), &tmp_memcap.output, sizeof(tmp_memcap.output));
+		copy_success = copy_to_user((void *)arg, &tmp, sizeof(tmp));
 		break;
 
 	case FSCC_SET_CLOCK_BITS:
-		copy_from_user(clock_bits, (char *)arg, 20);
+		copy_success = copy_from_user(clock_bits, (char *)arg, 20);
 		fscc_port_set_clock_bits(port, clock_bits);
 		break;
 
@@ -286,7 +280,7 @@ int fscc_ioctl(struct inode *inode, struct file *file, unsigned int cmd,
 
 	case FSCC_GET_IGNORE_TIMEOUT:
 		tmp = fscc_port_get_ignore_timeout(port);
-		copy_to_user((void *)arg, &tmp, sizeof(tmp));
+		copy_success = copy_to_user((void *)arg, &tmp, sizeof(tmp));
 		break;
 
 	case FSCC_SET_TX_MODIFIERS:
@@ -311,7 +305,7 @@ int fscc_ioctl(struct inode *inode, struct file *file, unsigned int cmd,
 
 	case FSCC_GET_RX_MULTIPLE:
 		tmp = fscc_port_get_rx_multiple(port);
-		copy_to_user((void *)arg, &tmp, sizeof(tmp));
+		copy_success = copy_to_user((void *)arg, &tmp, sizeof(tmp));
 		break;
 	/*
 	case FSCC_GET_STATUS:
@@ -328,13 +322,7 @@ int fscc_ioctl(struct inode *inode, struct file *file, unsigned int cmd,
 		copy_to_user((void *)arg, &tmp, sizeof(tmp));
 		break;
 	*/
-	case FSCC_GET_MEMORY_USAGE:
-		tmp_memcap.input = fscc_port_get_input_memory_usage(port);
-		tmp_memcap.output = fscc_port_get_output_memory_usage(port);
-		copy_to_user(&(((struct fscc_memory_cap *)arg)->input), &tmp_memcap.input, sizeof(tmp_memcap.input));
-		copy_to_user(&(((struct fscc_memory_cap *)arg)->output), &tmp_memcap.output, sizeof(tmp_memcap.output));
-		break;
-        
+
 	default:
 		dev_dbg(port->device, "unknown ioctl 0x%x\n", cmd);
 		return -ENOTTY;

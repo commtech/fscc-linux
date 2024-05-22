@@ -48,6 +48,7 @@
 		return val; \
 	}
 
+
 __u32 chars_to_u32(const char *data);
 int str_to_register_offset(const char *str);
 int str_to_interrupt_offset(const char *str);
