@@ -1,30 +1,30 @@
 /*
-	Copyright (c) 2019 Commtech, Inc.
+        Copyright (c) 2019 Commtech, Inc.
 
     Permission is hereby granted, free of charge, to any person obtaining a copy
-    of this software and associated documentation files (the "Software"), to deal
-    in the Software without restriction, including without limitation the rights
-    to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-    copies of the Software, and to permit persons to whom the Software is
+    of this software and associated documentation files (the "Software"), to
+   deal in the Software without restriction, including without limitation the
+   rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+   sell copies of the Software, and to permit persons to whom the Software is
     furnished to do so, subject to the following conditions:
 
-    The above copyright notice and this permission notice shall be included in all
-    copies or substantial portions of the Software.
+    The above copyright notice and this permission notice shall be included in
+   all copies or substantial portions of the Software.
 
     THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
     IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
     FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
     AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-    OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-    SOFTWARE.
+    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+   FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+   IN THE SOFTWARE.
 */
 
 #ifndef FSCC_H
 #define FSCC_H
 
+#include <linux/fs.h>    /* struct indode on <= 2.6.19 */
 #include <linux/sched.h> /* wait_queue_head_t */
-#include <linux/fs.h> /* struct indode on <= 2.6.19 */
 
 #define FSCC_REGISTERS_INIT(registers) memset(&registers, -1, sizeof(registers))
 #define FSCC_UPDATE_VALUE -2
@@ -32,7 +32,8 @@
 #define FSCC_IOCTL_MAGIC 0x18
 
 #define FSCC_GET_REGISTERS _IOR(FSCC_IOCTL_MAGIC, 0, struct fscc_registers *)
-#define FSCC_SET_REGISTERS _IOW(FSCC_IOCTL_MAGIC, 1, const struct fscc_registers *)
+#define FSCC_SET_REGISTERS                                                     \
+  _IOW(FSCC_IOCTL_MAGIC, 1, const struct fscc_registers *)
 
 #define FSCC_PURGE_TX _IO(FSCC_IOCTL_MAGIC, 2)
 #define FSCC_PURGE_RX _IO(FSCC_IOCTL_MAGIC, 3)
@@ -60,52 +61,52 @@
 
 #define FSCC_GET_STATUS _IOR(FSCC_IOCTL_MAGIC, 22, unsigned *)
 
-//#define FSCC_RESET_DMA _IO(FSCC_IOCTL_MAGIC, 26) //NYI
+// #define FSCC_RESET_DMA _IO(FSCC_IOCTL_MAGIC, 26) //NYI
 
-enum transmit_modifiers { XF=0, XREP=1, TXT=2, TXEXT=4 };
+enum transmit_modifiers { XF = 0, XREP = 1, TXT = 2, TXEXT = 4 };
 typedef __s64 fscc_register;
 
 struct fscc_registers {
-	/* BAR 0 */
-	fscc_register reserved1[2];
+  /* BAR 0 */
+  fscc_register reserved1[2];
 
-	fscc_register FIFOT;
+  fscc_register FIFOT;
 
-	fscc_register reserved2[2];
+  fscc_register reserved2[2];
 
-	fscc_register CMDR;
-	fscc_register STAR; /* Read-only */
-	fscc_register CCR0;
-	fscc_register CCR1;
-	fscc_register CCR2;
-	fscc_register BGR;
-	fscc_register SSR;
-	fscc_register SMR;
-	fscc_register TSR;
-	fscc_register TMR;
-	fscc_register RAR;
-	fscc_register RAMR;
-	fscc_register PPR;
-	fscc_register TCR;
-	fscc_register VSTR; /* Read-only */
+  fscc_register CMDR;
+  fscc_register STAR; /* Read-only */
+  fscc_register CCR0;
+  fscc_register CCR1;
+  fscc_register CCR2;
+  fscc_register BGR;
+  fscc_register SSR;
+  fscc_register SMR;
+  fscc_register TSR;
+  fscc_register TMR;
+  fscc_register RAR;
+  fscc_register RAMR;
+  fscc_register PPR;
+  fscc_register TCR;
+  fscc_register VSTR; /* Read-only */
 
-	fscc_register reserved3[1];
+  fscc_register reserved3[1];
 
-	fscc_register IMR;
-	fscc_register DPLLR;
+  fscc_register IMR;
+  fscc_register DPLLR;
 
-	/* BAR 2 */
-	fscc_register FCR;
-	fscc_register DMACCR;
-	fscc_register reserved4[4];
-	fscc_register DSTAR;
+  /* BAR 2 */
+  fscc_register FCR;
+  fscc_register DMACCR;
+  fscc_register reserved4[4];
+  fscc_register DSTAR;
 };
 
 struct fscc_memory {
-    __u32 TxNum;
-    __u32 TxSize;
-    __u32 RxNum;
-    __u32 RxSize;
+  __u32 TxNum;
+  __u32 TxSize;
+  __u32 RxNum;
+  __u32 RxSize;
 };
 
 extern struct list_head fscc_cards;
@@ -134,4 +135,3 @@ extern struct list_head fscc_cards;
 #define STATUS_LENGTH 2
 
 #endif
-
