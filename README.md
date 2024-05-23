@@ -315,6 +315,6 @@ We follow [Semantic Versioning](http://semver.org/) when creating releases.
 
 ## License
 
-Copyright (C) 2019 [Commtech, Inc.](http://commtech-fastcom.com)
+Copyright (C) 2024 [Commtech, Inc.](http://commtech-fastcom.com)
 
 Licensed under the MIT license.
