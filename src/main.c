@@ -433,8 +433,11 @@ struct pci_driver fscc_pci_driver = {
 static int __init fscc_init(void) {
   int error_code = 0;
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 2, 13)
+  fscc_class = class_create(DEVICE_NAME);
+#else
   fscc_class = class_create(THIS_MODULE, DEVICE_NAME);
-
+#endif
   if (IS_ERR(fscc_class)) {
     printk(KERN_ERR DEVICE_NAME " class_create failed\n");
     return PTR_ERR(fscc_class);
