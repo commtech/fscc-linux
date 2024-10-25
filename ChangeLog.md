@@ -1,4 +1,7 @@
 # ChangeLog
+## [2.5.4](https://github.com/commtech/fscc-linux/releases/tag/v2.5.4) (10/25/2024)
+- Updated the DMA to work better
+- Fixed class_create() for newer kernels
 
 ## [2.5.3](https://github.com/commtech/fscc-linux/releases/tag/v2.5.3) (02/27/2019)
 - Added copy_to/from_user functions for IOCTL calls
