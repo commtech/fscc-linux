@@ -74,6 +74,16 @@ struct pci_device_id fscc_id_table[] = {
     },
 };
 
+int fscc_open(struct inode *inode, struct file *file);
+ssize_t fscc_read(struct file *file, char *buf, size_t count, loff_t *ppos);
+ssize_t fscc_write(struct file *file, const char *buf, size_t count, loff_t *ppos);
+unsigned fscc_poll(struct file *file, struct poll_table_struct *wait);
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 11)
+long fscc_ioctl(struct file *file, unsigned int cmd, unsigned long arg);
+#else
+int fscc_ioctl(struct inode *inode, struct file *file, unsigned int cmd, unsigned long arg);
+#endif
+
 int fscc_open(struct inode *inode, struct file *file) {
   struct fscc_port *current_port = 0;
 

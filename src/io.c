@@ -39,7 +39,21 @@ void fscc_dma_execute_GO_R(struct fscc_port *port);
 void fscc_dma_execute_GO_T(struct fscc_port *port);
 void fscc_io_execute_transmit(struct fscc_port *port, unsigned dma);
 int fscc_fifo_write_data(struct fscc_port *port);
-
+struct io_frame *fscc_io_create_frame(struct fscc_port *port, struct dma_pool *data_pool);
+void fscc_io_destroy_frame(struct fscc_port *port, struct io_frame *frame, struct dma_pool *data_pool);
+void fscc_io_link_descriptors(struct fscc_port *port, struct io_frame **frames, size_t amount);
+int fscc_io_execute_RRES(struct fscc_port *port);
+int fscc_io_execute_TRES(struct fscc_port *port);
+int fscc_dma_is_master_dead(struct fscc_port *port);
+void fscc_dma_reset_master(struct fscc_port *port);
+unsigned fscc_io_get_RXCNT(struct fscc_port *port);
+unsigned fscc_io_get_RFCNT(struct fscc_port *port);        
+unsigned fscc_io_get_TXCNT(struct fscc_port *port);
+unsigned fscc_io_get_TFCNT(struct fscc_port *port);
+unsigned fscc_user_next_read_size(struct fscc_port *port, size_t *bytes);
+ssize_t fscc_user_read_frame(struct fscc_port *port, char *buf, size_t buf_length);
+ssize_t fscc_user_read_stream(struct fscc_port *port, char *buf, size_t buf_length);        
+                           
 // Even if our card does not do DMA, we will use the DMA tools universally.
 // We'll just use them for normal memory purposes.
 int fscc_io_initialize(struct fscc_port *port, size_t rx_buffer_size,

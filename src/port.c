@@ -34,6 +34,9 @@
 
 extern unsigned force_fifo;
 
+__u16 fscc_port_get_PDEV(struct fscc_port *port);
+unsigned fscc_port_get_CE(struct fscc_port *port);
+
 /*
         This handles initialization on a port level. So things that each port
    have will be initialized in this function. /dev/ nodes, registers, clock, and
