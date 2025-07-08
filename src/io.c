@@ -764,27 +764,6 @@ int fscc_user_write_frame(struct fscc_port *port, const char *buf,
   u32 start_desc = 0;
   unsigned long board_flags = 0;
   int out_length = 0;
-  unsigned long unmoved_bytes = 0;
-  char *temp_data = 0;
-
-  return_val_if_untrue(port, 0);
-
-  //// I don't like doing this, but it must be done.
-  //// copy_from_user() must be used to move data from user space to
-  //// kernel space, but copy_from_user() cannot be used in a spinlock.
-  //// I can either implement a mutex (perhaps in the future) or
-  //// organize a temporary holding buffer until we lose the spinlock.
-  temp_data = kzalloc(data_length, GFP_KERNEL);
-  if (temp_data == NULL) {
-    dev_warn(port->device, "failed to allocate temp_data!\n");
-    return 0;
-  }
-
-  unmoved_bytes = copy_from_user(temp_data, buf, data_length);
-  if (unmoved_bytes)
-    dev_dbg(port->device, "user_write_frame unmoved_bytes: %lu\n",
-            unmoved_bytes);
-
   spin_lock_irqsave(&port->board_tx_spinlock, board_flags);
   for (i = 0; i < port->memory.TxNum; i++) {
     if ((port->tx_descriptors[port->user_tx_desc]->desc->control &
@@ -800,7 +779,7 @@ int fscc_user_write_frame(struct fscc_port *port, const char *buf,
     else
       transmit_length = data_length - out_length;
 
-    memcpy(port->tx_descriptors[port->user_tx_desc]->buffer, temp_data + out_length,
+    memcpy(port->tx_descriptors[port->user_tx_desc]->buffer, buf + out_length,
            transmit_length);
     out_length += transmit_length;
     port->tx_descriptors[port->user_tx_desc]->desc->data_count =
@@ -826,8 +805,6 @@ int fscc_user_write_frame(struct fscc_port *port, const char *buf,
     fscc_port_set_register(port, 2, DMA_TX_BASE_OFFSET, start_desc);
     fscc_io_execute_transmit(port, 1);
   }
-
-  kfree(temp_data);
   return status;
 }
 
