@@ -62,10 +62,10 @@
 #define MAX_OFFSET 0x58 // must equal the highest FCore register address
 
 #define DMACCR_OFFSET 0x04
-#define DMA_RX_BASE_OFFSET 0x0c
-#define DMA_TX_BASE_OFFSET 0x10
-#define DMA_CURRENT_RX_BASE_OFFSET 0x20
-#define DMA_CURRENT_TX_BASE_OFFSET 0x24
+#define DRDB_OFFSET 0x0c
+#define DTDB_OFFSET 0x10
+#define DCRDB_OFFSET 0x20
+#define DCTDB_OFFSET 0x24
 
 #define RFE 0x00000004
 #define RFT 0x00000002

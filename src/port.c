@@ -255,8 +255,10 @@ struct fscc_port *fscc_port_new(struct fscc_card *card, unsigned channel,
     return 0;
   }
 
-  if (fscc_port_is_dma(port))
+  if (fscc_port_is_dma(port)) {
     fscc_dma_enable(port);
+    fscc_dma_reset_master(port);
+  }
 
   fscc_io_purge_rx(port);
   fscc_io_purge_tx(port);
@@ -284,8 +286,8 @@ void fscc_port_delete(struct fscc_port *port) {
     // But the port doesn't exist any more, so the interrupts can't be
     // handled... so we turn off all our interrupts, problem solved!
     fscc_port_set_register(port, 0, IMR_OFFSET, 0xFFFFFFFF);
-    fscc_port_set_register(port, 2, DMA_TX_BASE_OFFSET, 0x00000000);
-    fscc_port_set_register(port, 2, DMA_RX_BASE_OFFSET, 0x00000000);
+    fscc_port_set_register(port, 2, DTDB_OFFSET, 0x00000000);
+    fscc_port_set_register(port, 2, DRDB_OFFSET, 0x00000000);
     fscc_port_set_register(port, 2, DMACCR_OFFSET, 0x00000000);
   }
   fscc_io_destroy(port);
@@ -344,6 +346,7 @@ __u32 fscc_port_get_register(struct fscc_port *port, unsigned bar,
 
   offset = port_offset(port, bar, register_offset);
   value = fscc_card_get_register(port->card, bar, offset);
+  dev_dbg(port->device, "GET_REG: %i:%02x 0x%08x\n", bar, register_offset, value);
 
   return value;
 }
@@ -368,36 +371,22 @@ int fscc_port_set_register(struct fscc_port *port, unsigned bar,
   }
 
   // TODO Maybe remove this?
+  /*
   if ((register_offset == DMACCR_OFFSET) && fscc_port_is_dma(port) && bar == 2)
     value |= 0x03000000;
   else if ((register_offset == DMACCR_OFFSET) && !fscc_port_is_dma(port) &&
            bar == 2)
     value &= ~0x03000000;
+  */
   fscc_card_set_register(port->card, bar, offset, value);
 
   if (bar == 0) {
-    fscc_register old_value =
-        ((fscc_register *)&port->register_storage)[register_offset / 4];
     ((fscc_register *)&port->register_storage)[register_offset / 4] = value;
-
-    if (old_value != value) {
-      dev_dbg(port->device, "%i:%02x 0x%08x => 0x%08x\n", bar, register_offset,
-              (unsigned int)old_value, value);
-    } else {
-      dev_dbg(port->device, "%i:%02x 0x%08x\n", bar, register_offset, value);
-    }
   } else if (register_offset == FCR_OFFSET) {
-    fscc_register old_value = port->register_storage.FCR;
     port->register_storage.FCR = value;
-
-    if (old_value != value) {
-      dev_dbg(port->device, "2:00 0x%08x => 0x%08x\n", (unsigned int)old_value,
-              value);
-    } else {
-      dev_dbg(port->device, "2:00 0x%08x\n", value);
-    }
-  }
-
+  } 
+  
+  dev_dbg(port->device, "SET_REG: %i:%02x 0x%08x\n", bar, register_offset, value);
   return 1;
 }
 

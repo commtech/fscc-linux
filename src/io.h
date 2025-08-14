@@ -71,6 +71,8 @@ void fscc_dma_execute_RST_R(struct fscc_port *port);
 void fscc_dma_execute_RST_T(struct fscc_port *port);
 void fscc_dma_execute_STOP_R(struct fscc_port *port);
 void fscc_dma_execute_STOP_T(struct fscc_port *port);
+int fscc_dma_is_master_dead(struct fscc_port *port);
+void fscc_dma_reset_master(struct fscc_port *port);
 
 int fscc_io_user_read_ready(struct fscc_port *port);
 ssize_t fscc_io_read(struct fscc_port *port, char *buf, size_t count);

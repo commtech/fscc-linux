@@ -160,11 +160,14 @@ unsigned port_offset(struct fscc_port *port, unsigned bar, unsigned offset) {
     case DMACCR_OFFSET:
       return (port->channel == 0) ? offset : offset + 0x04;
 
-    case DMA_RX_BASE_OFFSET:
-    case DMA_TX_BASE_OFFSET:
-    case DMA_CURRENT_RX_BASE_OFFSET:
-    case DMA_CURRENT_TX_BASE_OFFSET:
+    case DRDB_OFFSET:
+    case DTDB_OFFSET:
+    case DCRDB_OFFSET:
+    case DCTDB_OFFSET:
       return (port->channel == 0) ? offset : offset + 0x08;
+    
+    case DSTAR_OFFSET:
+      return offset;
 
     default:
       break;

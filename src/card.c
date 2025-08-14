@@ -67,7 +67,9 @@ struct fscc_card *fscc_card_new(struct pci_dev *pdev, unsigned major_number,
     if (dma_set_mask_and_coherent(&pdev->dev, DMA_BIT_MASK(32))) {
       dev_warn(&card->pci_dev->dev, "no suitable DMA available\n");
     } else {
-      card->dma_capable = 0;
+      card->dma_capable = 1;
+      //card->dma_capable = 0; // Temporary
+      pci_set_master(card->pci_dev);
     }
 
     break;

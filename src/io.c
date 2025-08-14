@@ -44,8 +44,6 @@ void fscc_io_destroy_frame(struct fscc_port *port, struct io_frame *frame, struc
 void fscc_io_link_descriptors(struct fscc_port *port, struct io_frame **frames, size_t amount);
 int fscc_io_execute_RRES(struct fscc_port *port);
 int fscc_io_execute_TRES(struct fscc_port *port);
-int fscc_dma_is_master_dead(struct fscc_port *port);
-void fscc_dma_reset_master(struct fscc_port *port);
 unsigned fscc_io_get_RXCNT(struct fscc_port *port);
 unsigned fscc_io_get_RFCNT(struct fscc_port *port);        
 unsigned fscc_io_get_TXCNT(struct fscc_port *port);
@@ -97,7 +95,6 @@ int fscc_io_initialize(struct fscc_port *port, size_t rx_buffer_size,
     dev_warn(port->device, "tx_frames: FAILED\n");
     return -ENOMEM;
   }
-
   return 0;
 }
 
@@ -264,7 +261,7 @@ int fscc_io_purge_rx(struct fscc_port *port) {
   port->rx_bytes_in_frame = 0;
   port->rx_frame_size = 0;
   if (fscc_port_is_dma(port))
-    fscc_port_set_register(port, 2, DMA_RX_BASE_OFFSET,
+    fscc_port_set_register(port, 2, DRDB_OFFSET,
                            port->rx_descriptors[0]->desc_physical_address);
   spin_unlock_irqrestore(&port->board_rx_spinlock, board_flags);
 
@@ -297,7 +294,7 @@ int fscc_io_purge_tx(struct fscc_port *port) {
   port->tx_bytes_in_frame = 0;
   port->tx_frame_size = 0;
   if (fscc_port_is_dma(port))
-    fscc_port_set_register(port, 2, DMA_TX_BASE_OFFSET,
+    fscc_port_set_register(port, 2, DTDB_OFFSET,
                            port->tx_descriptors[0]->desc_physical_address);
   spin_unlock_irqrestore(&port->board_tx_spinlock, board_flags);
 
@@ -311,7 +308,7 @@ void fscc_io_destroy_rx_frames(struct fscc_port *port) {
   if (fscc_port_is_dma(port)) {
     fscc_dma_execute_STOP_R(port);
     fscc_dma_execute_RST_R(port);
-    fscc_port_set_register(port, 2, DMA_RX_BASE_OFFSET, 0);
+    fscc_port_set_register(port, 2, DRDB_OFFSET, 0);
   }
   if (port->rx_descriptors == NULL)
     return;
@@ -331,7 +328,7 @@ void fscc_io_destroy_tx_frames(struct fscc_port *port) {
   if (fscc_port_is_dma(port)) {
     fscc_dma_execute_STOP_T(port);
     fscc_dma_execute_RST_T(port);
-    fscc_port_set_register(port, 2, DMA_TX_BASE_OFFSET, 0);
+    fscc_port_set_register(port, 2, DTDB_OFFSET, 0);
   }
   if (port->tx_descriptors == NULL)
     return;
@@ -768,7 +765,7 @@ int fscc_user_write_frame(struct fscc_port *port, const char *buf,
   char *temp_data = 0;
   
   return_val_if_untrue(port, 0);
-
+  
   //// I don't like doing this, but it must be done.
   //// copy_from_user() must be used to move data from user space to
   //// kernel space, but copy_from_user() cannot be used in a spinlock.
@@ -821,9 +818,10 @@ int fscc_user_write_frame(struct fscc_port *port, const char *buf,
       break;
   }
   spin_unlock_irqrestore(&port->board_tx_spinlock, board_flags);
+  
   // There is no additional prep for DMA.. so lets just start it.
   if (fscc_port_is_dma(port) && !fscc_dma_is_tx_running(port)) {
-    fscc_port_set_register(port, 2, DMA_TX_BASE_OFFSET, start_desc);
+    fscc_port_set_register(port, 2, DTDB_OFFSET, start_desc);
     fscc_io_execute_transmit(port, 1);
   }
   
@@ -848,7 +846,7 @@ ssize_t fscc_user_read_frame(struct fscc_port *port, char *buf,
   char *temp_data = 0;
 
   return_val_if_untrue(port, 0);
-
+  
   //// I don't like doing this, but it must be done.
   //// copy_to_user() must be used to move data from kernel space to
   //// user space, but copy_to_user() cannot be used in a spinlock.
@@ -952,7 +950,7 @@ ssize_t fscc_user_read_frame(struct fscc_port *port, char *buf,
   if (unmoved_bytes)
     dev_dbg(port->device, "user_read_frame unmoved_bytes: %lu\n",
             unmoved_bytes);
-
+  
   kfree(temp_data);
   return out_length;
 }
