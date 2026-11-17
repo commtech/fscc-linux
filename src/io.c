@@ -607,6 +607,9 @@ unsigned fscc_io_transmit_frame(struct fscc_port *port) {
   if (result)
     fscc_io_execute_transmit(port, 0);
 
+  /* Descriptors may have been recycled. Unstick a writer waiting for space. */
+  wake_up_interruptible(&port->output_queue);
+
   return result;
 }
 
@@ -618,14 +621,18 @@ int fscc_fifo_write_data(struct fscc_port *port) {
   u32 txcnt = 0, tfcnt = 0;
 
   tfcnt = fscc_io_get_TFCNT(port);
-  if (tfcnt > 254)
+  if (tfcnt > 254) {
+    dev_warn_ratelimited(port->device, "TX frame count full tfcnt=%u\n", tfcnt);
     return 0;
+  }
 
   txcnt = fscc_io_get_TXCNT(port);
   fifo_space = TX_FIFO_SIZE - txcnt - 1;
   fifo_space -= fifo_space % 4;
-  if (fifo_space > TX_FIFO_SIZE)
+  if (fifo_space > TX_FIFO_SIZE) {
+    dev_warn_ratelimited(port->device, "TXCNT out of range txcnt=%u\n", txcnt);
     return 0;
+  }
 
   spin_lock_irqsave(&port->board_tx_spinlock, board_flags);
   for (i = 0; i < port->memory.TxNum; i++) {
