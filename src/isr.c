@@ -66,8 +66,7 @@ irqreturn_t fscc_isr(int irq, void *potential_port, struct pt_regs *regs)
     if (isr_value & (RFE | RFT | RFS | RFO | RDO))
       tasklet_schedule(&port->iframe_tasklet);
 
-    if (isr_value & (TFT | TDU | ALLS))
-      tasklet_schedule(&port->send_oframe_tasklet);
+    /* TX is pumped from fscc_write. */
   }
 
 #ifdef DEBUG
@@ -129,6 +128,8 @@ void timer_handler(unsigned long data) {
   if (fscc_port_is_dma(port)) {
     if (fscc_io_user_read_ready(port))
       wake_up_interruptible(&port->input_queue);
-  } else
+  } else {
     tasklet_schedule(&port->iframe_tasklet);
+    /* TX is pumped from fscc_write. */
+  }
 }

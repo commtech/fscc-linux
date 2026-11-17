@@ -21,7 +21,8 @@
 
 */
 
-#include <linux/version.h> /* LINUX_VERSION_CODE, KERNEL_VERSION */
+#include <linux/version.h>
+#include <linux/delay.h> /* LINUX_VERSION_CODE, KERNEL_VERSION */
 #if LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 24)
 #include <asm/uaccess.h> /* copy_*_user in <= 2.6.24 */
 #endif
@@ -443,6 +444,12 @@ int fscc_port_set_registers(struct fscc_port *port,
   for (i = 0; i < sizeof(*regs) / sizeof(fscc_register); i++) {
     unsigned register_offset = i * 4;
 
+    /* The kernel struct grew past FCR. SWETB passes the older, shorter
+     * struct, so the extra fields are whatever follows it on the stack.
+     * Those values were written into FCR and stopped the clock. */
+    if (i > 23)
+      continue;
+
     if (is_read_only_register(register_offset) ||
         ((fscc_register *)regs)[i] < 0) {
       continue;
@@ -548,6 +555,7 @@ void fscc_port_set_clock_bits(struct fscc_port *port,
   unsigned strb_value = STRB_BASE;
   unsigned dta_value = DTA_BASE;
   unsigned clk_value = CLK_BASE;
+  unsigned clock_mask = 0xfffffff0;
   unsigned long flags;
 
   __u32 *data = 0;
@@ -569,7 +577,7 @@ void fscc_port_set_clock_bits(struct fscc_port *port,
   }
 #endif
 
-  data = kmalloc(sizeof(__u32) * 323, GFP_KERNEL);
+  data = kmalloc(sizeof(__u32) * 512, GFP_KERNEL);
 
   if (data == NULL) {
     printk(KERN_ERR DEVICE_NAME "kmalloc failed\n");
@@ -580,17 +588,19 @@ void fscc_port_set_clock_bits(struct fscc_port *port,
     strb_value <<= 0x08;
     dta_value <<= 0x08;
     clk_value <<= 0x08;
+    clock_mask = 0xfffff0ff;
   }
-
-  spin_lock_irqsave(&port->board_settings_spinlock, flags);
 
   orig_fcr_value = fscc_card_get_register(port->card, 2, FCR_OFFSET);
 
-  data[data_index++] = new_fcr_value = orig_fcr_value & 0xfffff0f0;
+  data[data_index++] = new_fcr_value = orig_fcr_value & clock_mask;
 
   for (i = 19; i >= 0; i--) {
     for (j = 7; j >= 0; j--) {
       int bit = ((clock_data[i] >> j) & 1);
+
+      /* Extra sample required by the 4-port clock generator. */
+      data[data_index++] = new_fcr_value;
 
       if (bit)
         new_fcr_value |= dta_value; /* Set data bit */
@@ -600,11 +610,11 @@ void fscc_port_set_clock_bits(struct fscc_port *port,
       data[data_index++] = new_fcr_value |= clk_value;  /* Set clock bit */
       data[data_index++] = new_fcr_value &= ~clk_value; /* Clear clock bit */
 
-      new_fcr_value = orig_fcr_value & 0xfffff0f0;
+      new_fcr_value = orig_fcr_value & clock_mask;
     }
   }
 
-  new_fcr_value = orig_fcr_value & 0xfffff0f0;
+  new_fcr_value = orig_fcr_value & clock_mask;
 
   new_fcr_value |= strb_value; /* Set strobe bit */
   new_fcr_value &= ~clk_value; /* Clear clock bit	*/
@@ -612,9 +622,25 @@ void fscc_port_set_clock_bits(struct fscc_port *port,
   data[data_index++] = new_fcr_value;
   data[data_index++] = orig_fcr_value;
 
-  fscc_port_set_register_rep(port, 2, FCR_OFFSET, (char *)data, data_index * 4);
+  {
+    unsigned n;
+    unsigned fcr_off = port_offset(port, 2, FCR_OFFSET);
 
-  spin_unlock_irqrestore(&port->board_settings_spinlock, flags);
+    /* On PREEMPT_RT the normal spinlock can sleep and corrupts the
+     * clock-generator bitstream. This section must stay atomic, and each
+     * edge has to reach the card before the next one is posted. */
+    local_irq_save(flags);
+    preempt_disable();
+    if (data_index > 512)
+      data_index = 512;
+    for (n = 0; n < data_index; n++) {
+      fscc_card_set_register(port->card, 2, fcr_off, data[n]);
+      (void)fscc_card_get_register(port->card, 2, fcr_off);
+      udelay(1);
+    }
+    preempt_enable();
+    local_irq_restore(flags);
+  }
 
   kfree(data);
 }

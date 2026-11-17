@@ -33,6 +33,8 @@
         isn't specific to a single port like managing the pci space and calling
    the port specific functions will happen here.
 */
+static DEFINE_RAW_SPINLOCK(fscc_mmio_lock);
+
 struct fscc_card *fscc_card_new(struct pci_dev *pdev, unsigned major_number,
                                 struct class *class,
                                 struct file_operations *fops) {
@@ -190,13 +192,16 @@ __u32 fscc_card_get_register(struct fscc_card *card, unsigned bar,
                              unsigned offset) {
   void __iomem *address = 0;
   __u32 value = 0;
+  unsigned long flags;
 
   return_val_if_untrue(card, 0);
   return_val_if_untrue(bar <= 2, 0);
 
   address = fscc_card_get_BAR(card, bar);
 
+  raw_spin_lock_irqsave(&fscc_mmio_lock, flags);
   value = ioread32(address + offset);
+  raw_spin_unlock_irqrestore(&fscc_mmio_lock, flags);
   value = le32_to_cpu(value);
 
   return value;
@@ -218,7 +223,12 @@ void fscc_card_set_register(struct fscc_card *card, unsigned bar,
 
   value = cpu_to_le32(value);
 
-  iowrite32(value, address + offset);
+  {
+    unsigned long flags;
+    raw_spin_lock_irqsave(&fscc_mmio_lock, flags);
+    iowrite32(value, address + offset);
+    raw_spin_unlock_irqrestore(&fscc_mmio_lock, flags);
+  }
 }
 
 /*

@@ -165,10 +165,15 @@ ssize_t fscc_write(struct file *file, const char *buf, size_t count,
     if (file->f_flags & O_NONBLOCK)
       return -EAGAIN;
 
-    if (wait_event_interruptible(port->output_queue,
-                                 count <= fscc_user_get_tx_space(port))) {
+    if (!fscc_port_is_dma(port))
+      fscc_io_transmit_frame(port);
+
+    /* CmdTx is realtime and starves the HDLC tasklet. Retry so a full
+     * FIFO cannot leave the writer asleep after the card drains. */
+    if (wait_event_interruptible_timeout(
+            port->output_queue, count <= fscc_user_get_tx_space(port),
+            msecs_to_jiffies(2)) < 0)
       return -ERESTARTSYS;
-    }
 
     if (down_interruptible(&port->write_semaphore))
       return -ERESTARTSYS;
@@ -176,6 +181,7 @@ ssize_t fscc_write(struct file *file, const char *buf, size_t count,
 
   if (port->ignore_timeout == 0 && fscc_port_timed_out(port)) {
     dev_dbg(port->device, "device stalled (wrong clock mode?)\n");
+    up(&port->write_semaphore);
     return -ETIMEDOUT;
   }
 
@@ -187,7 +193,7 @@ ssize_t fscc_write(struct file *file, const char *buf, size_t count,
     return error_code;
 
   if (!fscc_port_is_dma(port))
-    tasklet_schedule(&port->send_oframe_tasklet);
+    fscc_io_transmit_frame(port);
 
   return count;
 }
